@@ -23,6 +23,9 @@
 **Attribution** — Le lien entre un emplacement et une adresse, résultat de l'acceptation d'une demande par le comité. Permanente jusqu'à libération (pas de saison, pas de renouvellement annuel).
   _Avoid_: réservation, location
 
+**Mobilité réduite** — Indicateur optionnel sur une demande : le membre a besoin d'un emplacement facile d'accès, ce qui oriente l'attribution vers les niveaux bas des structures horizontales. Terme retenu car standard (« personne à mobilité réduite », PMR).
+  _Avoid_: handicap, accessibilité (trop large), problème de mobilité
+
 **Quota** — La règle « 2 emplacements par adresse ». Non bloquante : une demande hors quota est acceptée par le formulaire mais signalée à l'admin ; la décision reste humaine (des exceptions historiques à 3–4 emplacements existent).
 
 **Comité administratif** — Le groupe de bénévoles qui décide des attributions (forme courte acceptée : « le comité »). Une personne du groupe est un **membre du comité**. Accès admin protégé par un mot de passe partagé stocké dans la Sheet.

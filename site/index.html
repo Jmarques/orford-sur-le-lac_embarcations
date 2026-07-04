@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="fr" class="wa-theme-default wa-palette-default wa-brand-cyan wa-light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orford sur le Lac — Demande d'emplacement d'embarcation</title>
+  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.10.0/styles/webawesome.css">
+  <script type="module" src="https://ka-f.webawesome.com/webawesome@3.10.0/webawesome.loader.js"></script>
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="liseret-marque"></div>
+
+  <header class="bande-lac">
+    <div class="contenu wa-stack wa-gap-m">
+      <div class="wa-flank wa-gap-m wa-align-items-center">
+        <div class="pastille-icone"><wa-icon name="water" label="Orford sur le Lac"></wa-icon></div>
+        <span class="wa-caption-m signature-lac">Orford sur le Lac · Comité administratif</span>
+      </div>
+      <h1 class="wa-heading-xl wa-text-balance titre-lac">Demande d'emplacement d'embarcation</h1>
+      <p class="wa-text-pretty">Vous souhaitez ranger votre kayak, canoë ou planche près de la plage&nbsp;?
+        Remplissez ce formulaire&nbsp;— le comité vous répondra par courriel ou par téléphone.</p>
+    </div>
+    <div class="houle">
+      <svg class="vagues" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,32 C240,64 480,0 720,32 C960,64 1200,0 1440,32 L1440,60 L0,60 Z"
+              fill="var(--wa-color-surface-default)"></path>
+      </svg>
+    </div>
+  </header>
+
+  <main class="contenu">
+    <wa-card>
+      <!-- État : chargement de la configuration (silhouette du formulaire) -->
+      <div id="etat-chargement" class="wa-stack wa-gap-l" aria-busy="true">
+        <wa-skeleton class="squelette-titre" effect="sheen"></wa-skeleton>
+        <wa-skeleton class="squelette-champ" effect="sheen"></wa-skeleton>
+        <wa-skeleton class="squelette-champ" effect="sheen"></wa-skeleton>
+        <wa-skeleton class="squelette-champ" effect="sheen"></wa-skeleton>
+        <p class="wa-visually-hidden">Préparation du formulaire…</p>
+      </div>
+
+      <!-- État : configuration indisponible -->
+      <div id="etat-indisponible" class="wa-stack wa-gap-m" hidden>
+        <wa-callout variant="danger" role="status">
+          <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+          Le formulaire est temporairement indisponible. Réessayez dans quelques minutes<span
+            class="phrase-contact" hidden>, ou écrivez-nous à <a class="lien-comite" href=""></a></span>.
+        </wa-callout>
+        <div class="wa-cluster">
+          <wa-button id="reessayer" appearance="outlined" size="l">Réessayer</wa-button>
+        </div>
+      </div>
+
+      <!-- État : formulaire -->
+      <form id="formulaire" class="wa-stack wa-gap-xl" hidden>
+        <p class="wa-caption-m wa-color-text-quiet">Les champs marqués d'un astérisque (*) sont obligatoires.</p>
+
+        <section class="wa-stack wa-gap-m">
+          <h2 class="wa-heading-l">Votre adresse</h2>
+          <wa-select name="rue" id="champ-rue" class="champ-plein" label="Rue"
+                     placeholder="Choisissez" required>
+            <wa-icon slot="start" name="road"></wa-icon>
+          </wa-select>
+          <wa-input name="numero" class="champ-plein" label="Numéro civique" type="text"
+                    inputmode="numeric" pattern="[0-9]*" required>
+            <wa-icon slot="start" name="hashtag"></wa-icon>
+          </wa-input>
+        </section>
+
+        <section class="wa-stack wa-gap-m">
+          <h2 class="wa-heading-l">Vos coordonnées</h2>
+          <wa-input name="nom" class="champ-plein" label="Votre nom" autocomplete="name" required>
+            <wa-icon slot="start" name="user"></wa-icon>
+          </wa-input>
+          <wa-input name="courriel" class="champ-plein" label="Courriel" type="email"
+                    autocomplete="email" hint="Pour vous répondre au sujet de votre demande." required>
+            <wa-icon slot="start" name="envelope"></wa-icon>
+          </wa-input>
+          <wa-input name="telephone" class="champ-plein" label="Téléphone (facultatif)"
+                    type="tel" autocomplete="tel">
+            <wa-icon slot="start" name="phone"></wa-icon>
+          </wa-input>
+        </section>
+
+        <section class="wa-stack wa-gap-m">
+          <h2 class="wa-heading-l">Votre embarcation</h2>
+          <wa-select name="type" id="champ-type" class="champ-plein" label="Type d'embarcation"
+                     placeholder="Choisissez" required>
+            <wa-icon slot="start" name="sailboat"></wa-icon>
+          </wa-select>
+          <wa-checkbox id="case-mobilite" name="mobiliteReduite">
+            Je demande la priorité pour un emplacement au niveau le plus bas (mobilité réduite)
+            <span slot="hint">Pour les membres qui ont de la difficulté à soulever leur embarcation en hauteur.</span>
+          </wa-checkbox>
+          <wa-callout id="message-mobilite" variant="neutral" size="s" role="status" hidden>
+            <wa-icon slot="icon" name="circle-info"></wa-icon>
+            Nous vous proposerons en priorité un emplacement au niveau le plus bas — aucun justificatif, on vous fait confiance. Ces places sont rares&nbsp;: si un autre niveau vous convient, décochez et laissez-les à ceux qui n'ont pas le choix.
+          </wa-callout>
+          <wa-textarea name="note" class="champ-plein" label="Note pour le comité (facultatif)"
+                       rows="3" placeholder="Toute précision utile&nbsp;: dimensions, deuxième embarcation, etc."></wa-textarea>
+        </section>
+
+        <div class="wa-stack wa-gap-m">
+          <wa-callout id="erreur-envoi" variant="danger" role="status" hidden>
+            <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+            <span id="erreur-envoi-texte"></span><span class="phrase-contact" hidden>
+              Vous pouvez aussi nous écrire à <a class="lien-comite" href=""></a>.</span>
+          </wa-callout>
+          <wa-button id="envoyer" class="bouton-plein" type="submit" variant="brand" size="l">
+            <wa-icon slot="start" name="paper-plane"></wa-icon>
+            Envoyer ma demande
+          </wa-button>
+        </div>
+      </form>
+
+      <!-- État : demande envoyée -->
+      <div id="etat-succes" class="wa-stack wa-gap-m wa-align-items-center wa-text-center" role="status" hidden>
+        <wa-icon class="glyphe-etat succes" name="circle-check" label="Demande envoyée"></wa-icon>
+        <h2 id="titre-succes" class="wa-heading-l" tabindex="-1">Votre demande est envoyée</h2>
+        <p class="wa-color-text-quiet wa-text-pretty">Merci&nbsp;! Le comité l'examinera et vous répondra
+          par courriel ou par téléphone.</p>
+        <wa-button id="nouvelle-demande" appearance="outlined" size="l">Faire une autre demande</wa-button>
+      </div>
+    </wa-card>
+  </main>
+
+  <footer class="pied wa-text-center">
+    Orford sur le Lac — Comité administratif<span class="phrase-contact" hidden> ·
+      <a class="lien-comite" href=""></a></span>
+  </footer>
+
+  <script src="config.js"></script>
+  <script type="module">
+    await Promise.all([
+      customElements.whenDefined('wa-button'),
+      customElements.whenDefined('wa-input'),
+      customElements.whenDefined('wa-select'),
+      customElements.whenDefined('wa-checkbox'),
+      customElements.whenDefined('wa-textarea'),
+    ]);
+
+    // Filet de sécurité : liens de contact du comité, si configurés.
+    const courrielComite = window.OSL_CONFIG.courrielComite;
+    if (courrielComite) {
+      for (const lien of document.querySelectorAll('.lien-comite')) {
+        lien.href = 'mailto:' + courrielComite;
+        lien.textContent = courrielComite;
+      }
+      for (const phrase of document.querySelectorAll('.phrase-contact')) phrase.hidden = false;
+    }
+
+    const etats = {
+      chargement: document.getElementById('etat-chargement'),
+      indisponible: document.getElementById('etat-indisponible'),
+      formulaire: document.getElementById('formulaire'),
+      succes: document.getElementById('etat-succes'),
+    };
+
+    function montrerEtat(nom) {
+      for (const [cle, element] of Object.entries(etats)) element.hidden = cle !== nom;
+    }
+
+    // Révèle le message d'information lorsque la case « mobilité réduite » est cochée.
+    const caseMobilite = document.getElementById('case-mobilite');
+    const messageMobilite = document.getElementById('message-mobilite');
+    caseMobilite.addEventListener('change', () => {
+      messageMobilite.hidden = !caseMobilite.checked;
+    });
+    etats.formulaire.addEventListener('reset', () => {
+      messageMobilite.hidden = true;
+    });
+
+    function remplirSelect(select, valeurs) {
+      for (const valeur of valeurs) {
+        const option = document.createElement('wa-option');
+        option.value = valeur;
+        option.textContent = valeur;
+        select.appendChild(option);
+      }
+    }
+
+    // Erreur « métier » renvoyée par l'API (message en français, montrable tel quel),
+    // par opposition aux erreurs techniques (réseau…) qu'on ne montre jamais.
+    class ErreurApi extends Error {}
+
+    // Hook de test (décision 0006) : ?etat=chargement|indisponible|succes|erreur-envoi
+    // fige la page dans un état pour les captures d'écran. Inerte sans paramètre.
+    const etatForce = new URLSearchParams(location.search).get('etat');
+
+    async function chargerConfig() {
+      montrerEtat('chargement');
+      if (etatForce === 'chargement') return;
+      if (etatForce === 'indisponible') {
+        montrerEtat('indisponible');
+        return;
+      }
+      try {
+        const reponse = await fetch(window.OSL_CONFIG.apiUrl + '?action=config');
+        const resultat = await reponse.json();
+        if (!resultat.ok) throw new ErreurApi(resultat.erreur);
+        remplirSelect(document.getElementById('champ-rue'), resultat.config.rues);
+        remplirSelect(document.getElementById('champ-type'), resultat.config.types);
+        montrerEtat('formulaire');
+        if (etatForce === 'succes') montrerEtat('succes');
+        if (etatForce === 'erreur-envoi') {
+          erreurEnvoiTexte.textContent = 'Exemple d\'erreur pour les captures d\'écran.';
+          erreurEnvoi.hidden = false;
+        }
+      } catch (erreur) {
+        console.error('Chargement de la configuration impossible :', erreur);
+        montrerEtat('indisponible');
+      }
+    }
+
+    document.getElementById('reessayer').addEventListener('click', chargerConfig);
+
+    const bouton = document.getElementById('envoyer');
+    const erreurEnvoi = document.getElementById('erreur-envoi');
+    const erreurEnvoiTexte = document.getElementById('erreur-envoi-texte');
+
+    etats.formulaire.addEventListener('submit', async (evenement) => {
+      evenement.preventDefault();
+      erreurEnvoi.hidden = true;
+      bouton.loading = true;
+      try {
+        // Corps en text/plain (défaut de fetch pour une chaîne) : pas de preflight CORS.
+        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
+          method: 'POST',
+          body: JSON.stringify(Object.fromEntries(new FormData(etats.formulaire))),
+        });
+        const resultat = await reponse.json();
+        if (!resultat.ok) throw new ErreurApi(resultat.erreur);
+        etats.formulaire.reset();
+        montrerEtat('succes');
+        document.getElementById('titre-succes').focus();
+      } catch (erreur) {
+        console.error('Envoi de la demande impossible :', erreur);
+        erreurEnvoiTexte.textContent = erreur instanceof ErreurApi
+          ? erreur.message
+          : 'L\'envoi n\'a pas fonctionné. Vérifiez votre connexion Internet, puis réessayez.';
+        erreurEnvoi.hidden = false;
+      } finally {
+        bouton.loading = false;
+      }
+    });
+
+    document.getElementById('nouvelle-demande').addEventListener('click', () => montrerEtat('formulaire'));
+
+    chargerConfig();
+  </script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+/*
+ * Thème du site — TOUTE la personnalisation visuelle vit ici (décision 0004).
+ *
+ * Pour changer le design plus tard, il suffit de toucher :
+ *   1. les classes wa-* sur <html> dans chaque page :
+ *      wa-theme-{default|awesome|shoelace}  → le style d'ensemble
+ *      wa-palette-{default|bright|shoelace} → les teintes
+ *      wa-brand-{cyan|blue|green|…}         → la couleur de marque
+ *      wa-light | wa-dark                   → clair / sombre
+ *   2. les tokens --wa-* et les classes ci-dessous (tokens sémantiques
+ *      uniquement : le mode sombre et le re-branding fonctionnent seuls).
+ * Aucune page ne doit contenir de couleur, espacement ou taille en dur.
+ */
+
+:root {
+  /* Public majoritairement aîné : toute la typographie légèrement agrandie. */
+  --wa-font-size-scale: 1.125;
+
+  /* Rythme des mouvements d'eau — lents et calmes, mais perceptibles. */
+  --osl-duree-respiration: 12s;
+  --osl-duree-houle: 9s;
+}
+
+/* L'attribut hidden doit gagner même sur les utilitaires display:flex
+   (wa-stack, wa-cluster…), sinon les états masqués restent visibles. */
+[hidden] {
+  display: none !important;
+}
+
+/* Colonne de contenu centrée des pages simples (formulaire, admin). */
+.contenu {
+  max-width: 65ch;
+  margin-inline: auto;
+  padding-inline: var(--wa-space-l);
+}
+
+/* Liseré de marque en haut de page (accent stripe). */
+.liseret-marque {
+  block-size: var(--wa-space-2xs);
+  background: var(--wa-color-brand-fill-loud);
+}
+
+/* Bande d'identité : dégradé doux dans le rôle brand (« field, not feature »).
+   Le texte de la bande reste sur les tokens texte du thème ; seul le titre
+   prend la teinte brand (paire quiet/on-quiet). */
+.bande-lac {
+  background: linear-gradient(
+    var(--wa-color-brand-fill-quiet),
+    var(--wa-color-brand-fill-normal)
+  );
+  padding-block-start: var(--wa-space-2xl);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Le contenu de la bande passe au-dessus du calque de respiration. */
+.bande-lac > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Respiration de l'eau : un calque plein cadre porte le même dégradé inversé,
+   invisible au repos ; seule son OPACITÉ oscille (voir bloc animations).
+   Aucune géométrie animée — rien qui puisse créer un bord ou un artefact. */
+.bande-lac::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    var(--wa-color-brand-fill-normal),
+    var(--wa-color-brand-fill-quiet)
+  );
+  opacity: 0;
+}
+
+.titre-lac {
+  color: var(--wa-color-brand-on-quiet);
+}
+
+.signature-lac {
+  color: var(--wa-color-brand-on-quiet);
+}
+
+/* Vagues au bas de la bande : la surface de la page découpe la bande.
+   Le conteneur .houle porte l'animation de gonflement (ancrée en bas :
+   aucun interstice possible entre la vague et la page). */
+.houle {
+  margin-block-start: var(--wa-space-xl);
+  transform-origin: center bottom;
+}
+.vagues {
+  display: block;
+  inline-size: 100%;
+  block-size: var(--wa-space-xl);
+}
+
+/* Pastille ronde pour une icône (recette token-based de composition.md). */
+.pastille-icone {
+  inline-size: var(--wa-space-3xl);
+  block-size: var(--wa-space-3xl);
+  border-radius: var(--wa-border-radius-circle);
+  background: var(--wa-color-brand-fill-loud);
+  color: var(--wa-color-brand-on-loud);
+  display: grid;
+  place-items: center;
+  font-size: var(--wa-font-size-l);
+}
+
+/* Silhouettes de champs pendant le chargement (skeleton). */
+.squelette-titre {
+  inline-size: 40%;
+  block-size: var(--wa-space-l);
+}
+.squelette-champ {
+  block-size: var(--wa-space-3xl);
+}
+
+/* Icône géante des états de confirmation (empty-state pattern). */
+.glyphe-etat {
+  font-size: var(--wa-font-size-4xl);
+}
+.glyphe-etat.succes {
+  color: var(--wa-color-success-fill-loud);
+}
+
+/* Le formulaire et son bouton occupent toute la largeur de la carte. */
+.champ-plein,
+.bouton-plein {
+  width: 100%;
+}
+
+/* Animation d'entrée — une seule, sobre : fondu + léger glissement vers le haut,
+   en cascade (en-tête puis carte). Désactivée si l'utilisateur préfère réduire
+   les animations. Durées/décalages exclusivement en tokens --wa-transition-*. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes apparition {
+    from {
+      opacity: 0;
+      translate: 0 var(--wa-space-s);
+    }
+  }
+
+  .bande-lac .contenu > *,
+  main > wa-card {
+    animation: apparition var(--wa-transition-slow) ease-out both;
+  }
+  .bande-lac .contenu > :nth-child(2) {
+    animation-delay: var(--wa-transition-fast);
+  }
+  .bande-lac .contenu > :nth-child(3) {
+    animation-delay: calc(2 * var(--wa-transition-fast));
+  }
+  main > wa-card {
+    animation-delay: calc(3 * var(--wa-transition-fast));
+  }
+
+  /* L'eau respire : le dégradé s'inverse doucement et revient (opacité pure). */
+  @keyframes respiration-lac {
+    50% {
+      opacity: 0.8;
+    }
+  }
+  .bande-lac::before {
+    animation: respiration-lac var(--osl-duree-respiration) ease-in-out infinite;
+  }
+
+  /* La houle : la vague gonfle et retombe, ancrée au bas de la bande. */
+  @keyframes houle-lac {
+    50% {
+      transform: scaleY(1.3);
+    }
+  }
+  .houle {
+    animation: houle-lac var(--osl-duree-houle) ease-in-out infinite;
+  }
+
+  /* La coche de confirmation apparaît avec une légère prise d'échelle. */
+  @keyframes apparition-echelle {
+    from {
+      opacity: 0;
+      scale: 0.7;
+    }
+  }
+  #etat-succes:not([hidden]) .glyphe-etat {
+    animation: apparition-echelle var(--wa-transition-slow) ease-out both;
+  }
+
+  #message-mobilite:not([hidden]) {
+    animation: apparition var(--wa-transition-slow) ease-out both;
+  }
+}
+
+/* Pied de page discret. */
+.pied {
+  padding-block: var(--wa-space-xl);
+  color: var(--wa-color-text-quiet);
+  font-size: var(--wa-font-size-s);
+}

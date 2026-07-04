@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "webawesome": {
+      "source": "/Users/jeremy/tmp/osl_embarcations/node_modules/@awesome.me/webawesome/dist/skills/webawesome",
+      "sourceType": "local",
+      "computedHash": "c0d642646d03365798d048cdd5b4e5ead3d1f751e97f191bc30e5772683f8f85"
+    },
+    "webawesome-design": {
+      "source": "/Users/jeremy/tmp/osl_embarcations/node_modules/@awesome.me/webawesome/dist/skills/webawesome-design",
+      "sourceType": "local",
+      "computedHash": "6320ec16f4952b43d583a613230143b8288596ea28874e02ef9fc3abe472e97a"
+    }
+  }
+}

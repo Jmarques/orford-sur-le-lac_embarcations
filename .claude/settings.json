@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --test 'tests/*.test.mjs')",
+      "Bash(node --test tests/)",
+      "Bash(npm test)",
+      "Bash(npm run dev)",
+      "Bash(npm run screenshots)",
+      "Bash(npm run screenshots -- --live)",
+      "Bash(npm run verify)",
+      "Bash(npm run logs)"
+    ]
+  }
+}
