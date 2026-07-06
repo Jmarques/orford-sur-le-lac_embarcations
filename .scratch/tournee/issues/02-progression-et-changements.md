@@ -1,6 +1,6 @@
 # 02 — Progression et changements
 
-Status: ready-for-human — implémenté, à valider sur le vrai site
+Status: ready-for-human — implémenté (commit 1eec8ba), à valider sur le vrai site
 
 ## Parent
 
