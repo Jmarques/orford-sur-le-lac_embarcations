@@ -13,12 +13,6 @@
 //   surDonneesFraiches(inventaire) — la page range l'état frais et re-rend
 //                      derrière la fiche (grille recolorée, registre re-trié).
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
-//
-// DUPLICATION TEMPORAIRE : a-traiter.html porte encore sa propre fiche
-// (`fiche-cas`, mêmes helpers, mêmes ids `fiche-*`) — l'issue 02 de
-// .scratch/fiche-emplacement la remplace par ce composant. Ne pas charger
-// fiche.js sur a-traiter.html avant ce retrait : les ids entreraient en
-// collision.
 
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
    serieLibreObservee, fenetreApparition, analyserStructures, ETATS_OCCUPATION */

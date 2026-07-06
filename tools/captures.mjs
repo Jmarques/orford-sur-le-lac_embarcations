@@ -331,45 +331,60 @@ export const CAPTURES = [
     attendre: '.carte-structure',
     reponses: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
   { nom: 'structures-erreur', page: 'structures.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
-  // Page « À traiter » (décision 0014) : registre scannable + fiche (dialog).
+  // Page « À traiter » (décision 0014) : registre scannable + fiche
+  // d'emplacement partagée (0018), ouverte sur l'onglet Traiter.
   { nom: 'a-traiter-connexion', page: 'a-traiter.html', attendre: '#etat-connexion:not([hidden])' },
   { nom: 'a-traiter-mdp-refuse', page: 'a-traiter.html', etat: 'mdp-refuse', attendre: '#erreur-connexion:not([hidden])' },
   { nom: 'a-traiter-chargement', page: 'a-traiter.html', etat: 'chargement', attendre: '#etat-chargement:not([hidden])' },
   // Registre peuplé : 75 avant 84 (plus anciennement libre d'abord — tri visible).
   { nom: 'a-traiter-liste', page: 'a-traiter.html', etat: 'liste', attendre: '.rangee-cas' },
   { nom: 'a-traiter-liste-vide', page: 'a-traiter.html', etat: 'liste-vide', attendre: '#etat-liste:not([hidden])' },
-  // La fiche d'un cas attribué : membre, journal complet (icônes), gestes.
+  // La fiche d'un cas attribué, onglet Traiter d'office : membre, journal, gestes.
   { nom: 'a-traiter-fiche', page: 'a-traiter.html', etat: 'liste',
     cliquer: '.rangee-cas[data-numero="75"]',
-    attendre: '#fiche-cas[open]', presenceSeule: true, pleinVue: true },
+    attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
   // La fiche d'un « À identifier » : pas de membre, journal + note seulement.
   { nom: 'a-traiter-fiche-a-identifier', page: 'a-traiter.html', etat: 'liste',
     cliquer: '.rangee-cas[data-numero="76"]',
-    attendre: '#fiche-cas[open]', presenceSeule: true, pleinVue: true },
-  // Note ajoutée : la fiche se referme, la rangée du dossier compte 2 notes.
+    attendre: '#fiche-journal .ligne-journal', pleinVue: true },
+  // L'onglet Observer, accessible depuis le registre (0018) : vérifier ses
+  // cas sur le terrain avec la page À traiter ouverte.
+  { nom: 'a-traiter-fiche-observer', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-onglets wa-tab[panel="observer"]'],
+    attendre: '.bouton-occupation', pleinVue: true },
+  // Note ajoutée : fiche TOUJOURS ouverte (0018), journal enrichi (6e ligne
+  // pour 75), champ vidé — le registre derrière comptera 2 notes.
   { nom: 'a-traiter-note-succes', page: 'a-traiter.html', etat: 'liste',
     ouvrir: '.rangee-cas[data-numero="75"]',
-    remplir: [{ selecteur: '#champ-note textarea',
-      valeur: 'Parlé au membre : il vide l’emplacement d’ici la fin du mois. — Jeremy' }],
-    cliquer: '#ajouter-note',
-    attendre: '#message-succes:not([hidden])',
-    reponses: { inventaire: INVENTAIRE_APRES_NOTE } },
+    remplir: { selecteur: '#fiche-champ-note textarea',
+      valeur: 'Parlé au membre : il vide l’emplacement d’ici la fin du mois. — Jeremy' },
+    cliquer: '#fiche-ajouter-note',
+    attendre: '#fiche-journal .ligne-journal:nth-of-type(6)', pleinVue: true,
+    reponsesApres: { inventaire: INVENTAIRE_APRES_NOTE } },
   // Échec d'écriture : le texte saisi est conservé, l'erreur vit dans la fiche.
   { nom: 'a-traiter-note-erreur', page: 'a-traiter.html', etat: 'liste',
     ouvrir: '.rangee-cas[data-numero="75"]',
-    remplir: [{ selecteur: '#champ-note textarea', valeur: 'Message laissé au membre. — Diane' }],
-    cliquer: '#ajouter-note',
-    attendre: '#fiche-erreur:not([hidden])', pleinVue: true,
+    remplir: { selecteur: '#fiche-champ-note textarea', valeur: 'Message laissé au membre. — Diane' },
+    cliquer: '#fiche-ajouter-note',
+    attendre: '#fiche-erreur-traiter:not([hidden])', pleinVue: true,
     reponses: { ajouterNote: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
   // Le dialogue de confirmation : aucun tap accidentel ne retire une adresse.
   { nom: 'a-traiter-confirmation-liberation', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-liberer'],
-    attendre: '#dialogue-liberer[open]', presenceSeule: true, pleinVue: true },
-  // Succès de libération : au rechargement (reponsesApres), 75 a quitté la file.
+    attendre: '#fiche-dialogue-liberer[open]', presenceSeule: true, pleinVue: true },
+  // Libération : fiche TOUJOURS ouverte, statut basculé à « Disponible » —
+  // au rechargement (reponsesApres), 75 a quitté le registre derrière.
   { nom: 'a-traiter-liberation-succes', page: 'a-traiter.html', etat: 'liste',
-    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-liberer', '#dialogue-liberer-confirmer'],
-    attendre: '#message-succes:not([hidden])',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-liberer', '#fiche-dialogue-liberer-confirmer'],
+    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_LIBERATION } },
+  // Observation qui referme le cas : depuis l'onglet Observer d'un
+  // « À identifier », « libre » fait basculer le statut ET sortir la rangée.
+  { nom: 'a-traiter-observation-succes', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-numero="76"]', '#fiche-onglets wa-tab[panel="observer"]',
+      '.bouton-occupation[data-occupation="libre"]'],
+    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    reponsesApres: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
   { nom: 'a-traiter-erreur', page: 'a-traiter.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
 ];
 

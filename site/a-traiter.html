@@ -102,14 +102,9 @@
       <!-- Titre invisible : le h1 du header nomme déjà la page (0016) ; il
            reste pour la structure lecteur d'écran. -->
       <h2 id="titre-liste" class="wa-visually-hidden">Les cas à traiter</h2>
-      <!-- tabindex : cible de focus après une libération (le dossier a quitté
-           la file — le focus va au message qui explique quoi). Un élément
-           wa-visually-hidden se révélerait au focus : jamais de focus dessus. -->
-      <wa-callout id="message-succes" variant="success" role="status" tabindex="-1" hidden>
-        <wa-icon slot="icon" name="circle-check"></wa-icon>
-        <span id="message-succes-texte"></span>
-      </wa-callout>
-      <!-- La seule consigne de la page : dite une fois (0016). -->
+      <!-- La seule consigne de la page : dite une fois (0016). Pas de message
+           de succès : le feedback d'un geste est le changement visible dans la
+           fiche, qui reste ouverte (décisions 0016 et 0018). -->
       <p class="wa-color-text-quiet wa-text-pretty">Cette page se tient à jour toute seule :
         dès qu'une tournée observe qu'un cas est réglé, il disparaît de la liste —
         il n'y a rien à fermer ici. Touchez un cas pour ouvrir sa fiche.</p>
@@ -134,7 +129,9 @@
       <section class="wa-stack wa-gap-m" aria-labelledby="titre-a-identifier">
         <div class="wa-stack wa-gap-2xs">
           <div class="wa-split wa-align-items-baseline">
-            <h3 id="titre-a-identifier" class="wa-heading-m">À identifier</h3>
+            <!-- tabindex : cible de focus quand une fiche se ferme sur un cas
+                 qui a quitté cette section (libération, observation). -->
+            <h3 id="titre-a-identifier" class="wa-heading-m" tabindex="-1">À identifier</h3>
             <wa-badge id="compte-a-identifier" class="badge-compte" variant="danger"
                       appearance="filled-outlined" pill hidden></wa-badge>
           </div>
@@ -170,82 +167,23 @@
     </li>
   </template>
 
-  <!-- La fiche d'un cas : le membre, le journal complet et les gestes —
-       tout le travail vit ici, le registre reste scannable. -->
-  <wa-dialog id="fiche-cas" label="Emplacement">
-    <div class="wa-stack wa-gap-l corps-fiche">
-      <div id="fiche-membre" class="wa-stack wa-gap-2xs" hidden>
-        <span id="fiche-membre-nom" class="champ-membre-nom"></span>
-        <span id="fiche-membre-adresse" class="wa-color-text-quiet"></span>
-        <div class="wa-cluster wa-gap-l liens-contact">
-          <a id="fiche-telephone" hidden><wa-icon name="phone"></wa-icon> <span id="fiche-telephone-texte"></span></a>
-          <a id="fiche-courriel" hidden><wa-icon name="envelope"></wa-icon> <span id="fiche-courriel-texte"></span></a>
-        </div>
-        <p id="fiche-membre-absent" class="wa-caption-m wa-color-text-quiet" hidden>Aucun membre inscrit
-          dans l'onglet Membres pour cette adresse.</p>
-      </div>
-      <div class="wa-stack wa-gap-s">
-        <h3 class="wa-heading-s">Journal de l'emplacement</h3>
-        <ol id="fiche-journal" class="liste-evenements wa-stack wa-gap-s"></ol>
-        <p id="fiche-journal-vide" class="wa-caption-m wa-color-text-quiet" hidden>Rien au journal
-          pour l'instant.</p>
-        <!-- Le champ vit en pied du journal : le geste se lit comme « j'ajoute
-             une ligne à ce journal ». -->
-        <form id="formulaire-note" class="wa-stack wa-gap-s">
-          <wa-textarea id="champ-note" label="Ajouter une note" rows="2" resize="auto"
-                       placeholder="ex. : courriel envoyé, coup de téléphone, toléré jusqu'en juin — Jeremy"></wa-textarea>
-          <!-- L'erreur d'envoi vit à côté des boutons : c'est là que regarde
-               l'utilisateur au moment où elle apparaît. Le texte saisi est conservé. -->
-          <wa-callout id="fiche-erreur" variant="danger" role="alert" tabindex="-1" hidden>
-            <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-            <span id="fiche-erreur-texte"></span>
-          </wa-callout>
-          <div class="wa-cluster">
-            <wa-button id="ajouter-note" type="submit" appearance="outlined" variant="brand">
-              <wa-icon slot="start" name="pen"></wa-icon>
-              Ajouter la note
-            </wa-button>
-          </div>
-        </form>
-      </div>
-      <!-- Les deux gestes structurés (0014) vivent dans le corps, après le
-           journal : un pied à trois boutons chevaucherait le contenu. -->
-      <div class="wa-cluster wa-gap-s">
-        <wa-button id="fiche-ecrire" appearance="outlined" hidden>
-          <wa-icon slot="start" name="envelope"></wa-icon>
-          Écrire au membre
-        </wa-button>
-        <wa-button id="fiche-liberer" appearance="outlined" hidden>
-          <wa-icon slot="start" name="unlock"></wa-icon>
-          Libérer l'emplacement
-        </wa-button>
-      </div>
-    </div>
-    <wa-button slot="footer" appearance="plain" data-dialog="close">Fermer</wa-button>
-  </wa-dialog>
-
-  <!-- Confirmation avant de libérer : aucun tap accidentel ne retire une adresse. -->
-  <wa-dialog id="dialogue-liberer" label="Libérer l'emplacement ?">
-    <p id="dialogue-liberer-texte" class="wa-text-pretty"></p>
-    <wa-button id="dialogue-liberer-confirmer" slot="footer" variant="danger" data-dialog="close">
-      Libérer l'emplacement
-    </wa-button>
-    <!-- La sortie sûre est un vrai bouton, aussi facile à viser que l'action
-         (public aîné) — pas un lien texte. -->
-    <wa-button slot="footer" appearance="outlined" data-dialog="close">Annuler</wa-button>
-  </wa-dialog>
+  <!-- La fiche d'emplacement (décision 0018) est le composant partagé de
+       fiche.js : le registre reste scannable, tout le travail vit dans la
+       fiche — la même que sur la page Structures. -->
 
   <script src="config.js"></script>
   <script src="eau.js"></script>
   <script src="grille.js"></script>
+  <script src="fiche.js"></script>
   <script type="module">
+    // wa-textarea et wa-dialog ne sont plus dans le markup de la page : la
+    // fiche partagée (fiche.js) injecte et attend les siens — les attendre ici
+    // AVANT leur insertion bloquerait la page pour toujours (loader à la demande).
     await Promise.all([
       customElements.whenDefined('wa-button'),
       customElements.whenDefined('wa-input'),
       customElements.whenDefined('wa-card'),
       customElements.whenDefined('wa-callout'),
-      customElements.whenDefined('wa-textarea'),
-      customElements.whenDefined('wa-dialog'),
     ]);
 
     // Filet de sécurité : liens de contact du comité, si configurés.
@@ -337,28 +275,6 @@
       return notes === 0 ? 'aucune note' : notes === 1 ? '1 note' : notes + ' notes';
     }
 
-    // Le courriel pré-rempli n'est JAMAIS envoyé par l'app (0003) : le membre
-    // du comité l'ajuste et l'envoie depuis son propre client mail.
-    function hrefEcrire(membre, cas) {
-      const sujet = 'Votre emplacement ' + cas.numero + ' — Orford sur le Lac';
-      const corps = [
-        'Bonjour ' + membre.nom + ',',
-        '',
-        'En passant près des structures, le comité a remarqué que l\'emplacement ' + cas.numero
-          + ' (attribué au ' + adresseLisible(cas.ligne) + ') est libre'
-          + (cas.serie.debut ? ' depuis le ' + formatDate.format(cas.serie.debut) : '') + '.',
-        '',
-        'Utilisez-vous encore cet emplacement cette saison ? Si vous n\'en avez plus besoin, '
-          + 'dites-le-nous : un autre membre de la communauté pourra en profiter.',
-        '',
-        'Merci,',
-        'Le comité administratif — Orford sur le Lac',
-      ].join('\n');
-      return 'mailto:' + membre.courriel
-        + '?subject=' + encodeURIComponent(sujet)
-        + '&body=' + encodeURIComponent(corps);
-    }
-
     // --- Le registre : une rangée scannable par cas, le travail dans la fiche ---
 
     // La structure de chaque numéro, dérivée des grilles (0009) — présentation
@@ -392,7 +308,7 @@
       morceauxMeta.push(nombreDeNotes(historique));
       rangee.querySelector('.rangee-meta').textContent = morceauxMeta.join(' · ');
 
-      bouton.addEventListener('click', () => ouvrirFiche(cas, avecAttribution));
+      bouton.addEventListener('click', () => ouvrirCas(cas, avecAttribution));
       return rangee;
     }
 
@@ -421,227 +337,65 @@
       for (const unCas of cas) liste.appendChild(rangeeCas(unCas, avecAttribution));
     }
 
-    // --- La fiche d'un cas : membre, journal complet, gestes ---
-
-    // Icône et libellé de chaque type d'événement du journal. L'observation
-    // reprend l'icône de la tournée (list-check) : c'est elle qui l'a écrite.
-    const EVENEMENTS_JOURNAL = {
-      observation: { icone: 'list-check', libelle: 'Observation' },
-      note: { icone: 'pen', libelle: 'Note' },
-      'libération': { icone: 'unlock', libelle: 'Libération' },
-    };
-
-    function texteEvenement(evenement) {
-      if (evenement.action === 'observation') {
-        return ETATS_OCCUPATION.includes(evenement.details)
-          ? 'Observé ' + evenement.details
-          : 'Observation — ' + evenement.details;
-      }
-      if (evenement.action === 'note' || evenement.action === 'libération') return evenement.details;
-      return evenement.action + (evenement.details ? ' — ' + evenement.details : '');
-    }
-
-    function ligneJournal(evenement) {
-      const element = document.createElement('li');
-      element.className = 'ligne-journal';
-      const type = EVENEMENTS_JOURNAL[evenement.action];
-      const icone = document.createElement('wa-icon');
-      icone.setAttribute('name', type ? type.icone : 'circle-info');
-      icone.setAttribute('label', type ? type.libelle : 'Événement');
-      const bloc = document.createElement('span');
-      bloc.className = 'texte-journal';
-      const quand = document.createElement('span');
-      quand.className = 'wa-caption-m wa-color-text-quiet';
-      quand.textContent = formatDate.format(evenement.date);
-      const quoi = document.createElement('span');
-      quoi.className = 'wa-text-pretty';
-      quoi.textContent = texteEvenement(evenement);
-      bloc.append(quand, quoi);
-      element.append(icone, bloc);
-      return element;
-    }
-
-    // Le cas ouvert dans la fiche : { cas, avecAttribution }.
-    let ficheCourante = null;
-
-    function ouvrirFiche(cas, avecAttribution) {
-      ficheCourante = { cas, avecAttribution };
-      const fiche = document.getElementById('fiche-cas');
-      const structure = structureParNumero.get(cas.numero);
-      fiche.setAttribute('label', 'Emplacement ' + cas.numero
-        + (structure ? ' · Structure ' + structure : ''));
-
-      const blocMembre = document.getElementById('fiche-membre');
-      blocMembre.hidden = !avecAttribution;
-      document.getElementById('fiche-ecrire').hidden = true;
-      document.getElementById('fiche-liberer').hidden = !avecAttribution;
-      if (avecAttribution) {
-        document.getElementById('fiche-membre-adresse').textContent = adresseLisible(cas.ligne);
-        const membre = chercherMembre(cas.ligne);
-        const nom = document.getElementById('fiche-membre-nom');
-        const telephone = document.getElementById('fiche-telephone');
-        const courriel = document.getElementById('fiche-courriel');
-        nom.hidden = telephone.hidden = courriel.hidden = true;
-        document.getElementById('fiche-membre-absent').hidden = !!membre;
-        if (membre) {
-          nom.hidden = false;
-          nom.textContent = String(membre.nom || '').trim();
-          const numeroTelephone = String(membre.telephone || '').trim();
-          if (numeroTelephone) {
-            telephone.href = 'tel:' + numeroTelephone.replace(/[^+\d]/g, '');
-            document.getElementById('fiche-telephone-texte').textContent = numeroTelephone;
-            telephone.hidden = false;
-          }
-          const adresseCourriel = String(membre.courriel || '').trim();
-          if (adresseCourriel) {
-            courriel.href = 'mailto:' + adresseCourriel;
-            document.getElementById('fiche-courriel-texte').textContent = adresseCourriel;
-            courriel.hidden = false;
-            const ecrire = document.getElementById('fiche-ecrire');
-            ecrire.setAttribute('href', hrefEcrire(membre, cas));
-            ecrire.hidden = false;
-          }
-        }
-      }
-
-      const journal = document.getElementById('fiche-journal');
-      const historique = historiqueEmplacement(donnees.journal, cas.numero);
-      journal.replaceChildren(...historique.map(ligneJournal));
-      document.getElementById('fiche-journal-vide').hidden = historique.length > 0;
-
-      document.getElementById('champ-note').value = '';
-      document.getElementById('fiche-erreur').hidden = true;
-      document.getElementById('ajouter-note').loading = false;
-      fiche.setAttribute('open', '');
-    }
+    // --- La fiche d'emplacement : composant partagé (décision 0018) ---
 
     // Erreur « métier » renvoyée par l'API, par opposition aux erreurs techniques.
     class ErreurApi extends Error {}
 
-    function montrerErreurFiche(message) {
-      const callout = document.getElementById('fiche-erreur');
-      document.getElementById('fiche-erreur-texte').textContent = message;
-      callout.hidden = false;
-      callout.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      callout.focus();
+    // Range l'inventaire reçu de l'API (0002 : toujours l'état frais).
+    function rangerDonnees(resultat) {
+      donnees = {
+        structures: resultat.structures || [],
+        emplacements: resultat.emplacements || [],
+        membres: resultat.membres || [],
+        journal: resultat.journal || [],
+      };
     }
 
-    // Ferme la fiche et attend la fin de son animation : wa-dialog restaure le
-    // focus à la fermeture — le re-rendu doit venir APRÈS.
-    function fermerFiche() {
-      return new Promise((fin) => {
-        const fiche = document.getElementById('fiche-cas');
-        fiche.addEventListener('wa-after-hide', fin, { once: true });
-        fiche.removeAttribute('open');
-      });
-    }
-
-    async function envoyerNote() {
-      const bouton = document.getElementById('ajouter-note');
-      if (bouton.loading) return; // pas de double envoi
-      document.getElementById('fiche-erreur').hidden = true;
-      const { numero } = ficheCourante.cas;
-      const texte = String(document.getElementById('champ-note').value || '').trim();
-      // Même règle que le serveur : le Journal ne reçoit jamais de ligne muette.
-      if (!texte) {
-        montrerErreurFiche('La note est vide — écrivez ce qui a été fait ou convenu, puis ajoutez-la au journal.');
-        return;
-      }
-      bouton.loading = true;
-      try {
-        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
-        const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
-        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'ajouterNote', motDePasse, numero, texte }),
-        });
-        const resultat = await reponse.json();
-        if (!resultat.ok) {
-          if (resultat.code === 'accesRefuse') {
-            sessionStorage.removeItem(CLE_SESSION);
-            await fermerFiche();
-            montrerConnexion(true);
-            return;
-          }
-          throw new ErreurApi(resultat.erreur);
-        }
-        await fermerFiche();
-        // État frais depuis la Sheet (0002) plutôt qu'une mise à jour locale.
-        await chargerCas(motDePasse, 'Note ajoutée au journal de l\'emplacement ' + numero + '.', numero);
-      } catch (erreurEnvoi) {
-        // Une erreur métier est affichée à l'utilisateur : info en console,
-        // pas error (la boucle de captures échoue sur toute console.error).
-        if (erreurEnvoi instanceof ErreurApi) console.info('Note refusée :', erreurEnvoi.message);
-        else console.error('Note impossible :', erreurEnvoi);
-        montrerErreurFiche('Impossible d\'ajouter la note — votre texte est conservé. '
-          + 'Vérifiez votre connexion Internet, puis réessayez.'
-          + (erreurEnvoi instanceof ErreurApi ? ' Détail : ' + erreurEnvoi.message : ''));
-        bouton.loading = false;
-      }
-    }
-
-    document.getElementById('formulaire-note').addEventListener('submit', (evenement) => {
-      evenement.preventDefault();
-      envoyerNote();
+    const fiche = creerFicheEmplacement({
+      ongletParDefaut: 'traiter',
+      donnees: () => donnees,
+      motDePasse: () => sessionStorage.getItem(CLE_SESSION) || '',
+      // Après un geste : la page range l'état frais (0002) et re-rend le
+      // registre derrière la fiche restée ouverte — un cas réglé (libéré, ou
+      // refermé par une observation) sort de la file tout seul.
+      surDonneesFraiches: (resultat) => {
+        rangerDonnees(resultat);
+        afficherCas();
+      },
+      surSessionExpiree: () => {
+        sessionStorage.removeItem(CLE_SESSION);
+        montrerConnexion(true);
+      },
     });
 
-    async function envoyerLiberation() {
-      const bouton = document.getElementById('fiche-liberer');
-      if (bouton.loading) return; // pas de double envoi
-      document.getElementById('fiche-erreur').hidden = true;
-      const { numero } = ficheCourante.cas;
-      bouton.loading = true;
-      try {
-        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
-        const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
-        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'libererEmplacement', motDePasse, numero }),
-        });
-        const resultat = await reponse.json();
-        if (!resultat.ok) {
-          if (resultat.code === 'accesRefuse') {
-            sessionStorage.removeItem(CLE_SESSION);
-            await fermerFiche();
-            montrerConnexion(true);
-            return;
-          }
-          throw new ErreurApi(resultat.erreur);
-        }
-        await fermerFiche();
-        // État frais depuis la Sheet (0002) : le cas sort de la file, la
-        // grille des structures reflète la décision au prochain chargement.
-        await chargerCas(motDePasse, 'Emplacement ' + numero + ' libéré — son adresse a été retirée.');
-      } catch (erreurEnvoi) {
-        if (erreurEnvoi instanceof ErreurApi) console.info('Libération refusée :', erreurEnvoi.message);
-        else console.error('Libération impossible :', erreurEnvoi);
-        montrerErreurFiche('Impossible de libérer l\'emplacement. '
-          + 'Vérifiez votre connexion Internet, puis réessayez.'
-          + (erreurEnvoi instanceof ErreurApi ? ' Détail : ' + erreurEnvoi.message : ''));
-      } finally {
-        bouton.loading = false;
-      }
+    // L'origine de la fiche ouverte : tout geste re-rend le registre, donc la
+    // rangée qui a ouvert la fiche est DÉTRUITE — le focus restauré par le
+    // drawer viserait un nœud détaché. À la fermeture, on le pose nous-mêmes :
+    // sur la rangée re-rendue si le cas est encore en file, sinon sur le titre
+    // de la section d'où venait la rangée (cas libéré ou refermé).
+    let ficheOrigine = null;
+
+    function ouvrirCas(cas, avecAttribution) {
+      ficheOrigine = {
+        numero: cas.numero,
+        titre: avecAttribution ? 'titre-attribue-libre' : 'titre-a-identifier',
+      };
+      fiche.ouvrir(cas.numero);
     }
 
-    document.getElementById('fiche-liberer').addEventListener('click', () => {
-      const { cas } = ficheCourante;
-      const dialogue = document.getElementById('dialogue-liberer');
-      dialogue.setAttribute('label', 'Libérer l\'emplacement ' + cas.numero + ' ?');
-      document.getElementById('dialogue-liberer-texte').textContent =
-        'L\'adresse ' + adresseLisible(cas.ligne) + ' sera retirée de l\'emplacement '
-        + cas.numero + ' et la libération sera consignée au journal. L\'emplacement '
-        + 'redeviendra disponible pour un autre membre de la communauté.';
-      dialogue.setAttribute('open', '');
+    const elementFiche = document.getElementById('fiche-emplacement');
+    elementFiche.addEventListener('wa-after-hide', (evenement) => {
+      // Seule la fermeture du drawer lui-même compte — pas celle d'un
+      // composant qui émettrait wa-after-hide depuis l'intérieur de la fiche.
+      if (evenement.target !== elementFiche || !ficheOrigine) return;
+      const { numero, titre } = ficheOrigine;
+      ficheOrigine = null;
+      const rangee = document.querySelector('.rangee-cas[data-numero="' + numero + '"]');
+      (rangee || document.getElementById(titre)).focus();
     });
 
-    document.getElementById('dialogue-liberer-confirmer').addEventListener('click', () => {
-      // La confirmation se referme d'elle-même (data-dialog) ; l'envoi part
-      // après sa fermeture, la fiche reste ouverte en dessous en cas d'erreur.
-      document.getElementById('dialogue-liberer')
-        .addEventListener('wa-after-hide', () => envoyerLiberation(), { once: true });
-    });
-
-    async function chargerCas(motDePasse, messageSucces, numeroCible) {
+    async function chargerCas(motDePasse) {
       montrerEtat('chargement');
       try {
         // Mot de passe dans le corps POST, jamais en URL (décision 0008).
@@ -663,23 +417,8 @@
         if (!resultat.journal || !resultat.membres) {
           console.info('L\'API ne renvoie pas journal/membres — backend à redéployer (npm run deploy).');
         }
-        donnees = {
-          structures: resultat.structures || [],
-          emplacements: resultat.emplacements || [],
-          membres: resultat.membres || [],
-          journal: resultat.journal || [],
-        };
+        rangerDonnees(resultat);
         afficherCas();
-        const succes = document.getElementById('message-succes');
-        succes.hidden = !messageSucces;
-        if (messageSucces) {
-          document.getElementById('message-succes-texte').textContent = messageSucces;
-          // Retour au dossier travaillé (la note ajoutée se relit en rouvrant
-          // la fiche) ; un cas disparu (libéré) renvoie au message qui l'explique.
-          const cible = numeroCible
-            && document.querySelector('.rangee-cas[data-numero="' + numeroCible + '"]');
-          (cible || succes).focus();
-        }
       } catch (erreur) {
         console.error('Chargement des cas impossible :', erreur);
         montrerErreur();

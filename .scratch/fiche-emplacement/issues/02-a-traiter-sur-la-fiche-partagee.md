@@ -1,6 +1,6 @@
 # 02 — La page À traiter adopte la fiche partagée
 
-Status: ready-for-agent
+Status: done
 
 ## Parent
 
@@ -26,3 +26,14 @@ Processus UX obligatoire (CLAUDE.md) : revue sur le delta de captures fraîches 
 ## Blocked by
 
 - `01-fiche-partagee-et-structures.md`
+
+## Comments
+
+- 2026-07-06 (implémentation) : le focus à la fermeture couvre un cas de plus que la lettre du
+  critère — TOUT geste re-rend le registre et détruit la rangée déclencheuse (nœud détaché pour le
+  restore du drawer), donc à la fermeture le focus est posé explicitement : rangée re-rendue si le
+  cas est encore en file, titre de la section d'origine sinon. Garde `event.target` sur
+  wa-after-hide (un composant interne à la fiche ne doit pas consommer l'origine).
+- 2026-07-06 (revue, assumé) : le critère 3 dit « Disponible ou À identifier » après libération —
+  seule la variante Disponible est capturée (la bascule de statut est la dérivation pure de
+  grille.js, testée node ; la variante À identifier n'apporterait pas de couverture nouvelle).
