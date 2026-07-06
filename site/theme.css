@@ -137,6 +137,12 @@ body {
   margin-inline: auto;
 }
 
+/* La liste n'a plus de titre de corps (le h1 du header nomme la page) : cet
+   espace évite que le premier callout ou la légende colle à la vague. */
+#etat-liste {
+  padding-block-start: var(--wa-space-xl);
+}
+
 /* Navigation entre les pages du comité, posée sur la bande de marque.
    inline-flex + gap : le soulignement de l'onglet actif ne couvre pas
    l'espace entre l'icône et le libellé. Padding : cibles généreuses (aînés). */
@@ -322,9 +328,14 @@ wa-skeleton {
   inline-size: 33%;
 }
 
-/* Silhouette d'une rangée de grille pendant le chargement. */
-.squelette-rangee {
-  block-size: var(--wa-space-2xl);
+/* Silhouettes de la carte de structure (chargement) : la paire de boutons en
+   tête et le panneau de grille en creux — mêmes proportions que le rendu. */
+.squelette-boutons {
+  inline-size: 30%;
+  block-size: var(--wa-space-xl);
+}
+.squelette-grille {
+  block-size: calc(3 * var(--wa-space-2xl));
 }
 
 /* Grille d'emplacements d'une structure : une zone en creux (surface abaissée)
@@ -609,7 +620,8 @@ wa-callout::part(icon) {
   overflow-wrap: anywhere;
 }
 
-/* Le compte des demandes à traiter : l'information la plus utile de la page. */
+/* Pastilles de compte (demandes à traiter, total d'emplacements d'une
+   structure) : à la taille du corps de texte, lisibles pour un public aîné. */
 .badge-compte {
   font-size: var(--wa-font-size-m);
 }
