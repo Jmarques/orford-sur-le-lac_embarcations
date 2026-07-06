@@ -147,17 +147,34 @@ function observerEmplacement(corps) {
   var emplacements = ongletRequis_(ONGLET_EMPLACEMENTS);
   var lignes = objetsDepuisLignes(emplacements.getDataRange().getValues());
   var prepare = preparerObservation(corps, lignes, new Date());
+  appliquerObservation_(emplacements, Number(corps.numero), prepare);
+  return prepare.miseAJour;
+}
 
+// Écrit le lot d'une fin de tournée (décision 0013) : tout le lot est validé
+// avant la première écriture (preparerLotObservations lance sinon), puis
+// chaque observation écrit sa cellule et son événement Journal (0011).
+function observerLot(corps) {
+  var emplacements = ongletRequis_(ONGLET_EMPLACEMENTS);
+  var lignes = objetsDepuisLignes(emplacements.getDataRange().getValues());
+  var lot = preparerLotObservations(corps, lignes, new Date());
+  lot.forEach(function (prepare) {
+    appliquerObservation_(emplacements, prepare.numero, prepare);
+  });
+  return { compte: lot.length };
+}
+
+// Applique une observation préparée : ligne créée si absente (0009) ou mise à
+// jour par en-têtes réels (0012), puis événement Journal — les deux toujours.
+function appliquerObservation_(emplacements, numero, prepare) {
   if (prepare.creer) {
-    var nouvelle = { numero: Number(corps.numero) };
+    var nouvelle = { numero: numero };
     Object.keys(prepare.miseAJour).forEach(function (cle) { nouvelle[cle] = prepare.miseAJour[cle]; });
     appendObjet_(emplacements, nouvelle);
   } else {
-    majLigneParCle_(emplacements, 'numero', corps.numero, prepare.miseAJour);
+    majLigneParCle_(emplacements, 'numero', numero, prepare.miseAJour);
   }
-
   journaliser_(prepare.evenement);
-  return prepare.miseAJour;
 }
 
 // Un événement dans le Journal append-only (décisions 0002, 0011). `date` par

@@ -108,6 +108,14 @@ body {
   display: none !important;
 }
 
+/* Focus posé par script sur les titres et callouts (tabindex="-1", pour les
+   lecteurs d'écran) : pas d'anneau du navigateur — un titre « encadré »
+   ressemble à un champ sélectionné. Sans risque : Tab n'atteint jamais un
+   tabindex="-1", seul un script peut le focaliser. */
+[tabindex='-1']:focus {
+  outline: none;
+}
+
 /* Colonne de contenu centrée des pages simples (formulaire, admin). */
 .contenu {
   max-width: 65ch;
@@ -437,6 +445,70 @@ wa-skeleton {
 .bouton-cellule:focus-visible {
   outline: var(--wa-focus-ring);
   outline-offset: var(--wa-focus-ring-offset);
+}
+
+/* Cellule de l'écran de tournée (décision 0013) : encodage propre — fantôme
+   estompé / relevé affirmé — jamais les 5 statuts, hors sujet pendant un
+   relevé. Cible plus large que la grille de consultation : on travaille au
+   pouce, debout devant la structure. Le mot d'état est toujours écrit. */
+.cellule-tournee {
+  padding: 0;
+  vertical-align: middle;
+}
+.bouton-cellule-tournee {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  row-gap: var(--wa-space-3xs);
+  min-inline-size: var(--wa-space-4xl);
+  min-block-size: var(--wa-space-4xl);
+  inline-size: 100%;
+  padding: var(--wa-space-xs);
+  background: var(--wa-color-surface-default);
+  /* Épaisseur constante (relevé ou non) : aucun décalage de grille au tap. */
+  border: var(--wa-border-width-m) solid var(--wa-color-surface-border);
+  border-radius: var(--wa-border-radius-s);
+  font: inherit;
+  color: var(--wa-color-text-normal);
+  cursor: pointer;
+}
+.bouton-cellule-tournee:focus-visible {
+  outline: var(--wa-focus-ring);
+  outline-offset: var(--wa-focus-ring-offset);
+}
+.numero-cellule {
+  font-weight: var(--wa-font-weight-bold);
+}
+.etat-cellule {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wa-space-3xs);
+  font-size: var(--wa-font-size-xs);
+}
+/* Fantôme : le dernier état connu, estompé et en italique — un souvenir, pas
+   un fait. Sans fantôme (jamais observé), le tiret reste discret. */
+.bouton-cellule-tournee.fantome .etat-cellule {
+  color: var(--wa-color-text-quiet);
+  font-style: italic;
+}
+.bouton-cellule-tournee.sans-fantome .etat-cellule {
+  color: var(--wa-color-text-quiet);
+}
+/* Relevé : confirmé d'un tap — coche + mot en gras, cellule affirmée.
+   Occupé = remplie (une embarcation est là), libre = claire, même cadre. */
+.bouton-cellule-tournee.releve {
+  border-color: var(--wa-color-brand-border-loud);
+}
+.bouton-cellule-tournee.releve .etat-cellule {
+  font-weight: var(--wa-font-weight-bold);
+}
+.bouton-cellule-tournee.releve-occupe {
+  background: var(--wa-color-brand-fill-loud);
+  color: var(--wa-color-brand-on-loud);
+}
+.bouton-cellule-tournee.releve-libre {
+  background: var(--wa-color-surface-raised);
+  color: var(--wa-color-brand-on-quiet);
 }
 
 /* Légende des statuts au-dessus des cartes : chaque entrée est un bouton

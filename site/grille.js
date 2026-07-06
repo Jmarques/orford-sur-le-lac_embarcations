@@ -272,6 +272,15 @@ function numerosOrphelins(structuresAnalysees, lignesEmplacements) {
 // une observation.
 var ETATS_OCCUPATION = ['occupé', 'libre'];
 
+// Le dernier état observé lisible d'un emplacement, ou '' : toute valeur hors
+// ensemble (Sheet éditée à la main — 0002) ou ligne absente = pas d'observation.
+// C'est aussi le « fantôme » d'une cellule de tournée (décision 0013).
+function fantomeOccupation(ligne) {
+  return ligne && ETATS_OCCUPATION.indexOf(ligne.occupationObservee) !== -1
+    ? ligne.occupationObservee
+    : '';
+}
+
 // Le statut métier d'un emplacement, DÉRIVÉ du croisement attribution ×
 // occupation observée — jamais stocké (décision 0011). `ligne` = la ligne
 // d'Emplacements du numéro, ou undefined si elle n'existe pas encore.
@@ -279,9 +288,7 @@ var ETATS_OCCUPATION = ['occupé', 'libre'];
 // d'un coup d'œil. Libellés auto-explicatifs (ils nomment les deux axes).
 function statutEmplacement(ligne) {
   var attribue = !!(ligne && String(ligne.numeroAdresse || '').trim() && String(ligne.rue || '').trim());
-  var occupation = ligne && ETATS_OCCUPATION.indexOf(ligne.occupationObservee) !== -1
-    ? ligne.occupationObservee
-    : '';
+  var occupation = fantomeOccupation(ligne);
 
   if (occupation === '') {
     return {
@@ -332,6 +339,27 @@ function compterStatuts(structuresAnalysees, conflits, lignesEmplacements) {
   return { parCode: parCode, enConflit: Object.keys(marques).length };
 }
 
+// Cycle de tap d'une cellule de tournée (décision 0013) : un tap confirme ce
+// qu'on voit (le fantôme tel quel, ou « occupé » sans fantôme), un second
+// bascule occupé ↔ libre, un troisième revient à « non relevé » ('').
+function prochainEtatTournee(fantome, etat) {
+  var premier = ETATS_OCCUPATION.indexOf(fantome) !== -1 ? fantome : ETATS_OCCUPATION[0];
+  if (ETATS_OCCUPATION.indexOf(etat) === -1) return premier;
+  if (etat === premier) return premier === 'occupé' ? 'libre' : 'occupé';
+  return '';
+}
+
+// Le lot à envoyer en fin de tournée : les cellules relevées seulement, en
+// ordre de numéro — jamais d'observation par inaction (décision 0013).
+// `releves` : numéro → état du cycle de tap ('' = revenu à non relevé).
+function lotDeTournee(releves) {
+  return Object.keys(releves)
+    .filter(function (numero) { return ETATS_OCCUPATION.indexOf(releves[numero]) !== -1; })
+    .map(Number)
+    .sort(function (a, b) { return a - b; })
+    .map(function (numero) { return { numero: numero, occupation: releves[numero] }; });
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, ETATS_OCCUPATION };
 }

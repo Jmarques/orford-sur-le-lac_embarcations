@@ -40,6 +40,9 @@ function doPost(e) {
     if (corps.action === 'observerEmplacement') {
       return reponseJson_({ ok: true, observation: observerEmplacement(corps) });
     }
+    if (corps.action === 'observerLot') {
+      return reponseJson_({ ok: true, lot: observerLot(corps) });
+    }
     throw new Error('Action inconnue : "' + corps.action + '".');
   } catch (err) {
     var reponse = { ok: false, erreur: String((err && err.message) || err) };

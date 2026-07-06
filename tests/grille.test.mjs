@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts } = require('../apps-script/grille.js');
+const { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee } = require('../apps-script/grille.js');
 
 // Une ligne de l'onglet Structures, telle que renvoyée par l'API.
 function structureSheet(surcharges = {}) {
@@ -269,4 +269,42 @@ test('la normalisation compacte les suites de 3+ en plages (dans les deux sens) 
     normaliserGrille([[167, 166, 165, 164, 198], [1, 2], [5, 6, 7]]),
     '[[167..164, 198], [1, 2], [5..7]]',
   );
+});
+
+// --- Tournée (décision 0013) : fantôme, cycle de tap, contenu du lot ---
+
+test('le fantôme d\'une cellule de tournée est le dernier état observé lisible, sinon aucun (0002)', () => {
+  assert.equal(fantomeOccupation({ numero: 74, occupationObservee: 'occupé' }), 'occupé');
+  assert.equal(fantomeOccupation({ numero: 75, occupationObservee: 'libre' }), 'libre');
+  // Valeur illisible (Sheet éditée à la main) ou vide : pas de fantôme.
+  assert.equal(fantomeOccupation({ numero: 76, occupationObservee: 'inconnu' }), '');
+  assert.equal(fantomeOccupation({ numero: 77, occupationObservee: '' }), '');
+  // Ligne absente de l'onglet Emplacements : jamais observé, pas de fantôme.
+  assert.equal(fantomeOccupation(undefined), '');
+});
+
+test('cycle de tap avec fantôme : tap 1 = confirmé identique, tap 2 = basculé, tap 3 = non relevé', () => {
+  assert.equal(prochainEtatTournee('libre', ''), 'libre');
+  assert.equal(prochainEtatTournee('libre', 'libre'), 'occupé');
+  assert.equal(prochainEtatTournee('libre', 'occupé'), '');
+  assert.equal(prochainEtatTournee('occupé', ''), 'occupé');
+  assert.equal(prochainEtatTournee('occupé', 'occupé'), 'libre');
+  assert.equal(prochainEtatTournee('occupé', 'libre'), '');
+});
+
+test('cycle de tap sans fantôme : tap 1 = occupé, tap 2 = libre, tap 3 = non relevé', () => {
+  assert.equal(prochainEtatTournee('', ''), 'occupé');
+  assert.equal(prochainEtatTournee('', 'occupé'), 'libre');
+  assert.equal(prochainEtatTournee('', 'libre'), '');
+  // Fantôme illisible (0002) = pas de fantôme : même cycle.
+  assert.equal(prochainEtatTournee('inconnu', ''), 'occupé');
+});
+
+test('le lot d\'une tournée ne contient que les cellules relevées — jamais d\'observation par inaction (0013)', () => {
+  // 82 est revenu à « non relevé » (troisième tap) : il ne part pas dans le lot.
+  assert.deepEqual(lotDeTournee({ 90: 'occupé', 74: 'libre', 82: '' }), [
+    { numero: 74, occupation: 'libre' },
+    { numero: 90, occupation: 'occupé' },
+  ]);
+  assert.deepEqual(lotDeTournee({}), []);
 });

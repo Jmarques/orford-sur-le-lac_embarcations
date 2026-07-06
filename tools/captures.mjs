@@ -106,6 +106,7 @@ export const REPONSES_MOCK = {
   // Réponses aux écritures admin (les captures n'écrivent rien de réel).
   sauverStructure: { ok: true, structure: {} },
   observerEmplacement: { ok: true, observation: {} },
+  observerLot: { ok: true, lot: { compte: 1 } },
 };
 
 // Inventaire tel qu'il serait APRÈS l'observation « 76 libre » : la capture du
@@ -186,6 +187,30 @@ export const CAPTURES = [
   { nom: 'structures-succes', page: 'structures.html', etat: 'liste',
     cliquer: ['[data-structure="S02"] .bouton-modifier', '.bouton-enregistrer:not([disabled])'],
     attendre: '#message-succes:not([hidden])' },
+  // Tournée (décision 0013) : le hook ?etat=tournee ouvre la tournée de S01.
+  // Écran vierge : fantômes estompés (74 occupé, 75 libre…) et cellules sans
+  // fantôme (numéros sans ligne Emplacements).
+  { nom: 'structures-tournee', page: 'structures.html', etat: 'tournee',
+    attendre: '.bouton-cellule-tournee' },
+  // Relevés mixtes : 74 confirmé identique (1 tap), 75 basculé (2 taps),
+  // 90 jamais observé → occupé (1 tap), 91 sans fantôme → libre (2 taps).
+  { nom: 'structures-tournee-relevee', page: 'structures.html', etat: 'tournee',
+    cliquer: ['.bouton-cellule-tournee[data-numero="74"]',
+      '.bouton-cellule-tournee[data-numero="75"]', '.bouton-cellule-tournee[data-numero="75"]',
+      '.bouton-cellule-tournee[data-numero="90"]',
+      '.bouton-cellule-tournee[data-numero="91"]', '.bouton-cellule-tournee[data-numero="91"]'],
+    attendre: '.bouton-cellule-tournee.releve-libre[data-numero="91"]' },
+  { nom: 'structures-tournee-erreur', page: 'structures.html', etat: 'tournee',
+    cliquer: ['.bouton-cellule-tournee[data-numero="74"]', '#terminer-tournee'],
+    attendre: '#tournee-erreur:not([hidden])',
+    reponses: { observerLot: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
+  // Succès : l'inventaire mocké est déjà « après » (76 libre), donc un seul
+  // tap confirme le fantôme de 76 ; au retour, la liste montre la cellule
+  // recalculée « Disponible » — cohérente avec l'observation envoyée.
+  { nom: 'structures-tournee-succes', page: 'structures.html', etat: 'tournee',
+    cliquer: ['.bouton-cellule-tournee[data-numero="76"]', '#terminer-tournee'],
+    attendre: '#message-succes:not([hidden])',
+    reponses: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
   { nom: 'structures-erreur', page: 'structures.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
 ];
 

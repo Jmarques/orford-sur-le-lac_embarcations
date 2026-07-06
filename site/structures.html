@@ -133,6 +133,43 @@
            role="group" aria-label="Légende des statuts"></div>
       <div id="liste-structures" class="wa-stack wa-gap-l"></div>
     </div>
+
+    <!-- État : tournée d'une structure (décision 0013) — écran dédié, encodage
+         fantôme/relevé (jamais les 5 statuts). Rien n'est écrit avant
+         « Terminer la tournée », et seulement pour les cellules touchées. -->
+    <section id="etat-tournee" class="wa-stack wa-gap-l" hidden>
+      <div class="wa-stack wa-gap-xs">
+        <h2 id="titre-tournee" class="wa-heading-l" tabindex="-1"></h2>
+        <p class="wa-color-text-quiet wa-text-pretty">Touchez chaque emplacement pour noter
+          ce que vous voyez : un premier appui confirme l'état estompé, un deuxième le
+          change, un troisième l'efface. Les emplacements que vous ne touchez pas
+          garderont leur dernière observation.</p>
+      </div>
+      <div id="grille-tournee" class="grille-structure"></div>
+      <p class="indice-defilement wa-caption-s wa-color-text-quiet" hidden>Faites
+        glisser la grille vers la gauche pour voir tous les emplacements.</p>
+      <!-- L'erreur d'envoi vit à côté des boutons : c'est là que regarde
+           l'utilisateur au moment où elle apparaît. Les taps sont conservés. -->
+      <wa-callout id="tournee-erreur" variant="danger" role="alert" tabindex="-1" hidden>
+        <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+        <div class="wa-stack wa-gap-s">
+          <span id="tournee-erreur-texte"></span>
+          <div class="wa-cluster">
+            <wa-button id="tournee-reessayer" variant="brand" size="l">
+              <wa-icon slot="start" name="rotate-right"></wa-icon>
+              Réessayer
+            </wa-button>
+          </div>
+        </div>
+      </wa-callout>
+      <div class="wa-cluster wa-gap-s">
+        <wa-button id="terminer-tournee" variant="brand" size="l">
+          <wa-icon slot="start" name="check"></wa-icon>
+          Terminer la tournée
+        </wa-button>
+        <wa-button id="retour-liste" appearance="plain" size="l">Retour à la liste</wa-button>
+      </div>
+    </section>
   </main>
 
   <footer class="pied wa-text-center">
@@ -149,6 +186,12 @@
           <h3 class="wa-heading-m champ-id" tabindex="-1"></h3>
           <div class="wa-cluster wa-gap-s">
             <wa-badge class="badge-etat" hidden></wa-badge>
+            <!-- L'action de terrain (décision 0013), légèrement plus affirmée
+                 que Modifier (variant brand) sans devenir l'action primaire. -->
+            <wa-button class="bouton-tournee" appearance="outlined" variant="brand">
+              <wa-icon slot="start" name="list-check"></wa-icon>
+              Faire la tournée
+            </wa-button>
             <wa-button class="bouton-modifier" appearance="outlined">
               <wa-icon slot="start" name="pen"></wa-icon>
               Modifier
@@ -267,6 +310,17 @@
     <wa-button slot="footer" appearance="plain" size="l" data-dialog="close">Fermer</wa-button>
   </wa-dialog>
 
+  <!-- Confirmation avant de quitter une tournée dont les observations ne sont pas envoyées. -->
+  <wa-dialog id="dialogue-quitter-tournee" label="Quitter la tournée ?">
+    <p id="dialogue-quitter-texte" class="wa-text-pretty"></p>
+    <wa-button id="dialogue-quitter-confirmer" slot="footer" variant="danger" data-dialog="close">
+      Quitter sans envoyer
+    </wa-button>
+    <wa-button slot="footer" appearance="plain" data-dialog="close">
+      Continuer la tournée
+    </wa-button>
+  </wa-dialog>
+
   <!-- Confirmation avant de jeter des modifications non enregistrées. -->
   <wa-dialog id="dialogue-abandon" label="Abandonner les modifications ?">
     <p class="wa-text-pretty">Vos changements sur la structure
@@ -307,6 +361,7 @@
       erreur: document.getElementById('etat-erreur'),
       vide: document.getElementById('etat-vide'),
       liste: document.getElementById('etat-liste'),
+      tournee: document.getElementById('etat-tournee'),
     };
 
     function montrerEtat(nom) {
@@ -384,8 +439,9 @@
 
     // Un vrai tableau : les niveaux sont des en-têtes de rangées, la grille
     // reste lisible aux lecteurs d'écran et l'étiquette peut coller au bord.
-    // `interactif` : les cellules ouvrent le panneau (pas dans l'aperçu d'édition).
-    function grilleDeStructure(analyse, marquages, interactif) {
+    // `fabriqueCellule` : chaque écran (consultation, tournée) rend ses
+    // cellules — la géométrie du tableau, elle, est unique.
+    function tableauDeGrille(analyse, fabriqueCellule) {
       const table = document.createElement('table');
       table.className = 'grille-emplacements';
       const corps = document.createElement('tbody');
@@ -400,12 +456,18 @@
         }
         for (const emplacement of analyse.emplacements) {
           if (emplacement.ligne !== indexLigne) continue;
-          rangee.appendChild(celluleEmplacement(emplacement, marquages, interactif));
+          rangee.appendChild(fabriqueCellule(emplacement));
         }
         corps.appendChild(rangee);
       }
       table.appendChild(corps);
       return table;
+    }
+
+    // `interactif` : les cellules ouvrent le panneau (pas dans l'aperçu d'édition).
+    function grilleDeStructure(analyse, marquages, interactif) {
+      return tableauDeGrille(analyse, (emplacement) =>
+        celluleEmplacement(emplacement, marquages, interactif));
     }
 
     // La légende dérive libellés, explications et comptes de grille.js (un
@@ -428,7 +490,7 @@
       const legende = document.getElementById('legende-statuts');
       legende.replaceChildren();
       const titre = document.createElement('span');
-      titre.innerHTML = '<strong>Légende</strong> — touchez pour l\'explication :';
+      titre.innerHTML = '';
       legende.appendChild(titre);
 
       // `unite` : les statuts comptent des emplacements affichés, « En
@@ -584,6 +646,17 @@
         demanderFermeture(() => ouvrirEdition(analyse.id));
       });
 
+      const boutonTournee = champ('bouton-tournee');
+      if (analyse.lignes) {
+        boutonTournee.addEventListener('click', () => {
+          demanderFermeture(() => ouvrirTournee(analyse.id));
+        });
+      } else {
+        // Grille non parsable : rien à relever tant que les données ne sont
+        // pas corrigées — le callout d'erreur de la carte dit déjà quoi faire.
+        boutonTournee.hidden = true;
+      }
+
       return carte;
     }
 
@@ -720,6 +793,189 @@
     for (const bouton of document.querySelectorAll('#panneau-emplacement .bouton-occupation')) {
       bouton.addEventListener('click', () => envoyerObservation(bouton.dataset.occupation));
     }
+
+    // --- Tournée (décision 0013) : écran dédié par structure, fantôme + tap ---
+
+    // La tournée en cours : { structure, releves } — `releves` est l'entrée de
+    // lotDeTournee (numéro → état du cycle de tap, '' = revenu à non relevé).
+    let tourneeCourante = null;
+
+    // `relevesConserves` : taps à restaurer (reprise après une reconnexion en
+    // pleine tournée) — par défaut, une tournée démarre vierge.
+    function ouvrirTournee(id, relevesConserves) {
+      const { structures } = analyserStructures(donneesCourantes.structures, donneesCourantes.types);
+      const analyse = structures.find((s) => s.id === id);
+      if (!analyse || !analyse.lignes) {
+        // La structure a disparu ou sa grille est devenue illisible entre
+        // temps (Sheet éditée à la main — 0002) : on reste sur la liste.
+        tourneeCourante = null;
+        return;
+      }
+      tourneeCourante = { structure: id, releves: relevesConserves || {} };
+      document.getElementById('titre-tournee').textContent = 'Tournée de la structure ' + id;
+      document.getElementById('grille-tournee')
+        .replaceChildren(tableauDeGrille(analyse, celluleTournee));
+      document.getElementById('tournee-erreur').hidden = true;
+      document.getElementById('terminer-tournee').hidden = false;
+      montrerEtat('tournee');
+      window.scrollTo(0, 0);
+      document.getElementById('titre-tournee').focus();
+      requestAnimationFrame(majIndicesDefilement);
+    }
+
+    function celluleTournee(emplacement) {
+      const cellule = document.createElement('td');
+      cellule.className = 'cellule-tournee';
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.dataset.numero = String(emplacement.numero);
+      bouton.dataset.niveau = String(emplacement.niveau);
+      bouton.addEventListener('click', () => taperCellule(emplacement.numero));
+      habillerCelluleTournee(bouton);
+      cellule.appendChild(bouton);
+      return cellule;
+    }
+
+    // L'apparence d'une cellule découle de (fantôme, état relevé) — recalculée
+    // à chaque tap. Le mot d'état est toujours écrit : la couleur ne porte
+    // jamais seule (fantôme estompé, relevé coché et en gras).
+    function habillerCelluleTournee(bouton) {
+      const numero = Number(bouton.dataset.numero);
+      const fantome = fantomeOccupation(lignePourNumero(numero));
+      const etat = tourneeCourante.releves[numero] || '';
+      bouton.className = 'bouton-cellule-tournee '
+        + (etat === 'occupé' ? 'releve releve-occupe'
+          : etat === 'libre' ? 'releve releve-libre'
+          : fantome ? 'fantome' : 'sans-fantome');
+
+      const numeroTexte = document.createElement('span');
+      numeroTexte.className = 'numero-cellule';
+      numeroTexte.textContent = String(numero);
+      const mot = document.createElement('span');
+      mot.className = 'etat-cellule';
+      if (etat) {
+        const coche = document.createElement('wa-icon');
+        coche.setAttribute('name', 'check');
+        mot.append(coche, ' ' + etat);
+      } else {
+        mot.textContent = fantome || '—';
+      }
+      bouton.replaceChildren(numeroTexte, mot);
+
+      const position = 'Emplacement ' + numero
+        + (bouton.dataset.niveau !== '' ? ', niveau ' + bouton.dataset.niveau : '');
+      bouton.setAttribute('aria-label', position + ' — ' + (etat
+        ? 'relevé : ' + etat
+        : (fantome ? 'dernière observation : ' + fantome : 'jamais observé') + ', pas encore relevé'));
+    }
+
+    function taperCellule(numero) {
+      const fantome = fantomeOccupation(lignePourNumero(numero));
+      tourneeCourante.releves[numero] =
+        prochainEtatTournee(fantome, tourneeCourante.releves[numero] || '');
+      // Un numéro en double dans la grille (erreur de données) a plusieurs
+      // cellules : toutes suivent la même observation.
+      for (const bouton of document.querySelectorAll(
+        '#grille-tournee .bouton-cellule-tournee[data-numero="' + numero + '"]')) {
+        habillerCelluleTournee(bouton);
+      }
+    }
+
+    // Retour à la liste sans envoi : re-rendu depuis l'état courant (rien n'a
+    // changé côté Sheet), focus sur le bouton de la carte quittée.
+    function fermerTournee() {
+      const id = tourneeCourante.structure;
+      tourneeCourante = null;
+      afficherInventaire(donneesCourantes.structures, donneesCourantes.emplacements, donneesCourantes.types);
+      const bouton = document.querySelector('wa-card[data-structure="' + id + '"] .bouton-tournee');
+      if (bouton) focusComposant(bouton);
+    }
+
+    // Des observations non envoyées ne sont jamais jetées sans confirmation.
+    document.getElementById('retour-liste').addEventListener('click', () => {
+      const observations = lotDeTournee(tourneeCourante.releves);
+      if (observations.length === 0) {
+        fermerTournee();
+        return;
+      }
+      document.getElementById('dialogue-quitter-texte').textContent = observations.length === 1
+        ? 'Votre observation n\'a pas encore été envoyée. Si vous quittez maintenant, '
+          + 'elle sera perdue — l\'emplacement gardera sa dernière observation.'
+        : 'Vos ' + observations.length + ' observations n\'ont pas encore été envoyées. '
+          + 'Si vous quittez maintenant, elles seront perdues — les emplacements '
+          + 'garderont leur dernière observation.';
+      document.getElementById('dialogue-quitter-tournee').setAttribute('open', '');
+    });
+    document.getElementById('dialogue-quitter-confirmer').addEventListener('click', fermerTournee);
+
+    async function envoyerTournee() {
+      const terminer = document.getElementById('terminer-tournee');
+      if (terminer.loading) return; // pas de double envoi
+      const observations = lotDeTournee(tourneeCourante.releves);
+      // Aucune cellule touchée : rien à envoyer, rien n'est écrit (0013).
+      if (observations.length === 0) {
+        fermerTournee();
+        return;
+      }
+      const erreur = document.getElementById('tournee-erreur');
+      erreur.hidden = true;
+      // Une seule action primaire à la fois : « Terminer » reprend sa place
+      // dès qu'un envoi repart (il était masqué pendant l'erreur au profit
+      // de « Réessayer »).
+      terminer.hidden = false;
+      terminer.loading = true;
+      const structure = tourneeCourante.structure;
+      try {
+        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
+        const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
+        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'observerLot', motDePasse, observations }),
+        });
+        const resultat = await reponse.json();
+        if (!resultat.ok) {
+          if (resultat.code === 'accesRefuse') {
+            sessionStorage.removeItem(CLE_SESSION);
+            // `tourneeCourante` est conservée : après la reconnexion, la
+            // tournée rouvre avec les taps intacts (rien n'est perdu).
+            montrerConnexion(true);
+            return;
+          }
+          throw new ErreurApi(resultat.erreur);
+        }
+        tourneeCourante = null;
+        // État frais depuis la Sheet (0002) : la liste revient avec les
+        // statuts recalculés à partir des observations de la tournée.
+        await chargerStructures(motDePasse,
+          'Tournée de la structure ' + structure + ' enregistrée : '
+          + (observations.length === 1 ? '1 observation notée.' : observations.length + ' observations notées.'),
+          structure);
+      } catch (erreurEnvoi) {
+        // Une erreur métier est affichée à l'utilisateur : info en console,
+        // pas error (la boucle de captures échoue sur toute console.error).
+        if (erreurEnvoi instanceof ErreurApi) console.info('Tournée refusée :', erreurEnvoi.message);
+        else console.error('Envoi de la tournée impossible :', erreurEnvoi);
+        // Un refus métier n'est pas un problème de connexion : le message
+        // donne la vraie raison au lieu d'accuser le réseau.
+        document.getElementById('tournee-erreur-texte').textContent =
+          erreurEnvoi instanceof ErreurApi
+            ? 'La tournée a été refusée : ' + erreurEnvoi.message
+              + ' Ce que vous avez noté est conservé.'
+            : 'Impossible d\'envoyer la tournée. Ce que vous avez noté est conservé : '
+              + 'vérifiez votre connexion Internet, puis réessayez.';
+        erreur.hidden = false;
+        // « Réessayer » devient la seule action primaire visible : deux
+        // pilules brand identiques côte à côte sèmeraient le doute.
+        terminer.hidden = true;
+        erreur.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        erreur.focus();
+      } finally {
+        terminer.loading = false;
+      }
+    }
+
+    document.getElementById('terminer-tournee').addEventListener('click', envoyerTournee);
+    document.getElementById('tournee-reessayer').addEventListener('click', envoyerTournee);
 
     // --- Édition (contrat complet : type, saisie, embarcations, emplacements, notes) ---
 
@@ -1058,6 +1314,13 @@
     document.getElementById('formulaire-connexion').addEventListener('submit', async (evenement) => {
       evenement.preventDefault();
       await chargerStructures(champMotDePasse.value);
+      // Une tournée interrompue par la reconnexion (mot de passe changé en
+      // plein envoi) reprend avec ses taps : rien à ressaisir. Si la structure
+      // n'existe plus, ouvrirTournee laisse la liste (tourneeCourante nulle).
+      if (!etats.liste.hidden && tourneeCourante) {
+        ouvrirTournee(tourneeCourante.structure, tourneeCourante.releves);
+        if (tourneeCourante) return;
+      }
       // Après la connexion, le focus quitte le formulaire disparu : on le pose
       // sur le titre de l'état atteint (clavier et lecteurs d'écran).
       if (!etats.liste.hidden) document.getElementById('titre-liste').focus();
@@ -1068,9 +1331,10 @@
     });
 
     // Hook de test (décision 0006) : ?etat=mot-de-passe|mdp-refuse|chargement|
-    // liste|liste-vide|erreur fige la page dans un état pour les captures.
-    // Inerte sans paramètre. `liste` passe par un vrai fetch (API mockée par
-    // Playwright) ; sur le vrai site, il aboutit à l'écran de connexion.
+    // liste|liste-vide|erreur|tournee fige la page dans un état pour les
+    // captures. Inerte sans paramètre. `liste` et `tournee` passent par un vrai
+    // fetch (API mockée par Playwright) ; sur le vrai site, ils aboutissent à
+    // l'écran de connexion.
     const etatForce = new URLSearchParams(location.search).get('etat');
     if (etatForce === 'mot-de-passe') montrerConnexion(false);
     else if (etatForce === 'mdp-refuse') montrerConnexion(true);
@@ -1078,6 +1342,11 @@
     else if (etatForce === 'erreur') montrerErreur();
     else if (etatForce === 'liste-vide') afficherInventaire([], [], []);
     else if (etatForce === 'liste') chargerStructures('capture');
+    else if (etatForce === 'tournee') {
+      chargerStructures('capture').then(() => {
+        if (!etats.liste.hidden) ouvrirTournee('S01');
+      });
+    }
     else {
       const motDePasse = sessionStorage.getItem(CLE_SESSION);
       if (motDePasse) chargerStructures(motDePasse);
