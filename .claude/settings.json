@@ -1,14 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node --test 'tests/*.test.mjs')",
-      "Bash(node --test tests/)",
+      "Bash(node --test *)",
       "Bash(npm test)",
-      "Bash(npm run dev)",
-      "Bash(npm run screenshots)",
-      "Bash(npm run screenshots -- --live)",
-      "Bash(npm run verify)",
-      "Bash(npm run logs)"
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "Bash(sips *)",
+      "Bash(grep * /Users/jeremy/.claude/skills/*)",
+      "Read(//Users/jeremy/.claude/skills/**)",
+      "Bash(node tmp/*)",
+      "Bash(rm -f tmp/*)",
+      "Bash(rm -f screenshots/*)"
     ]
   }
 }

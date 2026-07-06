@@ -58,7 +58,15 @@ try {
       });
       if (!enDirect) {
         await page.route('**/script.google.com/**', (route) => {
-          const reponse = route.request().method() === 'GET' ? REPONSES_MOCK.config : REPONSES_MOCK.creation;
+          const requete = route.request();
+          let reponse = REPONSES_MOCK.config;
+          if (requete.method() === 'POST') {
+            // Même routage que doPost (apps-script/Code.js) : `action` dans le corps.
+            const corps = JSON.parse(requete.postData() || '{}');
+            // `reponses` d'un scénario : mock spécifique (ex. échec simulé).
+            reponse = (scenario.reponses && scenario.reponses[corps.action])
+              || REPONSES_MOCK[corps.action] || REPONSES_MOCK.creation;
+          }
           route.fulfill({ contentType: 'application/json', body: JSON.stringify(reponse) });
         });
         await page.route('**/config.js', (route) => {
@@ -66,14 +74,33 @@ try {
         });
       }
       await page.goto(urlDeScenario(BASE, scenario));
-      if (scenario.cliquer) {
-        await page.waitForSelector('#formulaire:not([hidden])', { timeout: 15000 });
-        await page.click(scenario.cliquer);
+      // `cliquer` : un sélecteur ou une liste, cliqués dans l'ordre. Avant
+      // chaque clic : plus aucun custom element en attente d'upgrade — le
+      // loader Web Awesome charge à la demande, un clic trop tôt tombe sur un
+      // composant pas encore câblé et se perd.
+      for (const selecteur of [].concat(scenario.cliquer || [])) {
+        await page.waitForSelector(selecteur, { timeout: 15000 });
+        await page.waitForFunction(
+          () => document.querySelectorAll(':not(:defined)').length === 0,
+          { timeout: 15000 },
+        );
+        await page.click(selecteur);
       }
-      await page.waitForSelector(scenario.attendre, { timeout: 15000 });
+      // `presenceSeule` : attend l'existence du sélecteur (attributs d'état des
+      // web components dont le host est « invisible » pour Playwright), pas sa
+      // visibilité.
+      await page.waitForSelector(scenario.attendre, {
+        timeout: 15000,
+        state: scenario.presenceSeule ? 'attached' : 'visible',
+      });
+      if (scenario.defiler) {
+        await page.$$eval(scenario.defiler, (zones) => {
+          for (const zone of zones) zone.scrollLeft = zone.scrollWidth;
+        });
+      }
       await page.waitForTimeout(600);
       const fichier = `${SORTIE}${scenario.nom}--${nomViewport}.png`;
-      await page.screenshot({ path: fichier, fullPage: true });
+      await page.screenshot({ path: fichier, fullPage: !scenario.pleinVue });
       console.log(`✓ ${scenario.nom} (${nomViewport})`);
       await page.close();
     }

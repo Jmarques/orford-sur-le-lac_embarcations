@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="fr" class="wa-theme-default wa-palette-default wa-brand-cyan wa-light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Orford sur le Lac — Espace du comité</title>
+  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.10.0/styles/webawesome.css">
+  <script type="module" src="https://ka-f.webawesome.com/webawesome@3.10.0/webawesome.loader.js"></script>
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="liseret-marque"></div>
+
+  <header class="bande-lac">
+    <div class="contenu wa-stack wa-gap-m">
+      <div class="wa-flank wa-gap-m wa-align-items-center">
+        <div class="pastille-icone"><wa-icon name="water" label="Orford sur le Lac"></wa-icon></div>
+        <span class="wa-caption-m signature-lac">Orford sur le Lac · Espace du comité</span>
+      </div>
+      <h1 class="wa-heading-xl wa-text-balance titre-lac">Demandes d'emplacement</h1>
+      <p class="wa-text-pretty">Les demandes envoyées par les membres via le formulaire public.</p>
+      <nav class="wa-cluster wa-gap-l nav-comite" aria-label="Pages du comité">
+        <a href="admin.html" aria-current="page"><wa-icon name="inbox"></wa-icon> Demandes</a>
+        <a href="structures.html"><wa-icon name="table-cells"></wa-icon> Structures</a>
+      </nav>
+    </div>
+    <div class="houle">
+      <svg class="vagues" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,32 C240,64 480,0 720,32 C960,64 1200,0 1440,32 L1440,60 L0,60 Z"
+              fill="var(--wa-color-surface-default)"></path>
+      </svg>
+    </div>
+  </header>
+
+  <main class="contenu wa-stack wa-gap-xl">
+    <!-- État : connexion (mot de passe du comité) -->
+    <wa-card id="etat-connexion" hidden>
+      <form id="formulaire-connexion" class="wa-stack wa-gap-l">
+        <div class="wa-stack wa-gap-xs">
+          <h2 class="wa-heading-l">Page réservée au comité</h2>
+        <p class="wa-color-text-quiet wa-text-pretty">Entrez le mot de passe du comité pour voir
+          les demandes. Il est le même pour tous les membres du comité.</p>
+        </div>
+        <wa-callout id="erreur-connexion" variant="danger" role="alert" hidden>
+          <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+          <!-- Texte injecté au moment du refus : une live region démasquée sans
+               changement de contenu n'est pas annoncée par les lecteurs d'écran. -->
+          <span id="erreur-connexion-texte"></span>
+        </wa-callout>
+        <wa-input id="champ-mot-de-passe" name="motDePasse" class="champ-plein" label="Mot de passe du comité"
+                  type="password" password-toggle autocomplete="current-password" required>
+          <wa-icon slot="start" name="lock"></wa-icon>
+        </wa-input>
+        <wa-button id="entrer" class="bouton-plein" type="submit" variant="brand" size="l">
+          <wa-icon slot="start" name="unlock"></wa-icon>
+          Entrer
+        </wa-button>
+      </form>
+    </wa-card>
+
+    <!-- État : chargement des demandes (silhouettes aux proportions d'une carte) -->
+    <div id="etat-chargement" class="wa-stack wa-gap-l" aria-busy="true" hidden>
+      <wa-skeleton class="squelette-titre" effect="sheen"></wa-skeleton>
+      <wa-card>
+        <div class="wa-stack wa-gap-m">
+          <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-ligne" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
+        </div>
+      </wa-card>
+      <wa-card>
+        <div class="wa-stack wa-gap-m">
+          <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-ligne" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
+        </div>
+      </wa-card>
+      <p class="wa-visually-hidden">Chargement des demandes…</p>
+    </div>
+
+    <!-- État : erreur de chargement -->
+    <div id="etat-erreur" class="wa-stack wa-gap-m" hidden>
+      <wa-callout variant="danger" role="alert">
+        <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+        <span id="erreur-texte"></span><span
+          class="phrase-contact" hidden> Vous pouvez aussi nous écrire à <a class="lien-comite" href=""></a>.</span>
+      </wa-callout>
+      <div class="wa-cluster">
+        <wa-button id="reessayer" variant="brand" size="l">
+          <wa-icon slot="start" name="rotate-right"></wa-icon>
+          Réessayer
+        </wa-button>
+      </div>
+    </div>
+
+    <!-- État : aucune demande du tout -->
+    <div id="etat-vide" class="wa-stack wa-gap-l wa-align-items-center wa-text-center" role="status" hidden>
+      <wa-icon class="glyphe-etat repos" name="inbox"></wa-icon>
+      <h2 id="titre-vide" class="wa-heading-l" tabindex="-1">Aucune demande pour l'instant</h2>
+      <p class="wa-color-text-quiet wa-text-pretty">Quand un membre remplira le
+        <a href="index.html">formulaire de demande</a>, sa demande apparaîtra ici.</p>
+    </div>
+
+    <!-- État : les demandes -->
+    <div id="etat-liste" class="wa-stack wa-gap-xl" hidden>
+      <section class="wa-stack wa-gap-m">
+        <div class="wa-cluster wa-gap-s wa-align-items-baseline">
+          <h2 id="titre-a-traiter" class="wa-heading-l" tabindex="-1">À traiter</h2>
+          <wa-badge id="compte-nouvelles" class="badge-compte" variant="brand" pill>0</wa-badge>
+        </div>
+        <p id="rien-a-traiter" class="wa-color-text-quiet" hidden>Aucune demande en attente — tout est traité.</p>
+        <div id="liste-nouvelles" class="wa-stack wa-gap-m"></div>
+      </section>
+      <section id="section-decidees" class="wa-stack wa-gap-m" hidden>
+        <h2 class="wa-heading-m wa-color-text-quiet">Déjà décidées</h2>
+        <div id="liste-decidees" class="wa-stack wa-gap-m"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="pied wa-text-center">
+    Orford sur le Lac — Comité administratif<span class="phrase-contact" hidden> ·
+      <a class="lien-comite" href=""></a></span>
+  </footer>
+
+  <!-- Modèle d'une carte de demande (rempli par textContent : jamais de HTML des membres). -->
+  <template id="modele-demande">
+    <wa-card class="carte-demande">
+      <div class="wa-stack wa-gap-s">
+        <div class="wa-split wa-flex-wrap wa-align-items-baseline">
+          <h3 class="wa-heading-m champ-adresse"></h3>
+          <wa-badge class="badge-statut"></wa-badge>
+        </div>
+        <div class="wa-cluster wa-gap-s">
+          <span class="wa-cluster wa-gap-2xs champ-type">
+            <wa-icon name="sailboat"></wa-icon>
+            <span class="champ-type-texte"></span>
+          </span>
+          <wa-badge class="badge-mobilite" variant="warning" appearance="filled-outlined" hidden>
+            <wa-icon name="person-cane"></wa-icon> Priorité niveau bas (mobilité réduite)
+          </wa-badge>
+        </div>
+        <p class="wa-color-text-quiet coordonnees">
+          <span class="champ-nom"></span> ·
+          <a class="champ-courriel"></a> <span class="bloc-telephone" hidden>· <a class="champ-telephone wa-text-nowrap"></a></span>
+        </p>
+        <p class="note-membre" hidden></p>
+        <p class="wa-caption-m wa-color-text-quiet champ-date"></p>
+      </div>
+    </wa-card>
+  </template>
+
+  <script src="config.js"></script>
+  <script type="module">
+    await Promise.all([
+      customElements.whenDefined('wa-button'),
+      customElements.whenDefined('wa-input'),
+      customElements.whenDefined('wa-card'),
+      customElements.whenDefined('wa-badge'),
+    ]);
+
+    // Filet de sécurité : liens de contact du comité, si configurés.
+    const courrielComite = window.OSL_CONFIG.courrielComite;
+    if (courrielComite) {
+      for (const lien of document.querySelectorAll('.lien-comite')) {
+        lien.href = 'mailto:' + courrielComite;
+        lien.textContent = courrielComite;
+      }
+      for (const phrase of document.querySelectorAll('.phrase-contact')) phrase.hidden = false;
+    }
+
+    const etats = {
+      connexion: document.getElementById('etat-connexion'),
+      chargement: document.getElementById('etat-chargement'),
+      erreur: document.getElementById('etat-erreur'),
+      vide: document.getElementById('etat-vide'),
+      liste: document.getElementById('etat-liste'),
+    };
+
+    function montrerEtat(nom) {
+      for (const [cle, element] of Object.entries(etats)) element.hidden = cle !== nom;
+    }
+
+    const CLE_SESSION = 'oslMotDePasseComite';
+    const erreurConnexion = document.getElementById('erreur-connexion');
+    const champMotDePasse = document.getElementById('champ-mot-de-passe');
+
+    function montrerConnexion(refuse) {
+      erreurConnexion.hidden = !refuse;
+      if (refuse) {
+        document.getElementById('erreur-connexion-texte').textContent =
+          'Ce mot de passe n\'est pas le bon. Vérifiez-le auprès du comité, puis réessayez.';
+      }
+      montrerEtat('connexion');
+      champMotDePasse.focus();
+    }
+
+    function montrerErreur() {
+      document.getElementById('erreur-texte').textContent =
+        'Impossible de charger les demandes. Vérifiez votre connexion Internet, puis réessayez.';
+      montrerEtat('erreur');
+    }
+
+    // Les statuts inattendus (Sheet éditée à la main — décision 0002) restent
+    // affichés tels quels, en neutre. Les demandes décidées reculent : carte
+    // remplie (sans bordure) et badge adouci — seules les nouvelles sont loud.
+    const BADGES_STATUT = {
+      nouvelle: { libelle: 'Nouvelle', variante: 'brand', apparence: 'accent' },
+      'acceptée': { libelle: 'Acceptée', variante: 'success', apparence: 'filled-outlined' },
+      'refusée': { libelle: 'Refusée', variante: 'neutral', apparence: 'filled-outlined' },
+    };
+
+    const formatDate = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
+
+    function carteDemande(demande) {
+      const carte = document.getElementById('modele-demande').content.cloneNode(true);
+      const champ = (classe) => carte.querySelector('.' + classe);
+
+      champ('champ-adresse').textContent = demande.numero + ', ' + demande.rue;
+
+      const badge = BADGES_STATUT[demande.statut]
+        || { libelle: demande.statut, variante: 'neutral', apparence: 'filled-outlined' };
+      champ('badge-statut').textContent = badge.libelle;
+      champ('badge-statut').setAttribute('variant', badge.variante);
+      champ('badge-statut').setAttribute('appearance', badge.apparence);
+      if (demande.statut !== 'nouvelle') {
+        carte.querySelector('wa-card').setAttribute('appearance', 'filled');
+      }
+
+      champ('champ-type-texte').textContent = demande.type;
+      champ('badge-mobilite').hidden = !demande.mobiliteReduite;
+
+      champ('champ-nom').textContent = demande.nom;
+      champ('champ-courriel').textContent = demande.courriel;
+      champ('champ-courriel').href = 'mailto:' + demande.courriel;
+      if (demande.telephone) {
+        champ('bloc-telephone').hidden = false;
+        champ('champ-telephone').textContent = demande.telephone;
+        champ('champ-telephone').href = 'tel:' + demande.telephone;
+      }
+
+      if (demande.note) {
+        champ('note-membre').textContent = demande.note;
+        champ('note-membre').hidden = false;
+      }
+
+      const date = new Date(demande.date);
+      champ('champ-date').textContent = Number.isNaN(date.valueOf())
+        ? String(demande.date)
+        : 'Reçue le ' + formatDate.format(date);
+
+      return carte;
+    }
+
+    function remplirListe(conteneur, demandes) {
+      conteneur.replaceChildren();
+      for (const demande of demandes) conteneur.appendChild(carteDemande(demande));
+    }
+
+    function afficherDemandes(demandes) {
+      if (demandes.length === 0) {
+        montrerEtat('vide');
+        return;
+      }
+      const nouvelles = demandes.filter((d) => d.statut === 'nouvelle');
+      const decidees = demandes.filter((d) => d.statut !== 'nouvelle');
+      document.getElementById('compte-nouvelles').textContent = String(nouvelles.length);
+      document.getElementById('rien-a-traiter').hidden = nouvelles.length !== 0;
+      remplirListe(document.getElementById('liste-nouvelles'), nouvelles);
+      document.getElementById('section-decidees').hidden = decidees.length === 0;
+      remplirListe(document.getElementById('liste-decidees'), decidees);
+      montrerEtat('liste');
+    }
+
+    // Erreur « métier » renvoyée par l'API, par opposition aux erreurs techniques.
+    class ErreurApi extends Error {}
+
+    async function chargerDemandes(motDePasse) {
+      montrerEtat('chargement');
+      try {
+        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
+        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'demandes', motDePasse }),
+        });
+        const resultat = await reponse.json();
+        if (!resultat.ok) {
+          if (resultat.code === 'accesRefuse') {
+            sessionStorage.removeItem(CLE_SESSION);
+            montrerConnexion(true);
+            return;
+          }
+          throw new ErreurApi(resultat.erreur);
+        }
+        sessionStorage.setItem(CLE_SESSION, motDePasse);
+        afficherDemandes(resultat.demandes);
+      } catch (erreur) {
+        console.error('Chargement des demandes impossible :', erreur);
+        montrerErreur();
+      }
+    }
+
+    document.getElementById('formulaire-connexion').addEventListener('submit', async (evenement) => {
+      evenement.preventDefault();
+      await chargerDemandes(champMotDePasse.value);
+      // Après la connexion, le focus quitte le formulaire disparu : on le pose
+      // sur le titre de l'état atteint (clavier et lecteurs d'écran).
+      if (!etats.liste.hidden) document.getElementById('titre-a-traiter').focus();
+      else if (!etats.vide.hidden) document.getElementById('titre-vide').focus();
+    });
+    document.getElementById('reessayer').addEventListener('click', () => {
+      chargerDemandes(sessionStorage.getItem(CLE_SESSION) || champMotDePasse.value);
+    });
+
+    // Hook de test (décision 0006) : ?etat=mot-de-passe|mdp-refuse|chargement|
+    // liste|liste-vide|erreur fige la page dans un état pour les captures.
+    // Inerte sans paramètre. `liste` passe par un vrai fetch (API mockée par
+    // Playwright) ; sur le vrai site, il aboutit à l'écran de connexion.
+    const etatForce = new URLSearchParams(location.search).get('etat');
+    if (etatForce === 'mot-de-passe') montrerConnexion(false);
+    else if (etatForce === 'mdp-refuse') montrerConnexion(true);
+    else if (etatForce === 'chargement') montrerEtat('chargement');
+    else if (etatForce === 'erreur') montrerErreur();
+    else if (etatForce === 'liste-vide') afficherDemandes([]);
+    else if (etatForce === 'liste') chargerDemandes('capture');
+    else {
+      const motDePasse = sessionStorage.getItem(CLE_SESSION);
+      if (motDePasse) chargerDemandes(motDePasse);
+      else montrerConnexion(false);
+    }
+  </script>
+</body>
+</html>

@@ -34,6 +34,39 @@
   padding-inline: var(--wa-space-l);
 }
 
+/* La page structures affiche des grilles jusqu'à ~15 colonnes : sa colonne de
+   contenu s'élargit (multiple de l'échelle d'espacement, pas de valeur brute). */
+.contenu-structures {
+  max-width: calc(12 * var(--wa-space-5xl));
+}
+
+/* … mais seul l'état liste a besoin de cette largeur : les autres états
+   (connexion, erreur, vide, chargement) gardent la colonne des pages sœurs. */
+.contenu-structures > :not(#etat-liste) {
+  inline-size: 100%;
+  max-inline-size: 65ch;
+  margin-inline: auto;
+}
+
+/* Navigation entre les pages du comité, posée sur la bande de marque.
+   inline-flex + gap : le soulignement de l'onglet actif ne couvre pas
+   l'espace entre l'icône et le libellé. */
+.nav-comite a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wa-space-2xs);
+  color: var(--wa-color-brand-on-quiet);
+  text-decoration: none;
+}
+.nav-comite a:hover {
+  text-decoration: underline;
+}
+.nav-comite a[aria-current='page'] {
+  text-decoration: underline;
+  text-underline-offset: var(--wa-space-2xs);
+  font-weight: var(--wa-font-weight-bold);
+}
+
 /* Liseré de marque en haut de page (accent stripe). */
 .liseret-marque {
   block-size: var(--wa-space-2xs);
@@ -117,12 +150,261 @@
   block-size: var(--wa-space-3xl);
 }
 
+/* Silhouettes aux proportions d'une ligne de texte de carte. */
+.squelette-ligne {
+  block-size: var(--wa-space-m);
+}
+.squelette-ligne.moitie {
+  inline-size: 50%;
+}
+.squelette-ligne.tiers {
+  inline-size: 33%;
+}
+
+/* Silhouette d'une rangée de grille pendant le chargement. */
+.squelette-rangee {
+  block-size: var(--wa-space-2xl);
+}
+
+/* Grille d'emplacements d'une structure : une zone en creux (surface abaissée)
+   qui matérialise l'espace défilable — si la grille est plus large que la
+   carte, elle défile horizontalement dans la carte, jamais la page entière. */
+.grille-structure {
+  overflow-x: auto;
+  background: var(--wa-color-surface-lowered);
+  border-radius: var(--wa-border-radius-s);
+  padding: var(--wa-space-xs);
+}
+
+/* La grille est un vrai tableau (niveaux en en-têtes de rangées pour les
+   lecteurs d'écran) ; border-spacing tient lieu de gap. */
+.grille-emplacements {
+  border-collapse: separate;
+  border-spacing: var(--wa-space-2xs);
+  /* La table épouse ses cellules : mêmes largeurs dans toutes les cartes,
+     quel que soit le nombre de colonnes (annule le width:100% du reset). */
+  inline-size: max-content;
+}
+
+/* Étiquette de niveau : collée au bord gauche pendant le défilement, sur fond
+   opaque, pour garder le repère dans les grandes structures. */
+.etiquette-niveau {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: var(--wa-color-surface-lowered);
+  /* Couvre les gouttières de part et d'autre (padding de la zone à gauche,
+     border-spacing à droite) : sans cela, les cellules qui glissent dessous
+     saignent dans les interstices. */
+  box-shadow:
+    calc(-1 * var(--wa-space-xs)) 0 0 var(--wa-color-surface-lowered),
+    var(--wa-space-2xs) 0 0 var(--wa-color-surface-lowered);
+  min-inline-size: var(--wa-space-5xl);
+  text-align: start;
+  white-space: nowrap;
+  font-weight: var(--wa-font-weight-normal);
+  color: var(--wa-color-text-quiet);
+}
+
+/* Une cellule = un emplacement numéroté. Taille fixe sur l'échelle (les
+   colonnes s'alignent), assez large pour trois chiffres et un doigt (terrain). */
+.cellule-emplacement {
+  min-inline-size: var(--wa-space-3xl);
+  block-size: var(--wa-space-3xl);
+  text-align: center;
+  vertical-align: middle;
+  background: var(--wa-color-surface-default);
+  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+  border-radius: var(--wa-border-radius-s);
+  font-size: var(--wa-font-size-s);
+}
+
+/* Mini-cellule de la légende : le compte DANS le rectangle de couleur — même
+   forme qu'une cellule de la grille, le code couleur se lit par identité.
+   Définie AVANT les classes .statut-* pour qu'elles la colorent. */
+.cellule-legende {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: var(--wa-space-xl);
+  block-size: var(--wa-space-l);
+  padding-inline: var(--wa-space-2xs);
+  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+  border-radius: var(--wa-border-radius-s);
+  background: var(--wa-color-surface-default);
+  font-size: var(--wa-font-size-s);
+  font-weight: var(--wa-font-weight-bold);
+}
+
+/* Statut dérivé d'un emplacement (décision 0011) : la couleur code le statut
+   sur les cellules ET les pastilles de la légende — paires fill/on du même
+   pas (quiet = attendu, normal = problème à repérer). La couleur ne porte
+   jamais seule : légende, libellés du panneau et aria-label la doublent. */
+.statut-conforme {
+  background: var(--wa-color-success-fill-quiet);
+  border-color: var(--wa-color-success-border-quiet);
+  color: var(--wa-color-success-on-quiet);
+}
+.statut-disponible {
+  background: var(--wa-color-brand-fill-quiet);
+  border-color: var(--wa-color-brand-border-quiet);
+  color: var(--wa-color-brand-on-quiet);
+}
+/* pasObserve : l'apparence par défaut de la cellule (calme) — pas de règle. */
+.statut-peutEtreALiberer {
+  background: var(--wa-color-warning-fill-normal);
+  border-color: var(--wa-color-warning-border-normal);
+  color: var(--wa-color-warning-on-normal);
+  font-weight: var(--wa-font-weight-bold);
+}
+.statut-orphelin {
+  background: var(--wa-color-danger-fill-normal);
+  border-color: var(--wa-color-danger-border-normal);
+  color: var(--wa-color-danger-on-normal);
+  font-weight: var(--wa-font-weight-bold);
+}
+
+/* La cellule interactive contient un vrai <button> pleine surface : le <td>
+   garde son rôle de cellule de table (lecteurs d'écran), le bouton porte le
+   clic, le clavier et le focus. Il hérite couleur et fonte de son statut. */
+.bouton-cellule {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.cellule-emplacement:has(> .bouton-cellule):hover {
+  filter: brightness(0.94);
+}
+.bouton-cellule:focus-visible {
+  outline: var(--wa-focus-ring);
+  outline-offset: var(--wa-focus-ring-offset);
+}
+
+/* Légende des statuts au-dessus des cartes : chaque entrée est un bouton
+   (pastille + libellé + compte) qui ouvre son explication au toucher. */
+.legende-statuts {
+  row-gap: var(--wa-space-xs);
+}
+/* Entrée de légende : bouton discret sans bordure (mini-cellule + libellé) —
+   le mobilier reste plus silencieux que le contenu qu'il explique. */
+.jeton-legende {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wa-space-2xs);
+  padding: var(--wa-space-2xs) var(--wa-space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--wa-border-radius-s);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.jeton-legende:hover {
+  background: var(--wa-color-surface-lowered);
+}
+.jeton-legende:focus-visible {
+  outline: var(--wa-focus-ring);
+  outline-offset: var(--wa-focus-ring-offset);
+}
+.texte-popover {
+  margin: 0;
+}
+
+/* Panneau d'emplacement : gros boutons d'observation côte à côte, qui
+   passent à la ligne quand l'écran est étroit. */
+.boutons-occupation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wa-space-xs);
+}
+/* Trois colonnes strictement égales (insensibles à la coche d'état courant).
+   Sur téléphone, pile complète — trois cibles pleine largeur identiques. */
+.bouton-occupation {
+  flex: 1 1 0;
+  min-inline-size: 0;
+}
+@media (max-width: 480px) {
+  .bouton-occupation {
+    flex-basis: 100%;
+  }
+
+  /* Le panneau se resserre : tout l'essentiel (statut, état courant, les
+     trois boutons) doit tenir au-dessus du pli du wa-dialog. */
+  .corps-panneau {
+    gap: var(--wa-space-m);
+  }
+  #panneau-emplacement::part(body) {
+    padding: var(--wa-space-m);
+  }
+}
+
+/* Numéro en conflit (présent dans deux structures) : une ERREUR DE DONNÉES,
+   pas un statut de terrain — bordure pointillée sur fond neutre, pour ne pas
+   se confondre avec le fill plein d'« Embarcation à identifier ». Le détail
+   est toujours énoncé en texte dans le callout de la carte. Défini APRÈS les
+   statuts : une erreur de données prime sur le statut. */
+.cellule-emplacement.conflit,
+.cellule-legende.conflit {
+  background: var(--wa-color-surface-default);
+  border: var(--wa-border-width-m) dashed var(--wa-color-danger-border-loud);
+  color: var(--wa-color-danger-on-quiet);
+  font-weight: var(--wa-font-weight-bold);
+}
+
+/* Dans un callout multi-messages, l'icône se cale en haut plutôt que de
+   flotter centrée (part `icon` documentée par wa-callout). */
+wa-callout::part(icon) {
+  align-self: start;
+}
+
+/* Formulaire d'édition : les deux sélecteurs côte à côte quand la place le
+   permet, et le champ de la grille en fonte code (part documentée). */
+.champs-structure {
+  --min-column-size: 24ch;
+}
+.champ-edit-emplacements::part(textarea) {
+  font-family: var(--wa-font-family-code);
+}
+
+/* Cellule `emplacements` non parsable : montrée brute, en fonte à chasse fixe. */
+.texte-grille-brut {
+  display: block;
+  padding: var(--wa-space-s);
+  background: var(--wa-color-surface-lowered);
+  border-radius: var(--wa-border-radius-s);
+  font-size: var(--wa-font-size-s);
+  overflow-wrap: anywhere;
+}
+
+/* Le compte des demandes à traiter : l'information la plus utile de la page. */
+.badge-compte {
+  font-size: var(--wa-font-size-m);
+}
+
 /* Icône géante des états de confirmation (empty-state pattern). */
 .glyphe-etat {
   font-size: var(--wa-font-size-4xl);
 }
 .glyphe-etat.succes {
   color: var(--wa-color-success-fill-loud);
+}
+
+/* Icône des états de repos (aucune demande…) : discrète, pas festive. */
+.glyphe-etat.repos {
+  color: var(--wa-color-text-quiet);
+}
+
+/* Note laissée par un membre dans sa demande : citation en retrait. */
+.note-membre {
+  border-inline-start: var(--wa-border-width-l) solid var(--wa-color-brand-fill-loud);
+  padding-inline-start: var(--wa-space-m);
+  color: var(--wa-color-text-quiet);
 }
 
 /* Le formulaire et son bouton occupent toute la largeur de la carte. */

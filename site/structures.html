@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="fr" class="wa-theme-default wa-palette-default wa-brand-cyan wa-light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Orford sur le Lac — Structures</title>
+  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.10.0/styles/webawesome.css">
+  <script type="module" src="https://ka-f.webawesome.com/webawesome@3.10.0/webawesome.loader.js"></script>
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="liseret-marque"></div>
+
+  <header class="bande-lac">
+    <div class="contenu wa-stack wa-gap-m">
+      <div class="wa-flank wa-gap-m wa-align-items-center">
+        <div class="pastille-icone"><wa-icon name="water" label="Orford sur le Lac"></wa-icon></div>
+        <span class="wa-caption-m signature-lac">Orford sur le Lac · Espace du comité</span>
+      </div>
+      <h1 class="wa-heading-xl wa-text-balance titre-lac">Structures</h1>
+      <p class="wa-text-pretty">Les structures près de la plage et leurs emplacements numérotés,
+        tels qu'inscrits dans la feuille de calcul.</p>
+      <nav class="wa-cluster wa-gap-l nav-comite" aria-label="Pages du comité">
+        <a href="admin.html"><wa-icon name="inbox"></wa-icon> Demandes</a>
+        <a href="structures.html" aria-current="page"><wa-icon name="table-cells"></wa-icon> Structures</a>
+      </nav>
+    </div>
+    <div class="houle">
+      <svg class="vagues" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,32 C240,64 480,0 720,32 C960,64 1200,0 1440,32 L1440,60 L0,60 Z"
+              fill="var(--wa-color-surface-default)"></path>
+      </svg>
+    </div>
+  </header>
+
+  <main class="contenu contenu-structures wa-stack wa-gap-xl">
+    <!-- État : connexion (mot de passe du comité) -->
+    <wa-card id="etat-connexion" hidden>
+      <form id="formulaire-connexion" class="wa-stack wa-gap-l">
+        <div class="wa-stack wa-gap-xs">
+          <h2 class="wa-heading-l">Page réservée au comité</h2>
+          <p class="wa-color-text-quiet wa-text-pretty">Entrez le mot de passe du comité pour voir
+            les structures. Il est le même pour tous les membres du comité.</p>
+        </div>
+        <wa-callout id="erreur-connexion" variant="danger" role="alert" hidden>
+          <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+          <!-- Texte injecté au moment du refus : une live region démasquée sans
+               changement de contenu n'est pas annoncée par les lecteurs d'écran. -->
+          <span id="erreur-connexion-texte"></span>
+        </wa-callout>
+        <wa-input id="champ-mot-de-passe" name="motDePasse" class="champ-plein" label="Mot de passe du comité"
+                  type="password" password-toggle autocomplete="current-password" required>
+          <wa-icon slot="start" name="lock"></wa-icon>
+        </wa-input>
+        <wa-button id="entrer" class="bouton-plein" type="submit" variant="brand" size="l">
+          <wa-icon slot="start" name="unlock"></wa-icon>
+          Entrer
+        </wa-button>
+      </form>
+    </wa-card>
+
+    <!-- État : chargement (silhouettes aux proportions d'une carte de structure) -->
+    <div id="etat-chargement" class="wa-stack wa-gap-l" role="status" aria-busy="true" hidden>
+      <wa-skeleton class="squelette-titre" effect="sheen"></wa-skeleton>
+      <wa-card>
+        <div class="wa-stack wa-gap-m">
+          <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+        </div>
+      </wa-card>
+      <wa-card>
+        <div class="wa-stack wa-gap-m">
+          <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+        </div>
+      </wa-card>
+      <p class="wa-visually-hidden">Chargement des structures…</p>
+    </div>
+
+    <!-- État : erreur de chargement -->
+    <div id="etat-erreur" class="wa-stack wa-gap-m" hidden>
+      <wa-callout variant="danger" role="alert">
+        <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+        <span id="erreur-texte"></span><span
+          class="phrase-contact" hidden> Vous pouvez aussi nous écrire à <a class="lien-comite" href=""></a>.</span>
+      </wa-callout>
+      <div class="wa-cluster">
+        <wa-button id="reessayer" variant="brand" size="l">
+          <wa-icon slot="start" name="rotate-right"></wa-icon>
+          Réessayer
+        </wa-button>
+      </div>
+    </div>
+
+    <!-- État : aucune structure -->
+    <div id="etat-vide" class="wa-stack wa-gap-l wa-align-items-center wa-text-center" role="status" hidden>
+      <wa-icon class="glyphe-etat repos" name="table-cells"></wa-icon>
+      <h2 id="titre-vide" class="wa-heading-l" tabindex="-1">Aucune structure pour l'instant</h2>
+      <p class="wa-color-text-quiet wa-text-pretty">Les structures se créent dans l'onglet
+        « Structures » de la feuille de calcul ; elles apparaîtront ici.</p>
+    </div>
+
+    <!-- État : les structures -->
+    <div id="etat-liste" class="wa-stack wa-gap-xl" hidden>
+      <div class="wa-cluster wa-gap-s wa-align-items-baseline">
+        <h2 id="titre-liste" class="wa-heading-l" tabindex="-1">Les structures</h2>
+        <wa-badge id="compte-structures" class="badge-compte" variant="neutral" appearance="filled-outlined" pill>0</wa-badge>
+      </div>
+      <wa-callout id="message-succes" variant="success" role="status" hidden>
+        <wa-icon slot="icon" name="circle-check"></wa-icon>
+        <span id="message-succes-texte"></span>
+      </wa-callout>
+      <wa-callout id="synthese-erreurs" variant="danger" hidden>
+        <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+        <span id="synthese-erreurs-texte"></span> Les corrections se font avec le bouton
+        « Modifier » de chaque structure.
+      </wa-callout>
+      <wa-callout id="synthese-orphelins" variant="warning" hidden>
+        <wa-icon slot="icon" name="triangle-exclamation"></wa-icon>
+        <span id="synthese-orphelins-texte"></span>
+      </wa-callout>
+      <!-- Légende des statuts, collée aux grilles qu'elle explique
+           (la couleur ne porte jamais seule). -->
+      <div id="legende-statuts" class="legende-statuts wa-cluster wa-gap-m wa-caption-m"
+           role="group" aria-label="Légende des statuts"></div>
+      <div id="liste-structures" class="wa-stack wa-gap-l"></div>
+    </div>
+  </main>
+
+  <footer class="pied wa-text-center">
+    Orford sur le Lac — Comité administratif<span class="phrase-contact" hidden> ·
+      <a class="lien-comite" href=""></a></span>
+  </footer>
+
+  <!-- Modèle d'une carte de structure (rempli par textContent : jamais de HTML de la Sheet). -->
+  <template id="modele-structure">
+    <wa-card class="carte-structure">
+      <div class="wa-stack wa-gap-m">
+        <div class="wa-split wa-flex-wrap wa-align-items-baseline">
+          <!-- tabindex : cible de focus après une sauvegarde (retour à la carte). -->
+          <h3 class="wa-heading-m champ-id" tabindex="-1"></h3>
+          <div class="wa-cluster wa-gap-s">
+            <wa-badge class="badge-etat" hidden></wa-badge>
+            <wa-button class="bouton-modifier" appearance="outlined">
+              <wa-icon slot="start" name="pen"></wa-icon>
+              Modifier
+            </wa-button>
+          </div>
+        </div>
+        <div class="mode-affichage wa-stack wa-gap-m">
+          <div class="wa-cluster wa-gap-m wa-color-text-quiet">
+            <span class="wa-cluster wa-gap-2xs">
+              <wa-icon name="layer-group"></wa-icon>
+              <span class="champ-type"></span>
+            </span>
+            <span class="wa-cluster wa-gap-2xs">
+              <wa-icon name="sailboat"></wa-icon>
+              <span class="champ-embarcations"></span>
+            </span>
+            <span class="wa-cluster wa-gap-2xs">
+              <wa-icon name="hashtag"></wa-icon>
+              <span class="champ-compte"></span>
+            </span>
+          </div>
+          <div class="bloc-problemes wa-stack wa-gap-s"></div>
+          <div class="grille-structure"></div>
+          <p class="indice-defilement wa-caption-s wa-color-text-quiet" hidden>Faites
+            glisser la grille vers la gauche pour voir tous les emplacements.</p>
+          <p class="champ-notes note-membre wa-text-pretty" hidden></p>
+        </div>
+        <div class="mode-edition" hidden></div>
+      </div>
+    </wa-card>
+  </template>
+
+  <!-- Modèle du formulaire d'édition d'une structure (contrat de données complet :
+       type, saisie, embarcations, emplacements, notes — décision 0009). -->
+  <template id="modele-edition">
+    <form class="formulaire-structure wa-stack wa-gap-l">
+      <div class="wa-grid wa-gap-m champs-structure">
+        <wa-select class="champ-edit-type" label="Type de structure"
+                   hint="Horizontale : embarcations couchées sur des niveaux. Verticale : debout.">
+          <wa-option value="horizontal">Horizontale</wa-option>
+          <wa-option value="vertical">Verticale</wa-option>
+        </wa-select>
+        <wa-select class="champ-edit-saisie" label="Saisie de la grille"
+                   hint="Par niveaux : chaque crochet est un niveau, du plus haut au plus bas. Par colonnes : chaque crochet est une colonne.">
+          <wa-option value="">Automatique selon le type</wa-option>
+          <wa-option value="niveaux">Par niveaux</wa-option>
+          <wa-option value="colonnes">Par colonnes</wa-option>
+        </wa-select>
+      </div>
+      <!-- Valeurs contraintes aux types de l'onglet Config : elles servent à
+           apparier les demandes aux emplacements libres — pas de texte libre. -->
+      <wa-checkbox-group class="champ-edit-embarcations" label="Embarcations acceptées"
+                         orientation="horizontal" size="l"
+                         hint="Sert à proposer les bons emplacements pour chaque demande."></wa-checkbox-group>
+      <!-- Le champ et son aperçu forment un groupe serré (gap-s) : l'aperçu
+           appartient visiblement au champ, pas au formulaire. -->
+      <div class="wa-stack wa-gap-s">
+        <wa-textarea class="champ-edit-emplacements" label="Emplacements" rows="3" resize="auto"
+                     hint="Un crochet par niveau ou colonne ; a..b pour une suite, ex. [[74..81], [82..89]]"></wa-textarea>
+        <span class="wa-caption-m wa-color-text-quiet">Aperçu — rien n'est enregistré
+          tant que vous n'appuyez pas sur Enregistrer.</span>
+        <div class="bloc-problemes-edition wa-stack wa-gap-s" aria-live="polite"></div>
+        <div class="grille-structure apercu-grille"></div>
+        <p class="indice-defilement wa-caption-s wa-color-text-quiet" hidden>Faites
+          glisser la grille vers la gauche pour voir tous les emplacements.</p>
+        <p class="resume-apercu wa-caption-s wa-color-text-quiet"></p>
+      </div>
+      <wa-textarea class="champ-edit-notes" label="Note du comité (facultatif)" rows="2"></wa-textarea>
+      <!-- L'erreur d'envoi vit à côté des boutons : c'est là que regarde
+           l'utilisateur au moment où elle apparaît. -->
+      <wa-callout class="erreur-sauvegarde" variant="danger" role="alert" tabindex="-1" hidden>
+        <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+        <span class="erreur-sauvegarde-texte"></span>
+      </wa-callout>
+      <div class="wa-cluster wa-gap-s">
+        <!-- disabled jusqu'à la fin de l'initialisation du formulaire :
+             jamais de soumission native (= rechargement) possible. -->
+        <wa-button class="bouton-enregistrer" type="submit" variant="brand" size="l" disabled>
+          <wa-icon slot="start" name="check"></wa-icon>
+          Enregistrer
+        </wa-button>
+        <wa-button class="bouton-annuler" type="button" appearance="plain" size="l">Annuler</wa-button>
+      </div>
+    </form>
+  </template>
+
+  <!-- Panneau d'emplacement : statut, occupation en un geste (T-B), membre (T-C). -->
+  <wa-dialog id="panneau-emplacement" label="Emplacement">
+    <div class="wa-stack wa-gap-l corps-panneau">
+      <wa-callout id="panneau-statut">
+        <wa-icon id="panneau-statut-icone" slot="icon" name="circle-info"></wa-icon>
+        <div class="wa-stack wa-gap-2xs">
+          <strong id="panneau-statut-libelle"></strong>
+          <span id="panneau-statut-detail" class="wa-caption-m"></span>
+        </div>
+      </wa-callout>
+      <!-- L'état courant (un fait) vit sous le statut, jamais sous le pli. -->
+      <p id="panneau-observation-date" class="wa-caption-m wa-color-text-quiet"></p>
+      <p id="panneau-position" class="wa-color-text-quiet"></p>
+      <p id="panneau-note" class="note-membre wa-text-pretty" hidden></p>
+      <div class="wa-stack wa-gap-s">
+        <h3 class="wa-heading-s">Qu'observez-vous sur place ?</h3>
+        <!-- Deux réponses seulement : sur place, on voit une embarcation ou pas. -->
+        <div class="boutons-occupation">
+          <wa-button class="bouton-occupation" data-occupation="occupé" appearance="outlined" size="l">Occupé</wa-button>
+          <wa-button class="bouton-occupation" data-occupation="libre" appearance="outlined" size="l">Libre</wa-button>
+        </div>
+        <!-- Sous les boutons (ils doivent rester au-dessus du pli sur mobile) ;
+             amené en vue par scrollIntoView à l'apparition. -->
+        <wa-callout id="panneau-erreur" variant="danger" role="alert" hidden>
+          <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+          <span id="panneau-erreur-texte"></span>
+        </wa-callout>
+      </div>
+    </div>
+    <wa-button slot="footer" appearance="plain" size="l" data-dialog="close">Fermer</wa-button>
+  </wa-dialog>
+
+  <!-- Confirmation avant de jeter des modifications non enregistrées. -->
+  <wa-dialog id="dialogue-abandon" label="Abandonner les modifications ?">
+    <p class="wa-text-pretty">Vos changements sur la structure
+      <span id="dialogue-abandon-id"></span> ne sont pas enregistrés.</p>
+    <wa-button id="dialogue-abandon-confirmer" slot="footer" variant="danger" data-dialog="close">
+      Abandonner les modifications
+    </wa-button>
+    <wa-button id="dialogue-abandon-retour" slot="footer" appearance="plain" data-dialog="close">
+      Continuer la modification
+    </wa-button>
+  </wa-dialog>
+
+  <script src="config.js"></script>
+  <script src="grille.js"></script>
+  <script type="module">
+    await Promise.all([
+      customElements.whenDefined('wa-button'),
+      customElements.whenDefined('wa-input'),
+      customElements.whenDefined('wa-card'),
+      customElements.whenDefined('wa-badge'),
+      customElements.whenDefined('wa-callout'),
+    ]);
+
+    // Filet de sécurité : liens de contact du comité, si configurés.
+    const courrielComite = window.OSL_CONFIG.courrielComite;
+    if (courrielComite) {
+      for (const lien of document.querySelectorAll('.lien-comite')) {
+        lien.href = 'mailto:' + courrielComite;
+        lien.textContent = courrielComite;
+      }
+      for (const phrase of document.querySelectorAll('.phrase-contact')) phrase.hidden = false;
+    }
+
+    const etats = {
+      connexion: document.getElementById('etat-connexion'),
+      chargement: document.getElementById('etat-chargement'),
+      erreur: document.getElementById('etat-erreur'),
+      vide: document.getElementById('etat-vide'),
+      liste: document.getElementById('etat-liste'),
+    };
+
+    function montrerEtat(nom) {
+      for (const [cle, element] of Object.entries(etats)) element.hidden = cle !== nom;
+    }
+
+    const CLE_SESSION = 'oslMotDePasseComite';
+    const erreurConnexion = document.getElementById('erreur-connexion');
+    const champMotDePasse = document.getElementById('champ-mot-de-passe');
+
+    function montrerConnexion(refuse) {
+      erreurConnexion.hidden = !refuse;
+      if (refuse) {
+        document.getElementById('erreur-connexion-texte').textContent =
+          'Ce mot de passe n\'est pas le bon. Vérifiez-le auprès du comité, puis réessayez.';
+      }
+      montrerEtat('connexion');
+      champMotDePasse.focus();
+    }
+
+    function montrerErreur() {
+      document.getElementById('erreur-texte').textContent =
+        'Impossible de charger les structures. Vérifiez votre connexion Internet, puis réessayez.';
+      montrerEtat('erreur');
+    }
+
+    // Libellés humains des colonnes type/saisie ; une valeur hors liste est
+    // affichée telle quelle (Sheet éditée à la main — décision 0002), le
+    // module grille.js la signale déjà en avertissement.
+    function libelleType(analyse) {
+      if (analyse.type === 'horizontal') {
+        const niveaux = analyse.lignes ? analyse.lignes.length : 0;
+        return niveaux > 0
+          ? 'Horizontale — ' + niveaux + (niveaux > 1 ? ' niveaux' : ' niveau')
+          : 'Horizontale';
+      }
+      if (analyse.type === 'vertical') return 'Verticale — rangement debout';
+      return String(analyse.type || 'type non renseigné');
+    }
+
+    // La ligne d'Emplacements d'un numéro (ou undefined) dans l'état courant.
+    function lignePourNumero(numero) {
+      return donneesCourantes.emplacements.find((l) => Number(l.numero) === Number(numero));
+    }
+
+    function celluleEmplacement(emplacement, marquages, interactif) {
+      const cellule = document.createElement('td');
+      const statut = statutEmplacement(lignePourNumero(emplacement.numero));
+      cellule.className = 'cellule-emplacement statut-' + statut.code;
+      let description = 'Emplacement ' + emplacement.numero
+        + (emplacement.niveau !== '' ? ', niveau ' + emplacement.niveau : '')
+        + ' — ' + statut.libelle;
+      const raison = marquages.get(emplacement.numero);
+      if (raison) {
+        cellule.classList.add('conflit');
+        cellule.title = raison;
+        description += ' — ' + raison;
+      }
+      if (!interactif) {
+        cellule.textContent = String(emplacement.numero);
+        cellule.setAttribute('aria-label', description);
+        return cellule;
+      }
+      // Un vrai <button> dans la cellule : le <td> garde son rôle de table.
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'bouton-cellule';
+      bouton.dataset.numero = String(emplacement.numero);
+      bouton.textContent = String(emplacement.numero);
+      bouton.setAttribute('aria-label', description);
+      bouton.addEventListener('click', () => ouvrirPanneau(emplacement));
+      cellule.appendChild(bouton);
+      return cellule;
+    }
+
+    // Un vrai tableau : les niveaux sont des en-têtes de rangées, la grille
+    // reste lisible aux lecteurs d'écran et l'étiquette peut coller au bord.
+    // `interactif` : les cellules ouvrent le panneau (pas dans l'aperçu d'édition).
+    function grilleDeStructure(analyse, marquages, interactif) {
+      const table = document.createElement('table');
+      table.className = 'grille-emplacements';
+      const corps = document.createElement('tbody');
+      for (const indexLigne of (analyse.lignes || []).keys()) {
+        const rangee = document.createElement('tr');
+        if (analyse.type === 'horizontal') {
+          const etiquette = document.createElement('th');
+          etiquette.scope = 'row';
+          etiquette.className = 'etiquette-niveau wa-caption-s';
+          etiquette.textContent = 'Niveau ' + (analyse.lignes.length - indexLigne);
+          rangee.appendChild(etiquette);
+        }
+        for (const emplacement of analyse.emplacements) {
+          if (emplacement.ligne !== indexLigne) continue;
+          rangee.appendChild(celluleEmplacement(emplacement, marquages, interactif));
+        }
+        corps.appendChild(rangee);
+      }
+      table.appendChild(corps);
+      return table;
+    }
+
+    // La légende dérive libellés, explications et comptes de grille.js (un
+    // seul foyer). Chaque entrée : une mini-cellule (le nombre DANS le
+    // rectangle de couleur — même forme qu'une cellule de la grille, le code
+    // couleur se lit par identité) + un libellé court ; le tout est un bouton
+    // discret qui ouvre l'explication (wa-popover, tactile — pas de survol).
+    // Ordre : les statuts normaux d'abord, les problèmes ensuite (une légende
+    // enseigne du cas de base vers l'exception). Les comptes à zéro sont
+    // masqués — pas d'alarme pour rien.
+    function remplirLegende(comptes) {
+      const attribue = { numeroAdresse: 1, rue: 'x' };
+      const exemples = [
+        { ...attribue, occupationObservee: 'occupé' },
+        { occupationObservee: 'libre' },
+        { occupationObservee: '' },
+        { ...attribue, occupationObservee: 'libre' },
+        { occupationObservee: 'occupé' },
+      ];
+      const legende = document.getElementById('legende-statuts');
+      legende.replaceChildren();
+      const titre = document.createElement('span');
+      titre.innerHTML = '<strong>Légende</strong> — touchez pour l\'explication :';
+      legende.appendChild(titre);
+
+      // `unite` : les statuts comptent des emplacements affichés, « En
+      // double » compte des numéros — l'unité est dite dans le popover et au
+      // lecteur d'écran, jamais laissée à deviner.
+      const entree = (code, classeCellule, libelle, compte, unite, explication) => {
+        if (compte === 0) return;
+        const jeton = document.createElement('button');
+        jeton.type = 'button';
+        jeton.id = 'legende-' + code;
+        jeton.className = 'jeton-legende';
+        jeton.setAttribute('aria-expanded', 'false');
+        jeton.setAttribute('aria-describedby', 'explication-' + code);
+        const cellule = document.createElement('span');
+        cellule.className = 'cellule-legende ' + classeCellule;
+        cellule.textContent = String(compte);
+        jeton.appendChild(cellule);
+        const uniteCachee = document.createElement('span');
+        uniteCachee.className = 'wa-visually-hidden';
+        uniteCachee.textContent = ' ' + unite + (compte > 1 ? 's' : '') + ' —';
+        jeton.appendChild(uniteCachee);
+        jeton.appendChild(document.createTextNode(' ' + libelle));
+        legende.appendChild(jeton);
+
+        const popover = document.createElement('wa-popover');
+        popover.setAttribute('for', jeton.id);
+        popover.setAttribute('placement', 'bottom');
+        const texte = document.createElement('p');
+        texte.className = 'texte-popover';
+        texte.id = 'explication-' + code;
+        const compteFort = document.createElement('strong');
+        compteFort.textContent = compte + ' ' + unite + (compte > 1 ? 's' : '') + '.';
+        texte.appendChild(compteFort);
+        texte.appendChild(document.createTextNode(' ' + explication));
+        popover.appendChild(texte);
+        legende.appendChild(popover);
+        popover.addEventListener('wa-show', () => jeton.setAttribute('aria-expanded', 'true'));
+        popover.addEventListener('wa-hide', () => jeton.setAttribute('aria-expanded', 'false'));
+      };
+
+      for (const exemple of exemples) {
+        const statut = statutEmplacement({ numero: 0, ...exemple });
+        entree(statut.code, 'statut-' + statut.code, statut.libelle,
+          comptes.parCode[statut.code] || 0, 'emplacement', statut.explication);
+      }
+      // 6e apparence : l'erreur de données (numéro inscrit deux fois).
+      entree('conflit', 'conflit', 'En double', comptes.enConflit, 'numéro',
+        'Le même numéro est inscrit dans deux structures (ou deux fois dans la même) '
+        + '— une erreur dans la colonne « emplacements », à corriger avec le bouton « Modifier » de la structure.');
+    }
+
+    // Résumé chiffré : l'information survit même quand la grille défile.
+    function resumeEmplacements(analyse) {
+      const total = analyse.emplacements.length;
+      if (total === 0) return 'aucun emplacement';
+      if (analyse.type === 'horizontal' && analyse.lignes && analyse.lignes.length > 1) {
+        const parNiveau = analyse.lignes[0].length;
+        if (analyse.lignes.every((l) => l.length === parNiveau)) {
+          return parNiveau + ' par niveau · ' + total + ' au total';
+        }
+      }
+      return total + ' emplacements';
+    }
+
+    function calloutProblemes(problemes, severite) {
+      const retenus = problemes.filter((p) => p.severite === severite);
+      if (retenus.length === 0) return null;
+      const callout = document.createElement('wa-callout');
+      callout.setAttribute('variant', severite === 'erreur' ? 'danger' : 'warning');
+      const icone = document.createElement('wa-icon');
+      icone.setAttribute('slot', 'icon');
+      icone.setAttribute('name', severite === 'erreur' ? 'circle-exclamation' : 'triangle-exclamation');
+      callout.appendChild(icone);
+      const liste = document.createElement('div');
+      liste.className = 'wa-stack wa-gap-2xs';
+      for (const probleme of retenus) {
+        const ligne = document.createElement('p');
+        ligne.textContent = probleme.message;
+        liste.appendChild(ligne);
+      }
+      callout.appendChild(liste);
+      return callout;
+    }
+
+    // Numéro marqué → raison courte (le détail complet est dans le callout).
+    function marquagesPour(analyse, conflits) {
+      const marquages = new Map();
+      for (const conflit of conflits) {
+        if (!conflit.structures.includes(analyse.id)) continue;
+        const autres = conflit.structures.filter((id) => id !== analyse.id).join(', ');
+        marquages.set(conflit.numero, 'aussi dans ' + autres);
+      }
+      for (const numero of analyse.doublons) {
+        marquages.set(numero, marquages.has(numero)
+          ? marquages.get(numero) + ' ; en double dans cette structure'
+          : 'en double dans cette structure');
+      }
+      return marquages;
+    }
+
+    function carteStructure(analyse, ligneSheet, conflits) {
+      const carte = document.getElementById('modele-structure').content.cloneNode(true);
+      const champ = (classe) => carte.querySelector('.' + classe);
+
+      carte.querySelector('wa-card').dataset.structure = analyse.id;
+      champ('champ-id').textContent = 'Structure ' + analyse.id;
+      champ('champ-type').textContent = libelleType(analyse);
+      champ('champ-embarcations').textContent =
+        String(ligneSheet.embarcations || '').trim() || 'embarcations non renseignées';
+      champ('champ-compte').textContent = resumeEmplacements(analyse);
+
+      const marquages = marquagesPour(analyse, conflits);
+
+      const erreurs = analyse.problemes.filter((p) => p.severite === 'erreur');
+      const badge = champ('badge-etat');
+      if (erreurs.length > 0) {
+        badge.hidden = false;
+        badge.textContent = 'Données à corriger';
+        badge.setAttribute('variant', 'danger');
+        badge.setAttribute('appearance', 'filled-outlined');
+      } else if (analyse.problemes.length > 0) {
+        // « Données à vérifier », pas « À vérifier » : ce badge parle des
+        // DONNÉES de la structure — le statut d'emplacement « À vérifier »
+        // (attribué, jamais observé) est un autre concept.
+        badge.hidden = false;
+        badge.textContent = 'Données à vérifier';
+        badge.setAttribute('variant', 'warning');
+        badge.setAttribute('appearance', 'filled-outlined');
+      }
+
+      const blocProblemes = champ('bloc-problemes');
+      for (const severite of ['erreur', 'avertissement']) {
+        const callout = calloutProblemes(analyse.problemes, severite);
+        if (callout) blocProblemes.appendChild(callout);
+      }
+
+      if (analyse.lignes) {
+        champ('grille-structure').appendChild(grilleDeStructure(analyse, marquages, true));
+      } else {
+        // Grille non parsable : on montre le texte brut de la cellule, en clair.
+        const brut = document.createElement('code');
+        brut.className = 'texte-grille-brut';
+        brut.textContent = String(ligneSheet.emplacements || '(cellule vide)');
+        champ('grille-structure').appendChild(brut);
+      }
+
+      if (String(ligneSheet.notes || '').trim()) {
+        champ('champ-notes').textContent = 'Note du comité : ' + ligneSheet.notes;
+        champ('champ-notes').hidden = false;
+      }
+
+      champ('bouton-modifier').addEventListener('click', () => {
+        demanderFermeture(() => ouvrirEdition(analyse.id));
+      });
+
+      return carte;
+    }
+
+    // --- Panneau d'emplacement (T-B : statut + observation ; T-C : membre) ---
+
+    // Adresse toujours affichée « numeroAdresse rue » (décision 0012).
+    function adresseLisible(ligne) {
+      return String(ligne.numeroAdresse).trim() + ' ' + String(ligne.rue).trim();
+    }
+
+    // Apparence et explication du statut dans le panneau, par code.
+    const PANNEAU_STATUTS = {
+      conforme: { variante: 'success', icone: 'circle-check', detail: (a) => 'Attribué à ' + a + ' et observé occupé — tout est en ordre.' },
+      peutEtreALiberer: { variante: 'warning', icone: 'triangle-exclamation', detail: (a) => 'Attribué à ' + a + ' mais observé libre — le membre ne l\'utilise peut-être plus.' },
+      orphelin: { variante: 'danger', icone: 'triangle-exclamation', detail: () => 'Non attribué, mais une embarcation s\'y trouve — à identifier avant de pouvoir attribuer l\'emplacement.' },
+      disponible: { variante: 'brand', icone: 'circle-check', detail: () => 'Non attribué et observé libre — prêt à être attribué.' },
+      pasObserve: { variante: 'neutral', icone: 'circle-question', detail: (a) => (a ? 'Attribué à ' + a + ' ; personne n\'a encore noté ce qui s\'y trouve.' : 'Non attribué ; personne n\'a encore noté ce qui s\'y trouve.') },
+    };
+
+    const formatDateObservation = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
+
+    // L'emplacement affiché dans le panneau ouvert : { numero, structure, niveau }.
+    let panneauCourant = null;
+
+    function ouvrirPanneau(emplacement) {
+      panneauCourant = emplacement;
+      const panneau = document.getElementById('panneau-emplacement');
+      const ligne = lignePourNumero(emplacement.numero);
+      const statut = statutEmplacement(ligne);
+      const apparence = PANNEAU_STATUTS[statut.code];
+
+      panneau.setAttribute('label', 'Emplacement ' + emplacement.numero);
+      const callout = document.getElementById('panneau-statut');
+      callout.setAttribute('variant', apparence.variante);
+      document.getElementById('panneau-statut-icone').setAttribute('name', apparence.icone);
+      document.getElementById('panneau-statut-libelle').textContent = statut.libelle;
+      document.getElementById('panneau-statut-detail').textContent =
+        apparence.detail(ligne && String(ligne.numeroAdresse || '').trim() ? adresseLisible(ligne) : '');
+
+      document.getElementById('panneau-position').textContent =
+        'Structure ' + emplacement.structure
+        + (emplacement.niveau !== '' ? ' · Niveau ' + emplacement.niveau : '');
+
+      const note = document.getElementById('panneau-note');
+      note.hidden = !(ligne && String(ligne.note || '').trim());
+      if (!note.hidden) note.textContent = 'Note du comité : ' + ligne.note;
+
+      const occupation = ligne ? ligne.occupationObservee : '';
+      // L'état courant = seul bouton plein (brand) + coche ; il est aussi dit
+      // en toutes lettres sous les boutons — la couleur ne porte jamais seule.
+      const valeurCourante = ETATS_OCCUPATION.includes(occupation) ? occupation : null;
+      for (const bouton of panneau.querySelectorAll('.bouton-occupation')) {
+        const actuel = bouton.dataset.occupation === valeurCourante;
+        bouton.querySelector('wa-icon')?.remove();
+        if (actuel) {
+          bouton.setAttribute('variant', 'brand');
+          bouton.setAttribute('appearance', 'accent');
+          const coche = document.createElement('wa-icon');
+          coche.setAttribute('slot', 'start');
+          coche.setAttribute('name', 'check');
+          bouton.prepend(coche);
+        } else {
+          bouton.removeAttribute('variant');
+          bouton.setAttribute('appearance', 'outlined');
+        }
+        bouton.setAttribute('aria-pressed', String(actuel));
+        bouton.loading = false;
+        bouton.disabled = false;
+      }
+      const date = ligne && ligne.dateObservation ? new Date(ligne.dateObservation) : null;
+      const dateValide = date && !Number.isNaN(date.valueOf());
+      document.getElementById('panneau-observation-date').textContent =
+        valeurCourante
+          ? 'Dernière observation : ' + valeurCourante
+            + (dateValide ? ', le ' + formatDateObservation.format(date) : ' (date inconnue)') + '.'
+          : 'Jamais observé pour l\'instant.';
+
+      document.getElementById('panneau-erreur').hidden = true;
+      panneau.setAttribute('open', '');
+    }
+
+    async function envoyerObservation(occupation) {
+      const panneau = document.getElementById('panneau-emplacement');
+      const boutons = [...panneau.querySelectorAll('.bouton-occupation')];
+      if (boutons.some((b) => b.loading)) return; // pas de double envoi
+      document.getElementById('panneau-erreur').hidden = true;
+      for (const bouton of boutons) {
+        bouton.disabled = true;
+        bouton.loading = bouton.dataset.occupation === occupation;
+      }
+      const { numero, structure } = panneauCourant;
+      try {
+        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
+        const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
+        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'observerEmplacement', motDePasse, numero, occupation }),
+        });
+        const resultat = await reponse.json();
+        if (!resultat.ok) {
+          if (resultat.code === 'accesRefuse') {
+            panneau.removeAttribute('open');
+            sessionStorage.removeItem(CLE_SESSION);
+            montrerConnexion(true);
+            return;
+          }
+          throw new ErreurApi(resultat.erreur);
+        }
+        // Attendre la fermeture complète : wa-dialog restaure le focus vers la
+        // cellule d'origine à la fin de son animation — notre focus sur la
+        // carte doit venir APRÈS, sinon il est écrasé.
+        await new Promise((fin) => {
+          panneau.addEventListener('wa-after-hide', fin, { once: true });
+          panneau.removeAttribute('open');
+        });
+        // État frais depuis la Sheet (0002) plutôt qu'une mise à jour locale.
+        await chargerStructures(motDePasse, 'Emplacement ' + numero + ' — occupation notée : ' + occupation + '.', structure);
+      } catch (erreurEnvoi) {
+        if (erreurEnvoi instanceof ErreurApi) console.info('Observation refusée :', erreurEnvoi.message);
+        else console.error('Observation impossible :', erreurEnvoi);
+        document.getElementById('panneau-erreur-texte').textContent =
+          'Impossible d\'enregistrer l\'observation. Vérifiez votre connexion Internet, puis réessayez.'
+          + (erreurEnvoi instanceof ErreurApi ? ' Détail : ' + erreurEnvoi.message : '');
+        const callout = document.getElementById('panneau-erreur');
+        callout.hidden = false;
+        callout.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        for (const bouton of boutons) {
+          bouton.disabled = false;
+          bouton.loading = false;
+        }
+      }
+    }
+
+    for (const bouton of document.querySelectorAll('#panneau-emplacement .bouton-occupation')) {
+      bouton.addEventListener('click', () => envoyerObservation(bouton.dataset.occupation));
+    }
+
+    // --- Édition (contrat complet : type, saisie, embarcations, emplacements, notes) ---
+
+    // L'édition en cours : { id, initiales, valeurs } — pour la garde d'abandon.
+    let editionCourante = null;
+
+    // Fermer = re-rendre la liste depuis l'état courant : la carte revient
+    // vierge, badge et grille compris. `idRefocus` remet le focus sur le
+    // bouton Modifier de la carte quittée (clavier, lecteurs d'écran).
+    function fermerEditions(idRefocus) {
+      afficherInventaire(donneesCourantes.structures, donneesCourantes.emplacements, donneesCourantes.types);
+      if (idRefocus) {
+        const bouton = document.querySelector('wa-card[data-structure="' + idRefocus + '"] .bouton-modifier');
+        if (bouton) focusComposant(bouton);
+      }
+    }
+
+    // Focus sûr sur un composant Web Awesome qui vient d'être re-rendu :
+    // attendre la fin de son rendu (updateComplete) sinon .focus() touche un
+    // élément interne encore null ; ignorer s'il a quitté le DOM entre-temps.
+    function focusComposant(element) {
+      Promise.resolve(element.updateComplete).then(() => {
+        if (element.isConnected) element.focus();
+      });
+    }
+
+    // Des modifications non enregistrées ne sont jamais jetées sans confirmation.
+    let suiteAbandon = null;
+    function demanderFermeture(apres) {
+      if (!editionCourante) {
+        apres();
+        return;
+      }
+      const id = editionCourante.id;
+      if (JSON.stringify(editionCourante.valeurs()) === editionCourante.initiales) {
+        fermerEditions(id);
+        apres();
+        return;
+      }
+      document.getElementById('dialogue-abandon-id').textContent = id;
+      suiteAbandon = () => { fermerEditions(id); apres(); };
+      // Attribut plutôt que propriété : sûr même avant l'upgrade du composant.
+      document.getElementById('dialogue-abandon').setAttribute('open', '');
+    }
+    document.getElementById('dialogue-abandon-confirmer').addEventListener('click', () => {
+      const suite = suiteAbandon;
+      suiteAbandon = null;
+      if (suite) suite();
+    });
+
+    // Valeur hors liste (Sheet éditée à la main — 0002) : une option est créée
+    // pour la montrer telle quelle plutôt que d'afficher un champ vide.
+    function garantirOption(select, valeur) {
+      if (!valeur) return;
+      if ([...select.querySelectorAll('wa-option')].some((o) => o.value === valeur)) return;
+      const option = document.createElement('wa-option');
+      option.value = valeur;
+      option.textContent = valeur + ' (valeur inconnue)';
+      select.appendChild(option);
+    }
+
+    function rendreApercu(formulaire, idEdite, valeurs) {
+      const lignes = donneesCourantes.structures.map((l) =>
+        l.id === idEdite ? { ...l, ...valeurs } : l);
+      const { structures, conflits } = analyserStructures(lignes, donneesCourantes.types);
+      const analyse = structures.find((s) => s.id === idEdite);
+
+      const blocProblemes = formulaire.querySelector('.bloc-problemes-edition');
+      blocProblemes.replaceChildren();
+      for (const severite of ['erreur', 'avertissement']) {
+        const callout = calloutProblemes(analyse.problemes, severite);
+        if (callout) blocProblemes.appendChild(callout);
+      }
+
+      const zone = formulaire.querySelector('.apercu-grille');
+      zone.replaceChildren();
+      if (analyse.lignes) {
+        zone.appendChild(grilleDeStructure(analyse, marquagesPour(analyse, conflits), false));
+      } else {
+        const brut = document.createElement('code');
+        brut.className = 'texte-grille-brut';
+        brut.textContent = String(valeurs.emplacements || '(cellule vide)');
+        zone.appendChild(brut);
+      }
+      formulaire.querySelector('.resume-apercu').textContent = resumeEmplacements(analyse);
+      requestAnimationFrame(majIndicesDefilement);
+    }
+
+    async function ouvrirEdition(id) {
+      const carte = document.querySelector('wa-card[data-structure="' + id + '"]');
+      const ligneSheet = donneesCourantes.structures.find((l) => l.id === id);
+      const zoneEdition = carte.querySelector('.mode-edition');
+      zoneEdition.appendChild(document.getElementById('modele-edition').content.cloneNode(true));
+      carte.querySelector('.mode-affichage').hidden = true;
+      carte.querySelector('.bouton-modifier').hidden = true;
+      // Le badge décrit l'état ENREGISTRÉ ; pendant l'édition il contredirait
+      // l'aperçu live juste dessous — on le masque.
+      carte.querySelector('.badge-etat').hidden = true;
+      zoneEdition.hidden = false;
+
+      const formulaire = zoneEdition.querySelector('.formulaire-structure');
+
+      // Filet posé AVANT tout await : un submit pendant l'initialisation
+      // (Entrée dans un champ, double clic rapide) ne recharge jamais la page.
+      let soumettre = null;
+      formulaire.addEventListener('submit', (evenement) => {
+        evenement.preventDefault();
+        if (soumettre) soumettre();
+      });
+
+      const champ = (classe) => formulaire.querySelector('.' + classe);
+      const type = champ('champ-edit-type');
+      const saisie = champ('champ-edit-saisie');
+      const embarcations = champ('champ-edit-embarcations');
+      const emplacements = champ('champ-edit-emplacements');
+      const notes = champ('champ-edit-notes');
+
+      // Une case par type de l'onglet Config (valeurs propres : elles servent
+      // à apparier les demandes aux emplacements). Une valeur de la Sheet hors
+      // Config reste visible et cochée, marquée inconnue — jamais perdue en
+      // silence (0002). Attribut `checked` (pas la propriété) : les cases ne
+      // sont pas encore upgradées par le loader.
+      const actuelles = String(ligneSheet.embarcations || '')
+        .split(',').map((e) => e.trim()).filter(Boolean);
+      const options = [...donneesCourantes.types];
+      for (const inconnue of actuelles) {
+        if (!options.includes(inconnue)) options.push(inconnue);
+      }
+      for (const nom of options) {
+        const caseType = document.createElement('wa-checkbox');
+        caseType.dataset.embarcation = nom;
+        caseType.textContent = donneesCourantes.types.includes(nom)
+          ? nom
+          : nom + ' (inconnue de la Config)';
+        if (actuelles.includes(nom)) caseType.setAttribute('checked', '');
+        embarcations.appendChild(caseType);
+      }
+
+      // Les champs du formulaire n'existaient que dans le <template> : le
+      // loader Web Awesome ne les charge qu'à leur insertion dans le DOM.
+      // Attendre l'upgrade avant de poser .value, sinon la propriété est perdue.
+      await Promise.all([
+        customElements.whenDefined('wa-select'),
+        customElements.whenDefined('wa-option'),
+        customElements.whenDefined('wa-textarea'),
+        customElements.whenDefined('wa-checkbox-group'),
+        customElements.whenDefined('wa-checkbox'),
+      ]);
+
+      garantirOption(type, String(ligneSheet.type || '').trim());
+      garantirOption(saisie, String(ligneSheet.saisie || '').trim());
+      type.value = String(ligneSheet.type || '').trim();
+      saisie.value = String(ligneSheet.saisie || '').trim();
+      emplacements.value = String(ligneSheet.emplacements || '');
+      notes.value = String(ligneSheet.notes || '');
+
+      const valeurs = () => ({
+        type: type.value,
+        saisie: saisie.value,
+        embarcations: [...embarcations.querySelectorAll('wa-checkbox')]
+          .filter((c) => c.checked)
+          .map((c) => c.dataset.embarcation)
+          .join(', '),
+        emplacements: emplacements.value,
+        notes: notes.value,
+      });
+      const rafraichir = () => rendreApercu(formulaire, ligneSheet.id, valeurs());
+      for (const element of [type, saisie, emplacements]) {
+        element.addEventListener('input', rafraichir);
+      }
+      embarcations.addEventListener('change', rafraichir);
+      rafraichir();
+
+      editionCourante = { id: ligneSheet.id, initiales: JSON.stringify(valeurs()), valeurs };
+
+      champ('bouton-annuler').addEventListener('click', () => {
+        demanderFermeture(() => {});
+      });
+      soumettre = () => enregistrerStructure(formulaire, ligneSheet.id, valeurs());
+      champ('bouton-enregistrer').disabled = false;
+
+      // Focus sur le premier champ : le haut du formulaire reste en vue
+      // (focaliser le textarea ferait défiler au milieu et ouvrirait le
+      // clavier virtuel sur téléphone).
+      focusComposant(type);
+    }
+
+    async function enregistrerStructure(formulaire, id, valeurs) {
+      const bouton = formulaire.querySelector('.bouton-enregistrer');
+      const erreur = formulaire.querySelector('.erreur-sauvegarde');
+      if (bouton.loading) return; // pas de double envoi
+      erreur.hidden = true;
+      bouton.loading = true;
+      bouton.disabled = true;
+      try {
+        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
+        const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
+        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'sauverStructure', motDePasse, id, ...valeurs }),
+        });
+        const resultat = await reponse.json();
+        if (!resultat.ok) {
+          if (resultat.code === 'accesRefuse') {
+            sessionStorage.removeItem(CLE_SESSION);
+            montrerConnexion(true);
+            return;
+          }
+          throw new ErreurApi(resultat.erreur);
+        }
+        // État frais depuis la Sheet (0002) plutôt qu'une mise à jour locale.
+        editionCourante = null;
+        await chargerStructures(motDePasse, 'Structure ' + id + ' enregistrée.', id);
+      } catch (erreurEnvoi) {
+        // Une erreur métier est affichée à l'utilisateur : info en console,
+        // pas error (la boucle de captures échoue sur toute console.error).
+        if (erreurEnvoi instanceof ErreurApi) console.info('Sauvegarde refusée :', erreurEnvoi.message);
+        else console.error('Sauvegarde impossible :', erreurEnvoi);
+        formulaire.querySelector('.erreur-sauvegarde-texte').textContent =
+          'Impossible d\'enregistrer. Vérifiez votre connexion Internet, puis réessayez.'
+          + (erreurEnvoi instanceof ErreurApi ? ' Détail : ' + erreurEnvoi.message : '');
+        erreur.hidden = false;
+        // L'erreur doit être VUE, pas seulement présente dans la page.
+        erreur.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        erreur.focus();
+        bouton.loading = false;
+        bouton.disabled = false;
+      }
+    }
+
+    // L'état courant de l'inventaire : la base des aperçus d'édition (les
+    // conflits se calculent toujours contre les autres structures).
+    let donneesCourantes = { structures: [], emplacements: [], types: [] };
+
+    function afficherInventaire(lignesStructures, lignesEmplacements, typesConfig) {
+      editionCourante = null; // tout rendu complet détruit les formulaires ouverts
+      donneesCourantes = {
+        structures: lignesStructures,
+        emplacements: lignesEmplacements,
+        types: typesConfig,
+      };
+      if (lignesStructures.length === 0) {
+        montrerEtat('vide');
+        return;
+      }
+      const { structures, conflits } = analyserStructures(lignesStructures, typesConfig);
+
+      document.getElementById('compte-structures').textContent = String(structures.length);
+
+      const enErreur = structures.filter((s) => s.problemes.some((p) => p.severite === 'erreur'));
+      const synthese = document.getElementById('synthese-erreurs');
+      synthese.hidden = enErreur.length === 0;
+      if (enErreur.length > 0) {
+        document.getElementById('synthese-erreurs-texte').textContent =
+          enErreur.length === 1
+            ? '1 structure a des données à corriger (' + enErreur[0].id + ').'
+            : enErreur.length + ' structures ont des données à corriger (' +
+              enErreur.map((s) => s.id).join(', ') + ').';
+      }
+
+      const orphelins = numerosOrphelins(structures, lignesEmplacements);
+      const syntheseOrphelins = document.getElementById('synthese-orphelins');
+      syntheseOrphelins.hidden = orphelins.length === 0;
+      if (orphelins.length > 0) {
+        document.getElementById('synthese-orphelins-texte').textContent =
+          'Numéros présents dans l\'onglet Emplacements mais dans aucune structure : ' +
+          orphelins.join(', ') + '. Leurs lignes ne sont jamais supprimées automatiquement.';
+      }
+
+      remplirLegende(compterStatuts(structures, conflits, lignesEmplacements));
+      const liste = document.getElementById('liste-structures');
+      liste.replaceChildren();
+      const lignesParId = new Map(lignesStructures.map((l) => [l.id, l]));
+      for (const analyse of structures) {
+        liste.appendChild(carteStructure(analyse, lignesParId.get(analyse.id), conflits));
+      }
+      montrerEtat('liste');
+      requestAnimationFrame(majIndicesDefilement);
+    }
+
+    // L'indice « faites glisser » n'apparaît que si la grille déborde vraiment.
+    function majIndicesDefilement() {
+      for (const zone of document.querySelectorAll('.grille-structure')) {
+        const indice = zone.parentElement.querySelector('.indice-defilement');
+        if (indice) indice.hidden = zone.scrollWidth <= zone.clientWidth;
+      }
+    }
+    window.addEventListener('resize', majIndicesDefilement);
+
+    // Erreur « métier » renvoyée par l'API, par opposition aux erreurs techniques.
+    class ErreurApi extends Error {}
+
+    async function chargerStructures(motDePasse, messageSucces, idCible) {
+      montrerEtat('chargement');
+      try {
+        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
+        const [reponseInventaire, reponseConfig] = await Promise.all([
+          fetch(window.OSL_CONFIG.apiUrl, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'inventaire', motDePasse }),
+          }).then((r) => r.json()),
+          fetch(window.OSL_CONFIG.apiUrl + '?action=config').then((r) => r.json()),
+        ]);
+        if (!reponseInventaire.ok) {
+          if (reponseInventaire.code === 'accesRefuse') {
+            sessionStorage.removeItem(CLE_SESSION);
+            montrerConnexion(true);
+            return;
+          }
+          throw new ErreurApi(reponseInventaire.erreur);
+        }
+        sessionStorage.setItem(CLE_SESSION, motDePasse);
+        const typesConfig = reponseConfig.ok ? reponseConfig.config.types : [];
+        afficherInventaire(reponseInventaire.structures, reponseInventaire.emplacements, typesConfig);
+        const succes = document.getElementById('message-succes');
+        succes.hidden = !messageSucces;
+        if (messageSucces) {
+          document.getElementById('message-succes-texte').textContent = messageSucces;
+          // Retour à la carte enregistrée (pas en haut de page) : l'utilisateur
+          // vérifie le résultat là où il travaillait. Le callout succès reste
+          // en tête et est annoncé par sa live region. Focus posé deux fois :
+          // le nettoyage différé du wa-dialog qui vient de fermer (close()
+          // natif) peut voler le focus un macrotask plus tard.
+          const cible = idCible
+            && document.querySelector('wa-card[data-structure="' + idCible + '"] .champ-id');
+          const poserFocus = () => (cible || document.getElementById('titre-liste')).focus();
+          poserFocus();
+          setTimeout(poserFocus, 0);
+        }
+      } catch (erreur) {
+        console.error('Chargement des structures impossible :', erreur);
+        montrerErreur();
+      }
+    }
+
+    document.getElementById('formulaire-connexion').addEventListener('submit', async (evenement) => {
+      evenement.preventDefault();
+      await chargerStructures(champMotDePasse.value);
+      // Après la connexion, le focus quitte le formulaire disparu : on le pose
+      // sur le titre de l'état atteint (clavier et lecteurs d'écran).
+      if (!etats.liste.hidden) document.getElementById('titre-liste').focus();
+      else if (!etats.vide.hidden) document.getElementById('titre-vide').focus();
+    });
+    document.getElementById('reessayer').addEventListener('click', () => {
+      chargerStructures(sessionStorage.getItem(CLE_SESSION) || champMotDePasse.value);
+    });
+
+    // Hook de test (décision 0006) : ?etat=mot-de-passe|mdp-refuse|chargement|
+    // liste|liste-vide|erreur fige la page dans un état pour les captures.
+    // Inerte sans paramètre. `liste` passe par un vrai fetch (API mockée par
+    // Playwright) ; sur le vrai site, il aboutit à l'écran de connexion.
+    const etatForce = new URLSearchParams(location.search).get('etat');
+    if (etatForce === 'mot-de-passe') montrerConnexion(false);
+    else if (etatForce === 'mdp-refuse') montrerConnexion(true);
+    else if (etatForce === 'chargement') montrerEtat('chargement');
+    else if (etatForce === 'erreur') montrerErreur();
+    else if (etatForce === 'liste-vide') afficherInventaire([], [], []);
+    else if (etatForce === 'liste') chargerStructures('capture');
+    else {
+      const motDePasse = sessionStorage.getItem(CLE_SESSION);
+      if (motDePasse) chargerStructures(motDePasse);
+      else montrerConnexion(false);
+    }
+  </script>
+</body>
+</html>
