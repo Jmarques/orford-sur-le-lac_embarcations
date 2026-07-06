@@ -475,6 +475,9 @@ wa-skeleton {
   min-inline-size: var(--wa-space-4xl);
   min-block-size: var(--wa-space-4xl);
   inline-size: 100%;
+  /* Toute la hauteur de la rangée : quand une voisine gagne la puce
+     « a changé », les autres cellules de la rangée restent d'aplomb. */
+  block-size: 100%;
   padding: var(--wa-space-xs);
   background: var(--wa-color-surface-default);
   /* Épaisseur constante (relevé ou non) : aucun décalage de grille au tap. */
@@ -521,6 +524,48 @@ wa-skeleton {
 .bouton-cellule-tournee.releve-libre {
   background: var(--wa-color-surface-raised);
   color: var(--wa-color-brand-on-quiet);
+}
+/* « a changé » : l'information intéressante du comité — le mot porte le
+   signal (jamais la couleur seule), en puce warning lisible autant sur la
+   cellule occupée (fond brand loud) que sur la libre (fond clair) : la
+   bordure détache la puce du fond clair où le fill pâle ne suffirait pas. */
+.marqueur-change {
+  padding: 0 var(--wa-space-xs);
+  background: var(--wa-color-warning-fill-normal);
+  color: var(--wa-color-warning-on-normal);
+  border: var(--wa-border-width-s) solid var(--wa-color-warning-border-normal);
+  border-radius: var(--wa-border-radius-pill);
+  font-size: var(--wa-font-size-xs);
+  font-weight: var(--wa-font-weight-semibold);
+}
+
+/* Le compteur de tournée reste sous les yeux pendant tout le défilement de
+   la grille : pastille collante, toujours libellée (décision 0016). */
+.porte-compteur {
+  position: sticky;
+  inset-block-start: var(--wa-space-xs);
+  z-index: 5;
+  align-self: flex-start;
+}
+.compteur-tournee {
+  display: inline-block;
+  padding: var(--wa-space-2xs) var(--wa-space-s);
+  background: var(--wa-color-surface-raised);
+  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+  border-radius: var(--wa-border-radius-pill);
+  box-shadow: var(--wa-shadow-s);
+  font-weight: var(--wa-font-weight-semibold);
+}
+
+/* Les changements du résumé de tournée : liste nue dans le callout succès —
+   le callout est le seul foyer du bilan. */
+.liste-changements {
+  margin: 0;
+  padding-inline-start: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wa-space-2xs);
 }
 
 /* Légende des statuts au-dessus des cartes : chaque entrée est un bouton

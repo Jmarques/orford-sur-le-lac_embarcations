@@ -239,28 +239,62 @@ export const CAPTURES = [
     cliquer: ['[data-structure="S02"] .bouton-modifier', '.bouton-enregistrer:not([disabled])'],
     attendre: '#message-succes:not([hidden])' },
   // Tournée (décision 0013) : le hook ?etat=tournee ouvre la tournée de S01.
-  // Écran vierge : fantômes estompés (74 occupé, 75 libre…) et cellules sans
-  // fantôme (numéros sans ligne Emplacements).
+  // Écran vierge : fantômes estompés (74 occupé, 75 libre…), cellules sans
+  // fantôme (numéros sans ligne Emplacements) et compteur à zéro.
   { nom: 'structures-tournee', page: 'structures.html', etat: 'tournee',
     attendre: '.bouton-cellule-tournee' },
-  // Relevés mixtes : 74 confirmé identique (1 tap), 75 basculé (2 taps),
-  // 90 jamais observé → occupé (1 tap), 91 sans fantôme → libre (2 taps).
+  // Relevés mixtes + compteur en cours : 74 basculé occupé → libre (marqueur
+  // « a changé » sur cellule CLAIRE), 75 basculé libre → occupé (marqueur sur
+  // cellule remplie), 76 confirmé identique (1 tap), 90 jamais observé →
+  // occupé et 91 sans fantôme → libre (pas de marqueur : rien n'a « changé »).
   { nom: 'structures-tournee-relevee', page: 'structures.html', etat: 'tournee',
-    cliquer: ['.bouton-cellule-tournee[data-numero="74"]',
+    cliquer: ['.bouton-cellule-tournee[data-numero="74"]', '.bouton-cellule-tournee[data-numero="74"]',
       '.bouton-cellule-tournee[data-numero="75"]', '.bouton-cellule-tournee[data-numero="75"]',
+      '.bouton-cellule-tournee[data-numero="76"]',
       '.bouton-cellule-tournee[data-numero="90"]',
       '.bouton-cellule-tournee[data-numero="91"]', '.bouton-cellule-tournee[data-numero="91"]'],
     attendre: '.bouton-cellule-tournee.releve-libre[data-numero="91"]' },
-  { nom: 'structures-tournee-erreur', page: 'structures.html', etat: 'tournee',
+  // Fin partielle : l'avertissement chiffre les non-relevés et laisse
+  // terminer quand même ou continuer (portée flexible, 0013).
+  { nom: 'structures-tournee-avertissement', page: 'structures.html', etat: 'tournee',
     cliquer: ['.bouton-cellule-tournee[data-numero="74"]', '#terminer-tournee'],
+    attendre: '#dialogue-terminer-confirmer', pleinVue: true },
+  { nom: 'structures-tournee-erreur', page: 'structures.html', etat: 'tournee',
+    cliquer: ['.bouton-cellule-tournee[data-numero="74"]', '#terminer-tournee',
+      '#dialogue-terminer-confirmer'],
     attendre: '#tournee-erreur:not([hidden])',
     reponses: { observerLot: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
-  // Succès : l'inventaire mocké est déjà « après » (76 libre), donc un seul
-  // tap confirme le fantôme de 76 ; au retour, la liste montre la cellule
-  // recalculée « Disponible » — cohérente avec l'observation envoyée.
+  // Résumé avec changements : 74 basculé (occupé → libre), 75 confirmé
+  // identique, 77 basculé (libre → occupé), 90 relevé sans fantôme — bilan
+  // « 4 emplacements relevés, 2 changements » et « Structure suivante ».
+  { nom: 'structures-tournee-resume', page: 'structures.html', etat: 'tournee',
+    cliquer: ['.bouton-cellule-tournee[data-numero="74"]', '.bouton-cellule-tournee[data-numero="74"]',
+      '.bouton-cellule-tournee[data-numero="75"]',
+      '.bouton-cellule-tournee[data-numero="77"]', '.bouton-cellule-tournee[data-numero="77"]',
+      '.bouton-cellule-tournee[data-numero="90"]',
+      '#terminer-tournee', '#dialogue-terminer-confirmer'],
+    attendre: '#etat-resume:not([hidden])' },
+  // Résumé de la dernière structure (S08) : aucun changement (cellules sans
+  // fantôme), pas de « Structure suivante » — le retour devient l'action primaire.
+  { nom: 'structures-tournee-resume-derniere', page: 'structures.html', etat: 'tournee-derniere',
+    cliquer: ['.bouton-cellule-tournee[data-numero="176"]',
+      '#terminer-tournee', '#dialogue-terminer-confirmer'],
+    attendre: '#etat-resume:not([hidden])' },
+  // Enchaînement : « Structure suivante » recharge l'inventaire (fantômes
+  // frais) puis ouvre la tournée de S02 — la structure qui suit S01 dans
+  // l'ordre de la liste (le numéro 13 n'existe que dans S02).
+  { nom: 'structures-tournee-enchainement', page: 'structures.html', etat: 'tournee',
+    cliquer: ['.bouton-cellule-tournee[data-numero="76"]', '#terminer-tournee',
+      '#dialogue-terminer-confirmer', '#structure-suivante'],
+    attendre: '.bouton-cellule-tournee[data-numero="13"]' },
+  // Retour à la liste depuis le résumé : l'inventaire mocké est déjà
+  // « après » (76 libre), donc un seul tap confirme le fantôme de 76 ; la
+  // liste revient avec la cellule recalculée « Disponible » — cohérente avec
+  // l'observation envoyée — sans message succès (le résumé a déjà tout dit).
   { nom: 'structures-tournee-succes', page: 'structures.html', etat: 'tournee',
-    cliquer: ['.bouton-cellule-tournee[data-numero="76"]', '#terminer-tournee'],
-    attendre: '#message-succes:not([hidden])',
+    cliquer: ['.bouton-cellule-tournee[data-numero="76"]', '#terminer-tournee',
+      '#dialogue-terminer-confirmer', '#resume-retour-liste'],
+    attendre: '.carte-structure',
     reponses: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
   { nom: 'structures-erreur', page: 'structures.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
   // Page « À traiter » (décision 0014) : registre scannable + fiche (dialog).

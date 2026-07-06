@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee } = require('../apps-script/grille.js');
+const { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante } = require('../apps-script/grille.js');
 
 // Une ligne de l'onglet Structures, telle que renvoyée par l'API.
 function structureSheet(surcharges = {}) {
@@ -307,4 +307,55 @@ test('le lot d\'une tournée ne contient que les cellules relevées — jamais d
     { numero: 90, occupation: 'occupé' },
   ]);
   assert.deepEqual(lotDeTournee({}), []);
+});
+
+test('« a changé » : seulement un relevé lisible différent d\'un fantôme lisible', () => {
+  assert.equal(aChangeTournee('occupé', 'libre'), true);
+  assert.equal(aChangeTournee('libre', 'occupé'), true);
+  assert.equal(aChangeTournee('occupé', 'occupé'), false);
+  assert.equal(aChangeTournee('libre', 'libre'), false);
+  // Sans fantôme (jamais observé) : une confirmation n'est pas un changement.
+  assert.equal(aChangeTournee('', 'occupé'), false);
+  // Fantôme illisible (Sheet éditée à la main — 0002) = pas de fantôme.
+  assert.equal(aChangeTournee('inconnu', 'libre'), false);
+  // Cellule non relevée : rien n'a changé.
+  assert.equal(aChangeTournee('occupé', ''), false);
+});
+
+test('le compteur de relevés suit chaque tap, y compris l\'annulation au troisième', () => {
+  const releves = {};
+  releves[74] = prochainEtatTournee('occupé', '');
+  assert.equal(lotDeTournee(releves).length, 1);
+  releves[75] = prochainEtatTournee('libre', '');
+  assert.equal(lotDeTournee(releves).length, 2);
+  // Deux taps de plus sur 75 : retour à « non relevé », le compte redescend.
+  releves[75] = prochainEtatTournee('libre', releves[75]);
+  releves[75] = prochainEtatTournee('libre', releves[75]);
+  assert.equal(lotDeTournee(releves).length, 1);
+});
+
+test('le résumé d\'une tournée : total relevé et changements (numéro + nouvel état) en ordre de numéro', () => {
+  const fantomes = { 43: 'occupé', 74: 'occupé', 78: 'libre', 90: '' };
+  // 90 est confirmé sans fantôme : relevé, mais pas un changement.
+  assert.deepEqual(resumeDeTournee({ 74: 'occupé', 78: 'occupé', 43: 'libre', 90: 'occupé' }, fantomes), {
+    compte: 4,
+    changements: [
+      { numero: 43, occupation: 'libre' },
+      { numero: 78, occupation: 'occupé' },
+    ],
+  });
+  // Aucun changement : la liste est vide, le total reste.
+  assert.deepEqual(resumeDeTournee({ 74: 'occupé' }, fantomes), { compte: 1, changements: [] });
+  // Cellule revenue à « non relevé » (troisième tap) : ni comptée ni changée.
+  assert.deepEqual(resumeDeTournee({ 74: '' }, fantomes), { compte: 0, changements: [] });
+});
+
+test('la structure suivante suit l\'ordre de la liste ; la dernière n\'en a pas', () => {
+  assert.equal(structureSuivante(['S01', 'S02', 'S03'], 'S01'), 'S02');
+  assert.equal(structureSuivante(['S01', 'S02', 'S03'], 'S02'), 'S03');
+  assert.equal(structureSuivante(['S01', 'S02', 'S03'], 'S03'), '');
+  // Une seule structure à relever : on ferme simplement après le résumé.
+  assert.equal(structureSuivante(['S01'], 'S01'), '');
+  // Structure disparue de la liste (Sheet éditée à la main — 0002) : pas de suivante.
+  assert.equal(structureSuivante(['S01', 'S02'], 'S09'), '');
 });

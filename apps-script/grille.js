@@ -360,6 +360,35 @@ function lotDeTournee(releves) {
     .map(function (numero) { return { numero: numero, occupation: releves[numero] }; });
 }
 
+// Une cellule relevée « a changé » quand l'état confirmé diffère d'un fantôme
+// lisible — l'information intéressante d'une tournée (décision 0013). Sans
+// fantôme (jamais observé, ou valeur illisible — 0002), rien n'a « changé ».
+function aChangeTournee(fantome, etat) {
+  return ETATS_OCCUPATION.indexOf(fantome) !== -1
+    && ETATS_OCCUPATION.indexOf(etat) !== -1
+    && etat !== fantome;
+}
+
+// Le bilan d'une tournée envoyée : compte de relevés et changements (numéro +
+// nouvel état, ordre de numéro). `fantomes` : numéro → fantôme ('' si aucun).
+function resumeDeTournee(releves, fantomes) {
+  var observations = lotDeTournee(releves);
+  return {
+    compte: observations.length,
+    changements: observations.filter(function (observation) {
+      return aChangeTournee(fantomes[observation.numero] || '', observation.occupation);
+    }),
+  };
+}
+
+// La structure à relever après `id` dans l'ordre de la liste des structures
+// (décision 0013) ; '' pour la dernière — ou une structure disparue de la
+// liste (Sheet éditée à la main, 0002) : le résumé n'offre que la fermeture.
+function structureSuivante(ids, id) {
+  var index = ids.indexOf(id);
+  return index !== -1 && index + 1 < ids.length ? ids[index + 1] : '';
+}
+
 // --- Page « À traiter » (décision 0014) : files, « libre depuis », historique ---
 
 // Date lisible ou null : une cellule éditée à la main (0002) peut porter
@@ -466,5 +495,5 @@ function filesATraiter(lignesEmplacements, evenements) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, ETATS_OCCUPATION };
 }

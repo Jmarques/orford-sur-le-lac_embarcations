@@ -1,6 +1,6 @@
 # 03 — Enchaînement « Structure suivante → »
 
-Status: ready-for-agent
+Status: ready-for-human — implémenté (commit 1eec8ba), à valider sur le vrai site
 
 ## Parent
 
@@ -12,12 +12,12 @@ Couvrir les scénarios « toutes les structures d'une visite » (saisie initiale
 
 ## Acceptance criteria
 
-- [ ] Le résumé propose « Structure suivante → » qui ouvre la tournée de la structure suivante (ordre de la liste des structures), fantômes frais chargés.
-- [ ] La dernière structure de la liste ne propose pas de suivante — seulement le retour à la liste.
-- [ ] Le retour à la liste est possible depuis le résumé sans enchaîner ; les statuts affichés reflètent les tournées déjà envoyées.
-- [ ] La détermination de « la suivante » est une logique pure testée en node (liste d'une seule structure, dernière structure, ordre préservé).
-- [ ] Captures mockées : résumé avec « Structure suivante », résumé de dernière structure ; console propre ; `npm run verify` vert.
-- [ ] Revue UI sur captures fraîches passée.
+- [x] Le résumé propose « Structure suivante → » qui ouvre la tournée de la structure suivante (ordre de la liste des structures), fantômes frais chargés (inventaire rechargé avant l'ouverture).
+- [x] La dernière structure de la liste ne propose pas de suivante — seulement le retour à la liste, promu action primaire.
+- [x] Le retour à la liste est possible depuis le résumé sans enchaîner ; les statuts affichés reflètent les tournées déjà envoyées (rechargement depuis la Sheet, sans message succès redondant — 0016).
+- [x] La détermination de « la suivante » est une logique pure testée en node (`structureSuivante` : liste d'une seule structure, dernière structure, ordre préservé, structure disparue).
+- [x] Captures mockées : résumé avec « Structure suivante », résumé de dernière structure ; console propre ; `npm run verify` vert.
+- [x] Revue UI sur captures fraîches passée.
 
 ## Blocked by
 
