@@ -32,7 +32,13 @@ function doPost(e) {
     }
     if (corps.action === 'inventaire') {
       var inventaire = lireInventaire();
-      return reponseJson_({ ok: true, structures: inventaire.structures, emplacements: inventaire.emplacements });
+      return reponseJson_({
+        ok: true,
+        structures: inventaire.structures,
+        emplacements: inventaire.emplacements,
+        membres: inventaire.membres,
+        journal: inventaire.journal,
+      });
     }
     if (corps.action === 'sauverStructure') {
       return reponseJson_({ ok: true, structure: sauverStructure(corps) });

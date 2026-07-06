@@ -102,6 +102,27 @@ export const REPONSES_MOCK = {
       { numero: 90, numeroAdresse: 87, rue: 'Chemin du Lac', note: '', occupationObservee: '', dateObservation: '' },
       { numero: 999, numeroAdresse: '', rue: '', note: '', occupationObservee: 'libre', dateObservation: '2026-06-20T12:00:00.000Z' },
     ],
+    // Contact courant par adresse (0010) : la carte-cas d'« À traiter » y
+    // trouve nom, courriel et téléphone du membre attribué.
+    membres: [
+      { numeroAdresse: 12, rue: 'Rue des Érables', nom: 'Louise Bédard', courriel: 'louise.bedard@exemple.ca', telephone: '819 555-8765' },
+      { numeroAdresse: 234, rue: 'Rue du Pré', nom: 'Marie Gagnon', courriel: 'marie.gagnon@exemple.ca', telephone: '819 555-2345' },
+      { numeroAdresse: 87, rue: 'Chemin du Lac', nom: 'John Tremblay', courriel: 'john.tremblay@exemple.ca', telephone: '' },
+    ],
+    // Le Journal voyage avec l'inventaire (0011) : « libre depuis » (série de
+    // 75), fenêtre d'apparition d'un « À identifier » (76 : libre le 3 mai,
+    // occupé le 12 juin) et interventions passées se dérivent de ces lignes.
+    journal: [
+      { date: '2026-04-01T12:00:00.000Z', action: 'observation', numero: 75, demandeId: '', details: 'occupé' },
+      { date: '2026-05-01T12:00:00.000Z', action: 'observation', numero: 75, demandeId: '', details: 'libre' },
+      { date: '2026-06-01T12:00:00.000Z', action: 'observation', numero: 75, demandeId: '', details: 'libre' },
+      { date: '2026-06-05T14:00:00.000Z', action: 'intervention', numero: 75, demandeId: '', details: 'Message laissé sur le répondeur, je rappelle la semaine prochaine. — Diane' },
+      { date: '2026-06-20T12:00:00.000Z', action: 'observation', numero: 75, demandeId: '', details: 'libre' },
+      { date: '2026-05-03T12:00:00.000Z', action: 'observation', numero: 76, demandeId: '', details: 'libre' },
+      { date: '2026-06-12T12:00:00.000Z', action: 'observation', numero: 76, demandeId: '', details: 'occupé' },
+      { date: '2026-06-20T12:00:00.000Z', action: 'observation', numero: 74, demandeId: '', details: 'occupé' },
+      { date: '2026-06-20T12:00:00.000Z', action: 'observation', numero: 77, demandeId: '', details: 'libre' },
+    ],
   },
   // Réponses aux écritures admin (les captures n'écrivent rien de réel).
   sauverStructure: { ok: true, structure: {} },

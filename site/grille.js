@@ -360,6 +360,82 @@ function lotDeTournee(releves) {
     .map(function (numero) { return { numero: numero, occupation: releves[numero] }; });
 }
 
+// --- Page « À traiter » (décision 0014) : files, « libre depuis », historique ---
+
+// Date lisible ou null : une cellule éditée à la main (0002) peut porter
+// n'importe quoi — jamais un plantage, jamais un « Invalid Date » affiché.
+function dateLisible_(valeur) {
+  if (valeur === undefined || valeur === null || valeur === '') return null;
+  var date = new Date(valeur);
+  return isNaN(date.valueOf()) ? null : date;
+}
+
+// L'historique d'un emplacement : les événements lisibles du Journal pour ce
+// numéro, en ordre chronologique (0011). Un événement d'un autre numéro, sans
+// action ou sans date lisible est ignoré (0002) — il ne peut pas être situé
+// dans le temps, donc pas raconté.
+function historiqueEmplacement(evenements, numero) {
+  return (evenements || [])
+    .filter(function (e) { return e && Number(e.numero) === Number(numero); })
+    .map(function (e) {
+      return { date: dateLisible_(e.date), action: String(e.action || ''), details: String(e.details || '') };
+    })
+    .filter(function (e) { return e.date !== null && e.action !== ''; })
+    .sort(function (a, b) { return a.date - b.date; });
+}
+
+// « Libre depuis » en faits observés, jamais en mois calendaires (0014) : la
+// série ininterrompue d'observations « libre » qui termine l'historique du
+// numéro — son début, son nombre et sa dernière date. Sans série lisible au
+// Journal (jamais journalisé, dates illisibles, ou ligne contredite par une
+// édition manuelle — 0002), la ligne d'Emplacements est le fait de repli :
+// une observation, sa date (ou null si elle aussi est illisible).
+function serieLibreObservee(ligne, evenements) {
+  var observations = historiqueEmplacement(evenements, ligne.numero).filter(function (e) {
+    return e.action === 'observation' && ETATS_OCCUPATION.indexOf(e.details) !== -1;
+  });
+  var serie = [];
+  for (var i = observations.length - 1; i >= 0 && observations[i].details === 'libre'; i--) {
+    serie.unshift(observations[i]);
+  }
+  if (serie.length === 0) {
+    var date = dateLisible_(ligne.dateObservation);
+    return { nombre: 1, debut: date, derniere: date };
+  }
+  return { nombre: serie.length, debut: serie[0].date, derniere: serie[serie.length - 1].date };
+}
+
+// Les files de la page « À traiter » (0014), entièrement dérivées du statut —
+// rien n'est stocké, un cas sort tout seul quand une observation le referme.
+// « Attribué, libre » porte sa série (le tri et le signal temporel en vivent) ;
+// tri du plus anciennement libre au plus récent, les débuts inconnus (signal
+// le plus faible) en fin de file, numéro croissant à égalité.
+function filesATraiter(lignesEmplacements, evenements) {
+  var attribueLibre = [];
+  var aIdentifier = [];
+  (lignesEmplacements || []).forEach(function (ligne) {
+    if (!ligne || !Number.isInteger(Number(ligne.numero)) || Number(ligne.numero) <= 0) return;
+    var code = statutEmplacement(ligne).code;
+    if (code === 'peutEtreALiberer') {
+      attribueLibre.push({
+        numero: Number(ligne.numero),
+        ligne: ligne,
+        serie: serieLibreObservee(ligne, evenements),
+      });
+    } else if (code === 'orphelin') {
+      aIdentifier.push({ numero: Number(ligne.numero), ligne: ligne });
+    }
+  });
+  attribueLibre.sort(function (a, b) {
+    if (a.serie.debut === null && b.serie.debut === null) return a.numero - b.numero;
+    if (a.serie.debut === null) return 1;
+    if (b.serie.debut === null) return -1;
+    return (a.serie.debut - b.serie.debut) || (a.numero - b.numero);
+  });
+  aIdentifier.sort(function (a, b) { return a.numero - b.numero; });
+  return { attribueLibre: attribueLibre, aIdentifier: aIdentifier };
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, filesATraiter, serieLibreObservee, historiqueEmplacement, ETATS_OCCUPATION };
 }

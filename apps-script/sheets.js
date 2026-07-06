@@ -108,10 +108,15 @@ function lireDemandes() {
 }
 
 // L'inventaire complet, l'état frais de la Sheet (édition manuelle possible — 0002).
+// Le Journal voyage avec l'inventaire (0011, volume négligeable à ~180 places) et
+// les Membres aussi (0010) : les dérivations « À traiter » (files, « libre
+// depuis », historique) et le contact des cartes-cas se font côté client (0004).
 function lireInventaire() {
   return {
     structures: objetsDepuisLignes(ongletRequis_(ONGLET_STRUCTURES).getDataRange().getValues()),
     emplacements: objetsDepuisLignes(ongletRequis_(ONGLET_EMPLACEMENTS).getDataRange().getValues()),
+    membres: objetsDepuisLignes(ongletRequis_(ONGLET_MEMBRES).getDataRange().getValues()),
+    journal: objetsDepuisLignes(ongletRequis_(ONGLET_JOURNAL).getDataRange().getValues()),
   };
 }
 
