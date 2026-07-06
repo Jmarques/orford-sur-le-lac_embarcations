@@ -99,6 +99,9 @@ export const REPONSES_MOCK = {
       { numero: 75, numeroAdresse: 12, rue: 'Rue des Érables', note: '', occupationObservee: 'libre', dateObservation: '2026-06-20T12:00:00.000Z' },
       { numero: 76, numeroAdresse: '', rue: '', note: '', occupationObservee: 'occupé', dateObservation: '2026-06-20T12:00:00.000Z' },
       { numero: 77, numeroAdresse: '', rue: '', note: '', occupationObservee: 'libre', dateObservation: '2026-06-20T12:00:00.000Z' },
+      // Second « Attribué, libre », plus récent que 75 : le tri de la page
+      // « À traiter » (plus anciennement libre d'abord) se voit en capture.
+      { numero: 84, numeroAdresse: 234, rue: 'Rue du Pré', note: '', occupationObservee: 'libre', dateObservation: '2026-06-28T12:00:00.000Z' },
       { numero: 90, numeroAdresse: 87, rue: 'Chemin du Lac', note: '', occupationObservee: '', dateObservation: '' },
       { numero: 999, numeroAdresse: '', rue: '', note: '', occupationObservee: 'libre', dateObservation: '2026-06-20T12:00:00.000Z' },
     ],
@@ -120,6 +123,7 @@ export const REPONSES_MOCK = {
       { date: '2026-06-20T12:00:00.000Z', action: 'observation', numero: 75, demandeId: '', details: 'libre' },
       { date: '2026-05-03T12:00:00.000Z', action: 'observation', numero: 76, demandeId: '', details: 'libre' },
       { date: '2026-06-12T12:00:00.000Z', action: 'observation', numero: 76, demandeId: '', details: 'occupé' },
+      { date: '2026-06-28T12:00:00.000Z', action: 'observation', numero: 84, demandeId: '', details: 'libre' },
       { date: '2026-06-20T12:00:00.000Z', action: 'observation', numero: 74, demandeId: '', details: 'occupé' },
       { date: '2026-06-20T12:00:00.000Z', action: 'observation', numero: 77, demandeId: '', details: 'libre' },
     ],
@@ -128,6 +132,8 @@ export const REPONSES_MOCK = {
   sauverStructure: { ok: true, structure: {} },
   observerEmplacement: { ok: true, observation: {} },
   observerLot: { ok: true, lot: { compte: 1 } },
+  ajouterIntervention: { ok: true, intervention: {} },
+  libererEmplacement: { ok: true, liberation: {} },
 };
 
 // Inventaire tel qu'il serait APRÈS l'observation « 76 libre » : la capture du
@@ -138,6 +144,31 @@ INVENTAIRE_APRES_OBSERVATION.emplacements = INVENTAIRE_APRES_OBSERVATION.emplace
     ? { ...ligne, occupationObservee: 'libre', dateObservation: '2026-07-05T15:00:00.000Z' }
     : ligne),
 );
+
+// Inventaire APRÈS une intervention sur 75 : la carte-cas du succès montre la
+// nouvelle intervention en tête des « dernières interventions ».
+export const INVENTAIRE_APRES_INTERVENTION = structuredClone(REPONSES_MOCK.inventaire);
+INVENTAIRE_APRES_INTERVENTION.journal.push({
+  date: '2026-07-06T10:00:00.000Z',
+  action: 'intervention',
+  numero: 75,
+  demandeId: '',
+  details: 'Parlé au membre : il vide l’emplacement d’ici la fin du mois. — Jeremy',
+});
+
+// Inventaire APRÈS la libération de 75 : adresse retirée, événement Journal —
+// le cas sort de la file (servi via `reponsesApres`, après le premier chargement).
+export const INVENTAIRE_APRES_LIBERATION = structuredClone(REPONSES_MOCK.inventaire);
+INVENTAIRE_APRES_LIBERATION.emplacements = INVENTAIRE_APRES_LIBERATION.emplacements.map(
+  (ligne) => (ligne.numero === 75 ? { ...ligne, numeroAdresse: '', rue: '' } : ligne),
+);
+INVENTAIRE_APRES_LIBERATION.journal.push({
+  date: '2026-07-06T10:00:00.000Z',
+  action: 'libération',
+  numero: 75,
+  demandeId: '',
+  details: 'Adresse retirée : 12 Rue des Érables.',
+});
 
 // config.js simulé : les captures ne dépendent pas du vrai site/config.js
 // (courriel de contact factice mais présent, pour rendre la .phrase-contact visible).
@@ -233,6 +264,41 @@ export const CAPTURES = [
     attendre: '#message-succes:not([hidden])',
     reponses: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
   { nom: 'structures-erreur', page: 'structures.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
+  // Page « À traiter » (décision 0014) : files dérivées, interventions, libération.
+  { nom: 'a-traiter-connexion', page: 'a-traiter.html', attendre: '#etat-connexion:not([hidden])' },
+  { nom: 'a-traiter-mdp-refuse', page: 'a-traiter.html', etat: 'mdp-refuse', attendre: '#erreur-connexion:not([hidden])' },
+  { nom: 'a-traiter-chargement', page: 'a-traiter.html', etat: 'chargement', attendre: '#etat-chargement:not([hidden])' },
+  // Files peuplées : 75 avant 84 (plus anciennement libre d'abord — tri visible).
+  { nom: 'a-traiter-liste', page: 'a-traiter.html', etat: 'liste', attendre: '.carte-cas' },
+  { nom: 'a-traiter-liste-vide', page: 'a-traiter.html', etat: 'liste-vide', attendre: '#etat-liste:not([hidden])' },
+  // Historique complet déplié (chronologique, tous types d'événements).
+  { nom: 'a-traiter-historique', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.carte-cas[data-numero="76"] .details-historique [part~="header"]',
+    attendre: '.carte-cas[data-numero="76"] .details-historique[open]', presenceSeule: true },
+  // Ajout d'intervention : succès (la carte du dossier montre la nouvelle note).
+  { nom: 'a-traiter-intervention-succes', page: 'a-traiter.html', etat: 'liste',
+    remplir: [{ selecteur: '.carte-cas[data-numero="75"] .champ-intervention textarea',
+      valeur: 'Parlé au membre : il vide l’emplacement d’ici la fin du mois. — Jeremy' }],
+    cliquer: '.carte-cas[data-numero="75"] .bouton-intervention',
+    attendre: '#message-succes:not([hidden])',
+    reponses: { inventaire: INVENTAIRE_APRES_INTERVENTION } },
+  // Échec d'écriture : le texte saisi est conservé, l'erreur vit dans la carte.
+  { nom: 'a-traiter-intervention-erreur', page: 'a-traiter.html', etat: 'liste',
+    remplir: [{ selecteur: '.carte-cas[data-numero="75"] .champ-intervention textarea',
+      valeur: 'Message laissé au membre. — Diane' }],
+    cliquer: '.carte-cas[data-numero="75"] .bouton-intervention',
+    attendre: '.carte-cas[data-numero="75"] .erreur-cas:not([hidden])',
+    reponses: { ajouterIntervention: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
+  // Le dialogue de confirmation : aucun tap accidentel ne retire une adresse.
+  { nom: 'a-traiter-confirmation-liberation', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.carte-cas[data-numero="75"] .bouton-liberer',
+    attendre: '#dialogue-liberer[open]', presenceSeule: true, pleinVue: true },
+  // Succès de libération : au rechargement (reponsesApres), 75 a quitté la file.
+  { nom: 'a-traiter-liberation-succes', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.carte-cas[data-numero="75"] .bouton-liberer', '#dialogue-liberer-confirmer'],
+    attendre: '#message-succes:not([hidden])',
+    reponsesApres: { inventaire: INVENTAIRE_APRES_LIBERATION } },
+  { nom: 'a-traiter-erreur', page: 'a-traiter.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
 ];
 
 // Motifs de bruit console tolérés (regex). Liste minimale : tout autre

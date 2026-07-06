@@ -27,6 +27,7 @@
       <nav class="wa-cluster wa-gap-l nav-comite" aria-label="Pages du comité">
         <a href="admin.html" aria-current="page"><wa-icon name="inbox"></wa-icon> Demandes</a>
         <a href="structures.html"><wa-icon name="table-cells"></wa-icon> Structures</a>
+        <a href="a-traiter.html"><wa-icon name="clipboard-list"></wa-icon> À traiter</a>
       </nav>
     </div>
     <div class="houle">
@@ -112,8 +113,11 @@
     <div id="etat-liste" class="wa-stack wa-gap-xl" hidden>
       <section class="wa-stack wa-gap-m">
         <div class="wa-cluster wa-gap-s wa-align-items-baseline">
-          <h2 id="titre-a-traiter" class="wa-heading-l" tabindex="-1">À traiter</h2>
-          <wa-badge id="compte-nouvelles" class="badge-compte" variant="brand" pill>0</wa-badge>
+          <!-- « Nouvelles demandes », pas « À traiter » : ce nom appartient à
+               la page des cas d'emplacements — deux files distinctes. -->
+          <h2 id="titre-nouvelles" class="wa-heading-l" tabindex="-1">Nouvelles demandes</h2>
+          <!-- Pastille toujours libellée, jamais un nombre nu (décision 0016). -->
+          <wa-badge id="compte-nouvelles" class="badge-compte" variant="brand" pill hidden></wa-badge>
         </div>
         <p id="rien-a-traiter" class="wa-color-text-quiet" hidden>Aucune demande en attente — tout est traité.</p>
         <div id="liste-nouvelles" class="wa-stack wa-gap-m"></div>
@@ -274,7 +278,11 @@
       }
       const nouvelles = demandes.filter((d) => d.statut === 'nouvelle');
       const decidees = demandes.filter((d) => d.statut !== 'nouvelle');
-      document.getElementById('compte-nouvelles').textContent = String(nouvelles.length);
+      const compteNouvelles = document.getElementById('compte-nouvelles');
+      compteNouvelles.hidden = nouvelles.length === 0;
+      compteNouvelles.textContent = nouvelles.length === 1
+        ? '1 demande'
+        : nouvelles.length + ' demandes';
       document.getElementById('rien-a-traiter').hidden = nouvelles.length !== 0;
       remplirListe(document.getElementById('liste-nouvelles'), nouvelles);
       document.getElementById('section-decidees').hidden = decidees.length === 0;
@@ -315,7 +323,7 @@
       await chargerDemandes(champMotDePasse.value);
       // Après la connexion, le focus quitte le formulaire disparu : on le pose
       // sur le titre de l'état atteint (clavier et lecteurs d'écran).
-      if (!etats.liste.hidden) document.getElementById('titre-a-traiter').focus();
+      if (!etats.liste.hidden) document.getElementById('titre-nouvelles').focus();
       else if (!etats.vide.hidden) document.getElementById('titre-vide').focus();
     });
     document.getElementById('reessayer').addEventListener('click', () => {

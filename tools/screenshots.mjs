@@ -111,14 +111,21 @@ try {
         problemes.push(`${contexte} — exception non attrapée : ${erreur.message}`);
       });
       if (!enDirect) {
+        // Appels comptés par action : `reponsesApres` d'un scénario sert un
+        // mock différent à partir du DEUXIÈME appel (ex. l'inventaire rechargé
+        // après une libération, où le cas a quitté la file).
+        const appelsParAction = {};
         await page.route('**/script.google.com/**', (route) => {
           const requete = route.request();
           let reponse = REPONSES_MOCK.config;
           if (requete.method() === 'POST') {
             // Même routage que doPost (apps-script/Code.js) : `action` dans le corps.
             const corps = JSON.parse(requete.postData() || '{}');
+            appelsParAction[corps.action] = (appelsParAction[corps.action] || 0) + 1;
             // `reponses` d'un scénario : mock spécifique (ex. échec simulé).
-            reponse = (scenario.reponses && scenario.reponses[corps.action])
+            reponse = (appelsParAction[corps.action] > 1
+                && scenario.reponsesApres && scenario.reponsesApres[corps.action])
+              || (scenario.reponses && scenario.reponses[corps.action])
               || REPONSES_MOCK[corps.action] || REPONSES_MOCK.creation;
           }
           route.fulfill({ contentType: 'application/json', body: JSON.stringify(reponse) });
@@ -128,6 +135,17 @@ try {
         });
       }
       await page.goto(urlDeScenario(BASE, scenario));
+      // `remplir` : champs remplis AVANT les clics ({ selecteur, valeur }) —
+      // le sélecteur traverse le shadow DOM (ex. le <textarea> interne d'un
+      // wa-textarea), même garde d'upgrade que les clics.
+      for (const remplissage of [].concat(scenario.remplir || [])) {
+        await page.waitForSelector(remplissage.selecteur, { timeout: 15000 });
+        await page.waitForFunction(
+          () => document.querySelectorAll(':not(:defined)').length === 0,
+          { timeout: 15000 },
+        );
+        await page.fill(remplissage.selecteur, remplissage.valeur);
+      }
       // `cliquer` : un sélecteur ou une liste, cliqués dans l'ordre. Avant
       // chaque clic : plus aucun custom element en attente d'upgrade — le
       // loader Web Awesome charge à la demande, un clic trop tôt tombe sur un

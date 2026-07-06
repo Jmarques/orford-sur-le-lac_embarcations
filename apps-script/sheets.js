@@ -182,6 +182,28 @@ function appliquerObservation_(emplacements, numero, prepare) {
   journaliser_(prepare.evenement);
 }
 
+// Consigne une intervention (décision 0014) : texte libre appendé au Journal,
+// rattaché au numéro. La ligne d'Emplacements n'est pas touchée — le statut
+// reste factuel, la mémoire du comité vit dans le Journal.
+function ajouterIntervention(corps) {
+  var prepare = preparerIntervention(corps);
+  journaliser_(prepare.evenement);
+  return prepare.evenement;
+}
+
+// Libère un emplacement (décision 0014) : vide l'adresse de la ligne par
+// en-têtes réels (0012) et journalise l'adresse retirée — le même geste écrit
+// les deux (0011). Le statut recalculé fait le reste (Disponible, ou
+// À identifier si l'emplacement est observé occupé).
+function libererEmplacement(corps) {
+  var emplacements = ongletRequis_(ONGLET_EMPLACEMENTS);
+  var lignes = objetsDepuisLignes(emplacements.getDataRange().getValues());
+  var prepare = preparerLiberation(corps, lignes);
+  majLigneParCle_(emplacements, 'numero', Number(corps.numero), prepare.miseAJour);
+  journaliser_(prepare.evenement);
+  return prepare.miseAJour;
+}
+
 // Un événement dans le Journal append-only (décisions 0002, 0011). `date` par
 // défaut = maintenant ; les champs absents restent vides.
 function journaliser_(evenement) {

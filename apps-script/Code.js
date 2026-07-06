@@ -49,6 +49,12 @@ function doPost(e) {
     if (corps.action === 'observerLot') {
       return reponseJson_({ ok: true, lot: observerLot(corps) });
     }
+    if (corps.action === 'ajouterIntervention') {
+      return reponseJson_({ ok: true, intervention: ajouterIntervention(corps) });
+    }
+    if (corps.action === 'libererEmplacement') {
+      return reponseJson_({ ok: true, liberation: libererEmplacement(corps) });
+    }
     throw new Error('Action inconnue : "' + corps.action + '".');
   } catch (err) {
     var reponse = { ok: false, erreur: String((err && err.message) || err) };

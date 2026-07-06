@@ -297,7 +297,8 @@ wa-button::part(base) {
 /* Les titres internes des cartes prennent la couleur d'eau : la structure
    d'un formulaire ou d'une carte se lit d'un coup d'œil. */
 wa-card h2,
-wa-card h3 {
+wa-card h3,
+wa-card h4 {
   color: var(--wa-color-brand-on-quiet);
 }
 
@@ -644,6 +645,40 @@ wa-callout::part(icon) {
   border-inline-start: var(--wa-border-width-l) solid var(--wa-color-brand-fill-loud);
   padding-inline-start: var(--wa-space-m);
   color: var(--wa-color-text-quiet);
+}
+
+/* Page « À traiter » (décision 0014) — sections empilées et cartes-cas. */
+
+/* Ligne « rien à traiter » d'une section : calme et positive, pas une alarme. */
+.section-vide {
+  display: flex;
+  align-items: center;
+  gap: var(--wa-space-xs);
+  color: var(--wa-color-text-quiet);
+}
+.section-vide wa-icon {
+  color: var(--wa-color-success-fill-loud);
+}
+
+/* Listes d'événements (interventions, historique) : des lignes datées, pas
+   des puces — la date en petit au-dessus du fait. */
+.liste-evenements {
+  list-style: none;
+  margin: 0;
+  padding-inline-start: 0;
+}
+
+/* Liens de contact du membre : cibles généreuses (public aîné). */
+.liens-contact a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wa-space-2xs);
+  padding-block: var(--wa-space-2xs);
+}
+
+/* Le nom du membre porte le dossier : légèrement affirmé, sans crier. */
+.champ-membre-nom {
+  font-weight: var(--wa-font-weight-semibold);
 }
 
 /* Le formulaire et son bouton occupent toute la largeur de la carte. */

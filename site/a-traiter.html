@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="fr" class="wa-theme-default wa-palette-default wa-light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Orford sur le Lac — À traiter</title>
+  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.10.0/styles/webawesome.css">
+  <script type="module" src="https://ka-f.webawesome.com/webawesome@3.10.0/webawesome.loader.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=Yellowtail&display=swap">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="liseret-marque"></div>
+
+  <header class="bande-lac">
+    <canvas class="eau-lac" aria-hidden="true"></canvas>
+    <div class="contenu wa-stack wa-gap-m">
+      <div class="wa-stack wa-gap-2xs">
+        <span class="wordmark-lac">Orford-sur-le-Lac</span>
+        <span class="wa-caption-m signature-lac surtitre-comite">Espace du comité</span>
+      </div>
+      <h1 class="wa-heading-xl wa-text-balance titre-lac">À traiter</h1>
+      <!-- Le détail des deux familles vit dans les intitulés de section
+           (une info = un seul foyer, décision 0016). -->
+      <p class="wa-text-pretty sous-titre-lac">Les emplacements qui attendent
+        une décision du comité.</p>
+      <nav class="wa-cluster wa-gap-l nav-comite" aria-label="Pages du comité">
+        <a href="admin.html"><wa-icon name="inbox"></wa-icon> Demandes</a>
+        <a href="structures.html"><wa-icon name="table-cells"></wa-icon> Structures</a>
+        <a href="a-traiter.html" aria-current="page"><wa-icon name="clipboard-list"></wa-icon> À traiter</a>
+      </nav>
+    </div>
+    <div class="houle">
+      <svg class="vagues" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,32 C240,64 480,0 720,32 C960,64 1200,0 1440,32 L1440,60 L0,60 Z"
+              fill="var(--wa-color-surface-default)"></path>
+      </svg>
+    </div>
+  </header>
+
+  <main class="contenu wa-stack wa-gap-xl">
+    <!-- État : connexion (mot de passe du comité) -->
+    <wa-card id="etat-connexion" hidden>
+      <form id="formulaire-connexion" class="wa-stack wa-gap-l">
+        <div class="wa-stack wa-gap-xs">
+          <h2 class="wa-heading-l">Page réservée au comité</h2>
+          <p class="wa-color-text-quiet wa-text-pretty">Entrez le mot de passe du comité pour voir
+            les cas à traiter. Il est le même pour tous les membres du comité.</p>
+        </div>
+        <wa-callout id="erreur-connexion" variant="danger" role="alert" hidden>
+          <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+          <!-- Texte injecté au moment du refus : une live region démasquée sans
+               changement de contenu n'est pas annoncée par les lecteurs d'écran. -->
+          <span id="erreur-connexion-texte"></span>
+        </wa-callout>
+        <wa-input id="champ-mot-de-passe" name="motDePasse" class="champ-plein" label="Mot de passe du comité"
+                  type="password" password-toggle autocomplete="current-password" required>
+          <wa-icon slot="start" name="lock"></wa-icon>
+        </wa-input>
+        <wa-button id="entrer" class="bouton-plein" type="submit" variant="brand" size="l">
+          <wa-icon slot="start" name="unlock"></wa-icon>
+          Entrer
+        </wa-button>
+      </form>
+    </wa-card>
+
+    <!-- État : chargement — le squelette pré-dessine la vraie page (titre de
+         section, deux cartes-dossiers) pour éviter tout saut de mise en page. -->
+    <div id="etat-chargement" class="wa-stack wa-gap-l" role="status" aria-busy="true" hidden>
+      <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
+      <wa-card>
+        <div class="wa-stack wa-gap-m">
+          <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-ligne" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-champ" effect="sheen"></wa-skeleton>
+        </div>
+      </wa-card>
+      <wa-card>
+        <div class="wa-stack wa-gap-m">
+          <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-ligne" effect="sheen"></wa-skeleton>
+          <wa-skeleton class="squelette-champ" effect="sheen"></wa-skeleton>
+        </div>
+      </wa-card>
+      <p class="wa-visually-hidden">Chargement des cas à traiter…</p>
+    </div>
+
+    <!-- État : erreur de chargement -->
+    <div id="etat-erreur" class="wa-stack wa-gap-m" hidden>
+      <wa-callout variant="danger" role="alert">
+        <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+        <span id="erreur-texte"></span><span
+          class="phrase-contact" hidden> Vous pouvez aussi nous écrire à <a class="lien-comite" href=""></a>.</span>
+      </wa-callout>
+      <div class="wa-cluster">
+        <wa-button id="reessayer" variant="brand" size="l">
+          <wa-icon slot="start" name="rotate-right"></wa-icon>
+          Réessayer
+        </wa-button>
+      </div>
+    </div>
+
+    <!-- État : les files de cas (décision 0014) — sections empilées, dérivées
+         du statut ; rien n'est stocké, un cas sort tout seul quand une
+         observation le referme. -->
+    <div id="etat-liste" class="wa-stack wa-gap-xl" hidden>
+      <!-- Titre invisible : le h1 du header nomme déjà la page (0016) ; il
+           reste pour la structure lecteur d'écran et comme cible de focus. -->
+      <h2 id="titre-liste" class="wa-visually-hidden">Les cas à traiter</h2>
+      <!-- tabindex : cible de focus après une libération (le dossier a quitté
+           la file — le focus va au message qui explique quoi). Un élément
+           wa-visually-hidden se révélerait au focus : jamais de focus dessus. -->
+      <wa-callout id="message-succes" variant="success" role="status" tabindex="-1" hidden>
+        <wa-icon slot="icon" name="circle-check"></wa-icon>
+        <span id="message-succes-texte"></span>
+      </wa-callout>
+      <!-- La seule consigne de la page : dite une fois (0016). -->
+      <p class="wa-color-text-quiet wa-text-pretty">Cette page se tient à jour toute seule :
+        dès qu'une tournée observe qu'un cas est réglé, il disparaît de la liste —
+        il n'y a rien à fermer ici.</p>
+
+      <section class="wa-stack wa-gap-m" aria-labelledby="titre-attribue-libre">
+        <div class="wa-stack wa-gap-2xs">
+          <div class="wa-split wa-align-items-baseline">
+            <!-- tabindex : cible de focus après la connexion (clavier, lecteurs d'écran). -->
+            <h3 id="titre-attribue-libre" class="wa-heading-m" tabindex="-1">Attribué, libre</h3>
+            <wa-badge id="compte-attribue-libre" class="badge-compte" variant="warning"
+                      appearance="filled-outlined" pill hidden></wa-badge>
+          </div>
+          <p class="wa-color-text-quiet wa-text-pretty">Attribués à une adresse, mais observés
+            libres par les tournées — les plus anciennement libres d'abord.</p>
+        </div>
+        <p id="vide-attribue-libre" class="section-vide" hidden>
+          <wa-icon name="circle-check"></wa-icon> Aucun emplacement à traiter.
+        </p>
+        <div id="liste-attribue-libre" class="wa-stack wa-gap-l"></div>
+      </section>
+
+      <section class="wa-stack wa-gap-m" aria-labelledby="titre-a-identifier">
+        <div class="wa-stack wa-gap-2xs">
+          <div class="wa-split wa-align-items-baseline">
+            <h3 id="titre-a-identifier" class="wa-heading-m">À identifier</h3>
+            <wa-badge id="compte-a-identifier" class="badge-compte" variant="danger"
+                      appearance="filled-outlined" pill hidden></wa-badge>
+          </div>
+          <p class="wa-color-text-quiet wa-text-pretty">Une embarcation s'y trouve, mais
+            l'emplacement n'est attribué à personne.</p>
+        </div>
+        <p id="vide-a-identifier" class="section-vide" hidden>
+          <wa-icon name="circle-check"></wa-icon> Aucun emplacement à traiter.
+        </p>
+        <div id="liste-a-identifier" class="wa-stack wa-gap-l"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="pied wa-text-center">
+    Orford sur le Lac — Comité administratif<span class="phrase-contact" hidden> ·
+      <a class="lien-comite" href=""></a></span>
+  </footer>
+
+  <!-- Modèle d'une carte-cas, commune aux deux sections (rempli par
+       textContent : jamais de HTML de la Sheet — anti-XSS). -->
+  <template id="modele-cas">
+    <wa-card class="carte-cas">
+      <div class="wa-stack wa-gap-m">
+        <div class="wa-split wa-align-items-baseline">
+          <!-- tabindex : cible de focus après un ajout d'intervention. -->
+          <h4 class="wa-heading-s champ-numero" tabindex="-1"></h4>
+          <span class="wa-caption-m wa-color-text-quiet champ-structure" hidden></span>
+        </div>
+        <p class="champ-signal wa-text-pretty"></p>
+        <div class="bloc-membre wa-stack wa-gap-2xs" hidden>
+          <span class="champ-membre-nom"></span>
+          <span class="wa-color-text-quiet champ-membre-adresse"></span>
+          <div class="wa-cluster wa-gap-l liens-contact">
+            <a class="lien-telephone" hidden><wa-icon name="phone"></wa-icon> <span class="texte-telephone"></span></a>
+            <a class="lien-courriel" hidden><wa-icon name="envelope"></wa-icon> <span class="texte-courriel"></span></a>
+          </div>
+          <p class="contact-absent wa-caption-m wa-color-text-quiet" hidden>Aucun contact inscrit
+            dans l'onglet Membres pour cette adresse.</p>
+        </div>
+        <div class="bloc-interventions wa-stack wa-gap-xs" hidden>
+          <p class="wa-caption-m wa-color-text-quiet titre-interventions">Dernières interventions</p>
+          <ul class="liste-evenements liste-interventions wa-stack wa-gap-s"></ul>
+        </div>
+        <wa-details class="details-historique" hidden>
+          <ol class="liste-evenements liste-historique wa-stack wa-gap-xs"></ol>
+        </wa-details>
+        <form class="formulaire-cas wa-stack wa-gap-s">
+          <wa-textarea class="champ-intervention" label="Ajouter une intervention" rows="2" resize="auto"
+                       hint="Ce qui a été fait ou convenu — signez si vous le souhaitez, ex. « toléré jusqu'en juin — Jeremy »."></wa-textarea>
+          <!-- L'erreur d'envoi vit à côté des boutons : c'est là que regarde
+               l'utilisateur au moment où elle apparaît. Le texte saisi est conservé. -->
+          <wa-callout class="erreur-cas" variant="danger" role="alert" tabindex="-1" hidden>
+            <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+            <span class="erreur-cas-texte"></span>
+          </wa-callout>
+          <div class="wa-cluster wa-gap-s">
+            <wa-button class="bouton-intervention" type="submit" appearance="outlined" variant="brand">
+              <wa-icon slot="start" name="plus"></wa-icon>
+              Ajouter
+            </wa-button>
+            <wa-button class="bouton-ecrire" appearance="outlined" hidden>
+              <wa-icon slot="start" name="envelope"></wa-icon>
+              Écrire au membre
+            </wa-button>
+            <wa-button class="bouton-liberer" appearance="outlined" hidden>
+              <wa-icon slot="start" name="unlock"></wa-icon>
+              Libérer l'emplacement
+            </wa-button>
+          </div>
+        </form>
+      </div>
+    </wa-card>
+  </template>
+
+  <!-- Confirmation avant de libérer : aucun tap accidentel ne retire une adresse. -->
+  <wa-dialog id="dialogue-liberer" label="Libérer l'emplacement ?">
+    <p id="dialogue-liberer-texte" class="wa-text-pretty"></p>
+    <wa-button id="dialogue-liberer-confirmer" slot="footer" variant="danger" data-dialog="close">
+      Libérer l'emplacement
+    </wa-button>
+    <!-- La sortie sûre est un vrai bouton, aussi facile à viser que l'action
+         (public aîné) — pas un lien texte. -->
+    <wa-button slot="footer" appearance="outlined" data-dialog="close">Annuler</wa-button>
+  </wa-dialog>
+
+  <script src="config.js"></script>
+  <script src="eau.js"></script>
+  <script src="grille.js"></script>
+  <script type="module">
+    // Pas de wa-textarea/wa-details ici : ils ne vivent que dans le <template>
+    // (le loader ne les découvre qu'à leur insertion) — les attendre au
+    // chargement bloquerait la page pour toujours.
+    await Promise.all([
+      customElements.whenDefined('wa-button'),
+      customElements.whenDefined('wa-input'),
+      customElements.whenDefined('wa-card'),
+      customElements.whenDefined('wa-callout'),
+    ]);
+
+    // Filet de sécurité : liens de contact du comité, si configurés.
+    const courrielComite = window.OSL_CONFIG.courrielComite;
+    if (courrielComite) {
+      for (const lien of document.querySelectorAll('.lien-comite')) {
+        lien.href = 'mailto:' + courrielComite;
+        lien.textContent = courrielComite;
+      }
+      for (const phrase of document.querySelectorAll('.phrase-contact')) phrase.hidden = false;
+    }
+
+    const etats = {
+      connexion: document.getElementById('etat-connexion'),
+      chargement: document.getElementById('etat-chargement'),
+      erreur: document.getElementById('etat-erreur'),
+      liste: document.getElementById('etat-liste'),
+    };
+
+    function montrerEtat(nom) {
+      for (const [cle, element] of Object.entries(etats)) element.hidden = cle !== nom;
+    }
+
+    const CLE_SESSION = 'oslMotDePasseComite';
+    const erreurConnexion = document.getElementById('erreur-connexion');
+    const champMotDePasse = document.getElementById('champ-mot-de-passe');
+
+    function montrerConnexion(refuse) {
+      erreurConnexion.hidden = !refuse;
+      if (refuse) {
+        document.getElementById('erreur-connexion-texte').textContent =
+          'Ce mot de passe n\'est pas le bon. Vérifiez-le auprès du comité, puis réessayez.';
+      }
+      montrerEtat('connexion');
+      champMotDePasse.focus();
+    }
+
+    function montrerErreur() {
+      document.getElementById('erreur-texte').textContent =
+        'Impossible de charger les cas à traiter. Vérifiez votre connexion Internet, puis réessayez.';
+      montrerEtat('erreur');
+    }
+
+    // L'état courant renvoyé par l'API (0002 : toujours l'état frais de la Sheet).
+    let donnees = { structures: [], emplacements: [], membres: [], journal: [] };
+
+    const formatDate = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
+
+    // Adresse toujours affichée « numeroAdresse rue » (décision 0012).
+    function adresseLisible(ligne) {
+      return String(ligne.numeroAdresse).trim() + ' ' + String(ligne.rue).trim();
+    }
+
+    function chercherMembre(ligne) {
+      return donnees.membres.find((membre) =>
+        String(membre.numeroAdresse).trim() === String(ligne.numeroAdresse).trim()
+        && String(membre.rue).trim() === String(ligne.rue).trim());
+    }
+
+    // « Libre depuis » en faits observés, jamais en mois calendaires (0014) :
+    // le début de la série, le nombre d'observations, la dernière date.
+    function texteSignalLibre(serie) {
+      if (!serie.debut) return 'Observé libre, à une date inconnue (Journal incomplet).';
+      if (serie.nombre === 1) {
+        return 'Observé libre le ' + formatDate.format(serie.debut) + ' — une seule observation pour l\'instant.';
+      }
+      return 'Observé libre depuis le ' + formatDate.format(serie.debut) + ' — '
+        + serie.nombre + ' observations, la dernière le ' + formatDate.format(serie.derniere) + '.';
+    }
+
+    // Le signal d'un « À identifier » : la fenêtre d'apparition de
+    // l'embarcation, bornée par la dernière observation « libre » et la
+    // première « occupé » de la série en cours.
+    function texteSignalAIdentifier(ligne) {
+      const observations = historiqueEmplacement(donnees.journal, ligne.numero)
+        .filter((e) => e.action === 'observation' && ETATS_OCCUPATION.includes(e.details));
+      const serie = [];
+      for (let i = observations.length - 1; i >= 0 && observations[i].details === 'occupé'; i--) {
+        serie.unshift(observations[i]);
+      }
+      if (serie.length === 0) {
+        const date = new Date(ligne.dateObservation);
+        return Number.isNaN(date.valueOf())
+          ? 'Embarcation observée sur place, à une date inconnue (Journal incomplet).'
+          : 'Embarcation observée sur place le ' + formatDate.format(date) + '.';
+      }
+      const avant = observations[observations.length - serie.length - 1];
+      let texte = avant
+        ? 'Embarcation apparue entre le ' + formatDate.format(avant.date)
+          + ' et le ' + formatDate.format(serie[0].date)
+        : 'Embarcation observée sur place depuis le ' + formatDate.format(serie[0].date);
+      if (serie.length > 1) {
+        texte += ' — vue ' + serie.length + ' fois, la dernière le '
+          + formatDate.format(serie[serie.length - 1].date);
+      }
+      return texte + '.';
+    }
+
+    function libelleEvenement(evenement) {
+      if (evenement.action === 'observation') {
+        return ETATS_OCCUPATION.includes(evenement.details)
+          ? 'Observé ' + evenement.details
+          : 'Observation — ' + evenement.details;
+      }
+      if (evenement.action === 'intervention') return 'Intervention — ' + evenement.details;
+      if (evenement.action === 'libération') return 'Libération — ' + evenement.details;
+      return evenement.action + (evenement.details ? ' — ' + evenement.details : '');
+    }
+
+    function ligneEvenement(date, texte) {
+      const element = document.createElement('li');
+      const quand = document.createElement('span');
+      quand.className = 'wa-caption-m wa-color-text-quiet';
+      quand.textContent = formatDate.format(date);
+      const quoi = document.createElement('span');
+      quoi.className = 'wa-text-pretty';
+      quoi.textContent = texte;
+      element.append(quand, document.createElement('br'), quoi);
+      return element;
+    }
+
+    // Le courriel de relance est pré-rempli mais JAMAIS envoyé par l'app
+    // (0003) : le membre du comité l'ajuste et l'envoie depuis son client mail.
+    function hrefEcrire(membre, ligne, serie, numero) {
+      const sujet = 'Votre emplacement ' + numero + ' — Orford sur le Lac';
+      const corps = [
+        'Bonjour ' + membre.nom + ',',
+        '',
+        'En passant près des structures, le comité a remarqué que l\'emplacement ' + numero
+          + ' (attribué au ' + adresseLisible(ligne) + ') est libre'
+          + (serie.debut ? ' depuis le ' + formatDate.format(serie.debut) : '') + '.',
+        '',
+        'Utilisez-vous encore cet emplacement cette saison ? Si vous n\'en avez plus besoin, '
+          + 'dites-le-nous : un autre membre de la communauté pourra en profiter.',
+        '',
+        'Merci,',
+        'Le comité administratif — Orford sur le Lac',
+      ].join('\n');
+      return 'mailto:' + membre.courriel
+        + '?subject=' + encodeURIComponent(sujet)
+        + '&body=' + encodeURIComponent(corps);
+    }
+
+    // Le cas en attente de confirmation de libération : { numero, carte }.
+    let liberationCourante = null;
+
+    function carteCas(cas, avecAttribution) {
+      const carte = document.getElementById('modele-cas').content.cloneNode(true);
+      const hote = carte.querySelector('wa-card');
+      hote.dataset.numero = String(cas.numero);
+      const champ = (classe) => carte.querySelector('.' + classe);
+
+      champ('champ-numero').textContent = 'Emplacement ' + cas.numero;
+      const structure = structureParNumero.get(cas.numero);
+      if (structure) {
+        champ('champ-structure').textContent = 'Structure ' + structure;
+        champ('champ-structure').hidden = false;
+      }
+
+      champ('champ-signal').textContent = avecAttribution
+        ? texteSignalLibre(cas.serie)
+        : texteSignalAIdentifier(cas.ligne);
+
+      if (avecAttribution) {
+        champ('bloc-membre').hidden = false;
+        champ('champ-membre-adresse').textContent = adresseLisible(cas.ligne);
+        const membre = chercherMembre(cas.ligne);
+        if (membre) {
+          champ('champ-membre-nom').textContent = String(membre.nom || '').trim();
+          const telephone = String(membre.telephone || '').trim();
+          if (telephone) {
+            champ('lien-telephone').href = 'tel:' + telephone.replace(/[^+\d]/g, '');
+            champ('texte-telephone').textContent = telephone;
+            champ('lien-telephone').hidden = false;
+          }
+          const courriel = String(membre.courriel || '').trim();
+          if (courriel) {
+            champ('lien-courriel').href = 'mailto:' + courriel;
+            champ('texte-courriel').textContent = courriel;
+            champ('lien-courriel').hidden = false;
+            champ('bouton-ecrire').setAttribute('href', hrefEcrire(membre, cas.ligne, cas.serie, cas.numero));
+            champ('bouton-ecrire').hidden = false;
+          }
+        } else {
+          // Contact absent de l'onglet Membres (Sheet à la main — 0002) :
+          // l'adresse reste, la carte le dit sans planter.
+          champ('champ-membre-nom').hidden = true;
+          champ('contact-absent').hidden = false;
+        }
+
+        const boutonLiberer = champ('bouton-liberer');
+        boutonLiberer.hidden = false;
+        boutonLiberer.addEventListener('click', () => {
+          liberationCourante = { numero: cas.numero, carte: hote };
+          const dialogue = document.getElementById('dialogue-liberer');
+          dialogue.setAttribute('label', 'Libérer l\'emplacement ' + cas.numero + ' ?');
+          document.getElementById('dialogue-liberer-texte').textContent =
+            'L\'adresse ' + adresseLisible(cas.ligne) + ' sera retirée de l\'emplacement '
+            + cas.numero + ' et la libération sera consignée au Journal. L\'emplacement '
+            + 'redeviendra disponible pour un autre membre de la communauté.';
+          dialogue.setAttribute('open', '');
+        });
+      }
+
+      const historique = historiqueEmplacement(donnees.journal, cas.numero);
+      const interventions = historique.filter((e) => e.action === 'intervention');
+      if (interventions.length > 0) {
+        champ('bloc-interventions').hidden = false;
+        const liste = champ('liste-interventions');
+        // Les deux plus récentes, la plus fraîche d'abord : reprendre un
+        // dossier sans fouiller — le reste vit dans l'historique complet.
+        const recentes = interventions.slice(-2).reverse();
+        champ('titre-interventions').textContent =
+          recentes.length === 1 ? 'Dernière intervention' : 'Dernières interventions';
+        for (const intervention of recentes) {
+          liste.appendChild(ligneEvenement(intervention.date, intervention.details));
+        }
+      }
+      if (historique.length > 0) {
+        const details = champ('details-historique');
+        details.hidden = false;
+        details.setAttribute('summary', 'Tout l\'historique ('
+          + (historique.length === 1 ? '1 événement' : historique.length + ' événements') + ')');
+        const liste = champ('liste-historique');
+        for (const evenement of historique) {
+          liste.appendChild(ligneEvenement(evenement.date, libelleEvenement(evenement)));
+        }
+      }
+
+      champ('formulaire-cas').addEventListener('submit', (evenement) => {
+        evenement.preventDefault();
+        envoyerIntervention(hote, cas.numero);
+      });
+
+      return carte;
+    }
+
+    // La structure de chaque numéro, dérivée des grilles (0009) — présentation
+    // seulement : les avertissements d'analyse appartiennent à la page Structures.
+    let structureParNumero = new Map();
+
+    function afficherCas() {
+      structureParNumero = new Map();
+      const { structures } = analyserStructures(donnees.structures, []);
+      for (const analyse of structures) {
+        for (const emplacement of analyse.emplacements) {
+          structureParNumero.set(Number(emplacement.numero), analyse.id);
+        }
+      }
+
+      const files = filesATraiter(donnees.emplacements, donnees.journal);
+      remplirSection('attribue-libre', files.attribueLibre, true);
+      remplirSection('a-identifier', files.aIdentifier, false);
+      montrerEtat('liste');
+    }
+
+    function remplirSection(nom, cas, avecAttribution) {
+      const badge = document.getElementById('compte-' + nom);
+      badge.hidden = cas.length === 0;
+      badge.textContent = cas.length === 1 ? '1 cas' : cas.length + ' cas';
+      document.getElementById('vide-' + nom).hidden = cas.length > 0;
+      const liste = document.getElementById('liste-' + nom);
+      liste.replaceChildren();
+      for (const unCas of cas) liste.appendChild(carteCas(unCas, avecAttribution));
+    }
+
+    // Erreur « métier » renvoyée par l'API, par opposition aux erreurs techniques.
+    class ErreurApi extends Error {}
+
+    function montrerErreurCas(carte, message) {
+      const callout = carte.querySelector('.erreur-cas');
+      carte.querySelector('.erreur-cas-texte').textContent = message;
+      callout.hidden = false;
+      callout.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      callout.focus();
+    }
+
+    async function envoyerIntervention(carte, numero) {
+      const bouton = carte.querySelector('.bouton-intervention');
+      if (bouton.loading) return; // pas de double envoi
+      carte.querySelector('.erreur-cas').hidden = true;
+      const texte = String(carte.querySelector('.champ-intervention').value || '').trim();
+      // Même règle que le serveur : le Journal ne reçoit jamais de ligne muette.
+      if (!texte) {
+        montrerErreurCas(carte, 'L\'intervention est vide — écrivez ce qui a été fait ou convenu, puis ajoutez-la.');
+        return;
+      }
+      bouton.loading = true;
+      try {
+        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
+        const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
+        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'ajouterIntervention', motDePasse, numero, texte }),
+        });
+        const resultat = await reponse.json();
+        if (!resultat.ok) {
+          if (resultat.code === 'accesRefuse') {
+            sessionStorage.removeItem(CLE_SESSION);
+            montrerConnexion(true);
+            return;
+          }
+          throw new ErreurApi(resultat.erreur);
+        }
+        // État frais depuis la Sheet (0002) plutôt qu'une mise à jour locale.
+        await chargerCas(motDePasse, 'Intervention ajoutée pour l\'emplacement ' + numero + '.', numero);
+      } catch (erreurEnvoi) {
+        // Une erreur métier est affichée à l'utilisateur : info en console,
+        // pas error (la boucle de captures échoue sur toute console.error).
+        if (erreurEnvoi instanceof ErreurApi) console.info('Intervention refusée :', erreurEnvoi.message);
+        else console.error('Intervention impossible :', erreurEnvoi);
+        montrerErreurCas(carte,
+          'Impossible d\'ajouter l\'intervention — votre texte est conservé. '
+          + 'Vérifiez votre connexion Internet, puis réessayez.'
+          + (erreurEnvoi instanceof ErreurApi ? ' Détail : ' + erreurEnvoi.message : ''));
+        bouton.loading = false;
+      }
+    }
+
+    async function envoyerLiberation(numero, carte) {
+      const bouton = carte.querySelector('.bouton-liberer');
+      if (bouton.loading) return; // pas de double envoi
+      carte.querySelector('.erreur-cas').hidden = true;
+      bouton.loading = true;
+      try {
+        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
+        const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
+        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'libererEmplacement', motDePasse, numero }),
+        });
+        const resultat = await reponse.json();
+        if (!resultat.ok) {
+          if (resultat.code === 'accesRefuse') {
+            sessionStorage.removeItem(CLE_SESSION);
+            montrerConnexion(true);
+            return;
+          }
+          throw new ErreurApi(resultat.erreur);
+        }
+        // État frais depuis la Sheet (0002) : le cas sort de la file, la
+        // grille des structures reflète la décision au prochain chargement.
+        await chargerCas(motDePasse, 'Emplacement ' + numero + ' libéré — son adresse a été retirée.');
+      } catch (erreurEnvoi) {
+        if (erreurEnvoi instanceof ErreurApi) console.info('Libération refusée :', erreurEnvoi.message);
+        else console.error('Libération impossible :', erreurEnvoi);
+        montrerErreurCas(carte,
+          'Impossible de libérer l\'emplacement. Vérifiez votre connexion Internet, puis réessayez.'
+          + (erreurEnvoi instanceof ErreurApi ? ' Détail : ' + erreurEnvoi.message : ''));
+        bouton.loading = false;
+      }
+    }
+
+    document.getElementById('dialogue-liberer-confirmer').addEventListener('click', () => {
+      const { numero, carte } = liberationCourante;
+      liberationCourante = null;
+      // Attendre la fermeture complète : wa-dialog restaure le focus à la fin
+      // de son animation — l'envoi (et le re-rendu) doit venir APRÈS.
+      document.getElementById('dialogue-liberer')
+        .addEventListener('wa-after-hide', () => envoyerLiberation(numero, carte), { once: true });
+    });
+
+    // Focus sûr sur un composant Web Awesome qui vient d'être re-rendu :
+    // attendre la fin de son rendu (updateComplete) sinon .focus() touche un
+    // élément interne encore null ; ignorer s'il a quitté le DOM entre-temps.
+    function focusComposant(element) {
+      Promise.resolve(element.updateComplete).then(() => {
+        if (element.isConnected) element.focus();
+      });
+    }
+
+    async function chargerCas(motDePasse, messageSucces, numeroCible) {
+      montrerEtat('chargement');
+      try {
+        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
+        const resultat = await fetch(window.OSL_CONFIG.apiUrl, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'inventaire', motDePasse }),
+        }).then((r) => r.json());
+        if (!resultat.ok) {
+          if (resultat.code === 'accesRefuse') {
+            sessionStorage.removeItem(CLE_SESSION);
+            montrerConnexion(true);
+            return;
+          }
+          throw new ErreurApi(resultat.erreur);
+        }
+        sessionStorage.setItem(CLE_SESSION, motDePasse);
+        donnees = {
+          structures: resultat.structures || [],
+          emplacements: resultat.emplacements || [],
+          membres: resultat.membres || [],
+          journal: resultat.journal || [],
+        };
+        afficherCas();
+        const succes = document.getElementById('message-succes');
+        succes.hidden = !messageSucces;
+        if (messageSucces) {
+          document.getElementById('message-succes-texte').textContent = messageSucces;
+          // Retour au dossier travaillé (l'intervention ajoutée se relit sur
+          // place) ; un cas disparu (libéré) renvoie au message qui l'explique.
+          const cible = numeroCible
+            && document.querySelector('wa-card[data-numero="' + numeroCible + '"] .champ-numero');
+          (cible || succes).focus();
+        }
+      } catch (erreur) {
+        console.error('Chargement des cas impossible :', erreur);
+        montrerErreur();
+      }
+    }
+
+    document.getElementById('formulaire-connexion').addEventListener('submit', async (evenement) => {
+      evenement.preventDefault();
+      await chargerCas(champMotDePasse.value);
+      // Après la connexion, le focus quitte le formulaire disparu : on le pose
+      // sur le premier titre visible (clavier et lecteurs d'écran).
+      if (!etats.liste.hidden) document.getElementById('titre-attribue-libre').focus();
+    });
+    document.getElementById('reessayer').addEventListener('click', () => {
+      chargerCas(sessionStorage.getItem(CLE_SESSION) || champMotDePasse.value);
+    });
+
+    // Hook de test (décision 0006) : ?etat=mot-de-passe|mdp-refuse|chargement|
+    // liste|liste-vide|erreur fige la page dans un état pour les captures.
+    // Inerte sans paramètre. `liste` passe par un vrai fetch (API mockée par
+    // Playwright) ; sur le vrai site, il aboutit à l'écran de connexion.
+    const etatForce = new URLSearchParams(location.search).get('etat');
+    if (etatForce === 'mot-de-passe') montrerConnexion(false);
+    else if (etatForce === 'mdp-refuse') montrerConnexion(true);
+    else if (etatForce === 'chargement') montrerEtat('chargement');
+    else if (etatForce === 'erreur') montrerErreur();
+    else if (etatForce === 'liste-vide') afficherCas();
+    else if (etatForce === 'liste') chargerCas('capture');
+    else {
+      const motDePasse = sessionStorage.getItem(CLE_SESSION);
+      if (motDePasse) chargerCas(motDePasse);
+      else montrerConnexion(false);
+    }
+  </script>
+</body>
+</html>
