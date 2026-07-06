@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { filesATraiter, serieLibreObservee, historiqueEmplacement } = require('../apps-script/grille.js');
+const { filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement } = require('../apps-script/grille.js');
 
 // Une ligne de l'onglet Emplacements, telle que renvoyée par l'API.
 function ligneEmplacement(surcharges = {}) {
@@ -125,6 +125,36 @@ test('le Journal contredit par la ligne (édition manuelle — 0002) : repli sur
   ]);
   assert.equal(serie.nombre, 1);
   assert.equal(serie.debut.toISOString(), '2026-06-20T12:00:00.000Z');
+});
+
+// --- Fenêtre d'apparition d'un « À identifier » (0014) ---
+
+test('l\'apparition est bornée par la dernière observation « libre » avant la série « occupé »', () => {
+  const fenetre = fenetreApparition(ligneEmplacement({ numero: 76, occupationObservee: 'occupé' }), [
+    observation(76, 'libre', '2026-05-03T12:00:00.000Z'),
+    observation(76, 'occupé', '2026-06-12T12:00:00.000Z'),
+  ]);
+  assert.equal(fenetre.nombre, 1);
+  assert.equal(fenetre.debut.toISOString(), '2026-06-12T12:00:00.000Z');
+  assert.equal(fenetre.libreAvant.toISOString(), '2026-05-03T12:00:00.000Z');
+});
+
+test('sans observation « libre » antérieure, la fenêtre n\'a pas de borne basse ; la série compte ses occurrences', () => {
+  const fenetre = fenetreApparition(ligneEmplacement({ numero: 76, occupationObservee: 'occupé' }), [
+    observation(76, 'occupé', '2026-05-01T12:00:00.000Z'),
+    observation(76, 'occupé', '2026-06-12T12:00:00.000Z'),
+  ]);
+  assert.equal(fenetre.nombre, 2);
+  assert.equal(fenetre.debut.toISOString(), '2026-05-01T12:00:00.000Z');
+  assert.equal(fenetre.derniere.toISOString(), '2026-06-12T12:00:00.000Z');
+  assert.equal(fenetre.libreAvant, null);
+});
+
+test('aucune observation « occupé » lisible : pas de fenêtre — la ligne reste le seul fait (0002)', () => {
+  assert.equal(fenetreApparition(ligneEmplacement({ numero: 76 }), []), null);
+  assert.equal(fenetreApparition(ligneEmplacement({ numero: 76 }), [
+    observation(76, 'occupé', 'pas une date'),
+  ]), null);
 });
 
 // --- Historique d'un emplacement : le Journal filtré par numéro, en ordre chronologique ---

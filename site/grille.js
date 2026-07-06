@@ -384,6 +384,23 @@ function historiqueEmplacement(evenements, numero) {
     .sort(function (a, b) { return a.date - b.date; });
 }
 
+// Les observations lisibles d'un numéro (occupé/libre seulement), chronologiques.
+function observationsLisibles_(evenements, numero) {
+  return historiqueEmplacement(evenements, numero).filter(function (e) {
+    return e.action === 'observation' && ETATS_OCCUPATION.indexOf(e.details) !== -1;
+  });
+}
+
+// La série ininterrompue de l'état donné qui TERMINE les observations — le
+// « depuis quand » des deux files se calcule sur elle.
+function serieTerminale_(observations, etat) {
+  var serie = [];
+  for (var i = observations.length - 1; i >= 0 && observations[i].details === etat; i--) {
+    serie.unshift(observations[i]);
+  }
+  return serie;
+}
+
 // « Libre depuis » en faits observés, jamais en mois calendaires (0014) : la
 // série ininterrompue d'observations « libre » qui termine l'historique du
 // numéro — son début, son nombre et sa dernière date. Sans série lisible au
@@ -391,18 +408,30 @@ function historiqueEmplacement(evenements, numero) {
 // édition manuelle — 0002), la ligne d'Emplacements est le fait de repli :
 // une observation, sa date (ou null si elle aussi est illisible).
 function serieLibreObservee(ligne, evenements) {
-  var observations = historiqueEmplacement(evenements, ligne.numero).filter(function (e) {
-    return e.action === 'observation' && ETATS_OCCUPATION.indexOf(e.details) !== -1;
-  });
-  var serie = [];
-  for (var i = observations.length - 1; i >= 0 && observations[i].details === 'libre'; i--) {
-    serie.unshift(observations[i]);
-  }
+  var serie = serieTerminale_(observationsLisibles_(evenements, ligne.numero), 'libre');
   if (serie.length === 0) {
     var date = dateLisible_(ligne.dateObservation);
     return { nombre: 1, debut: date, derniere: date };
   }
   return { nombre: serie.length, debut: serie[0].date, derniere: serie[serie.length - 1].date };
+}
+
+// La fenêtre d'apparition d'un « À identifier » (0014) : la série « occupé »
+// qui termine les observations du numéro, bornée par la dernière observation
+// « libre » qui la précède — « l'embarcation est apparue entre le 3 mai et le
+// 12 juin ». null si aucune observation « occupé » lisible : la ligne
+// d'Emplacements reste alors le seul fait (0002).
+function fenetreApparition(ligne, evenements) {
+  var observations = observationsLisibles_(evenements, ligne.numero);
+  var serie = serieTerminale_(observations, 'occupé');
+  if (serie.length === 0) return null;
+  var avant = observations[observations.length - serie.length - 1];
+  return {
+    nombre: serie.length,
+    debut: serie[0].date,
+    derniere: serie[serie.length - 1].date,
+    libreAvant: avant ? avant.date : null,
+  };
 }
 
 // Les files de la page « À traiter » (0014), entièrement dérivées du statut —
@@ -437,5 +466,5 @@ function filesATraiter(lignesEmplacements, evenements) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, filesATraiter, serieLibreObservee, historiqueEmplacement, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, ETATS_OCCUPATION };
 }

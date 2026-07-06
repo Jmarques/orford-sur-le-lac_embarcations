@@ -80,3 +80,9 @@ Rien d'invisible : la section Quota est nommée ici et dans 0014 ; T2 est la pre
 - **Bornes de saison** : si le comité veut un marqueur « libre toute une saison » ou un seuil suggéré de relance, il faudra définir les dates de saison (probablement dans l'onglet Config) — décision à prendre avec le comité, volontairement absente de la v1.
 - La qualité de « libre depuis » dépend directement de la discipline des tournées (PRD `tournee`) : sans observations répétées, la file affiche des signaux faibles — c'est voulu, le comité voit le nombre d'observations.
 - UX/UI : suivre le processus obligatoire du CLAUDE.md (brief, principles/composition, polish checklist, revue sur captures fraîches). Ton de la page : factuel et rassurant — elle parle de membres de la communauté, pas de « fautifs ».
+
+## Comments
+
+- 2026-07-06 (implémentation T1/T2) : le contrat de lecture transporte aussi l'onglet **Membres** avec l'inventaire — la user story 4 (nom, téléphone, courriel en liens actifs) l'exige et ces données ne vivent pas dans Emplacements (0010) ; le PRD ne nommait que le Journal. Trou de spec comblé, entériné ici.
+- 2026-07-06 : la section « À traiter » de la page Demandes a été renommée « **Nouvelles demandes** » (et sa pastille libellée, 0016) — le nom « À traiter » désigne désormais cette page-ci ; deux files homonymes auraient été confondantes.
+- 2026-07-06 (à valider par Jeremy) : (1) l'historique ne pourra raconter une **attribution** (US 8) que le jour où l'attribution passera par l'app — aucune écriture ne journalise ce geste aujourd'hui (hors périmètre, saisie manuelle dans la Sheet) ; (2) quand le Journal contredit la ligne (édition manuelle, 0002), « libre depuis » se replie sur la ligne d'Emplacements (une observation, sa date) plutôt que d'afficher une série vide.

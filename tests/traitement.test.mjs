@@ -11,20 +11,19 @@ const ATTRIBUE = { numero: 75, numeroAdresse: 12, rue: 'Rue des Érables', note:
 // --- Intervention (0014) : texte libre appendé au Journal, rien d'autre ---
 
 test('une intervention vide ou blanche est refusée — le Journal ne reçoit jamais de ligne muette', () => {
-  assert.throws(() => preparerIntervention({ numero: 75, texte: '' }, [ATTRIBUE]), /vide/i);
-  assert.throws(() => preparerIntervention({ numero: 75, texte: '   ' }, [ATTRIBUE]), /vide/i);
-  assert.throws(() => preparerIntervention({ numero: 75 }, [ATTRIBUE]), /vide/i);
+  assert.throws(() => preparerIntervention({ numero: 75, texte: '' }), /vide/i);
+  assert.throws(() => preparerIntervention({ numero: 75, texte: '   ' }), /vide/i);
+  assert.throws(() => preparerIntervention({ numero: 75 }), /vide/i);
 });
 
 test('un numéro d\'emplacement invalide est refusé en nommant l\'attendu', () => {
-  assert.throws(() => preparerIntervention({ numero: 'quatorze', texte: 'Appel fait.' }, []), /numéro/i);
-  assert.throws(() => preparerIntervention({ numero: -3, texte: 'Appel fait.' }, []), /numéro/i);
+  assert.throws(() => preparerIntervention({ numero: 'quatorze', texte: 'Appel fait.' }), /numéro/i);
+  assert.throws(() => preparerIntervention({ numero: -3, texte: 'Appel fait.' }), /numéro/i);
 });
 
 test('une intervention valide devient un événement Journal dédié, rattaché au numéro, texte épuré', () => {
   const { evenement } = preparerIntervention(
     { numero: 75, texte: '  Toléré jusqu\'à la fin juin. — Jeremy  ' },
-    [ATTRIBUE],
   );
   assert.equal(evenement.action, 'intervention');
   assert.equal(evenement.numero, 75);

@@ -180,7 +180,7 @@
             <a class="lien-telephone" hidden><wa-icon name="phone"></wa-icon> <span class="texte-telephone"></span></a>
             <a class="lien-courriel" hidden><wa-icon name="envelope"></wa-icon> <span class="texte-courriel"></span></a>
           </div>
-          <p class="contact-absent wa-caption-m wa-color-text-quiet" hidden>Aucun contact inscrit
+          <p class="contact-absent wa-caption-m wa-color-text-quiet" hidden>Aucun membre inscrit
             dans l'onglet Membres pour cette adresse.</p>
         </div>
         <div class="bloc-interventions wa-stack wa-gap-xs" hidden>
@@ -311,30 +311,23 @@
         + serie.nombre + ' observations, la dernière le ' + formatDate.format(serie.derniere) + '.';
     }
 
-    // Le signal d'un « À identifier » : la fenêtre d'apparition de
-    // l'embarcation, bornée par la dernière observation « libre » et la
-    // première « occupé » de la série en cours.
+    // Le signal d'un « À identifier » : la fenêtre d'apparition dérivée par
+    // grille.js (fenetreApparition) — la page ne fait que la mettre en mots.
     function texteSignalAIdentifier(ligne) {
-      const observations = historiqueEmplacement(donnees.journal, ligne.numero)
-        .filter((e) => e.action === 'observation' && ETATS_OCCUPATION.includes(e.details));
-      const serie = [];
-      for (let i = observations.length - 1; i >= 0 && observations[i].details === 'occupé'; i--) {
-        serie.unshift(observations[i]);
-      }
-      if (serie.length === 0) {
+      const fenetre = fenetreApparition(ligne, donnees.journal);
+      if (!fenetre) {
         const date = new Date(ligne.dateObservation);
         return Number.isNaN(date.valueOf())
           ? 'Embarcation observée sur place, à une date inconnue (Journal incomplet).'
           : 'Embarcation observée sur place le ' + formatDate.format(date) + '.';
       }
-      const avant = observations[observations.length - serie.length - 1];
-      let texte = avant
-        ? 'Embarcation apparue entre le ' + formatDate.format(avant.date)
-          + ' et le ' + formatDate.format(serie[0].date)
-        : 'Embarcation observée sur place depuis le ' + formatDate.format(serie[0].date);
-      if (serie.length > 1) {
-        texte += ' — vue ' + serie.length + ' fois, la dernière le '
-          + formatDate.format(serie[serie.length - 1].date);
+      let texte = fenetre.libreAvant
+        ? 'Embarcation apparue entre le ' + formatDate.format(fenetre.libreAvant)
+          + ' et le ' + formatDate.format(fenetre.debut)
+        : 'Embarcation observée sur place depuis le ' + formatDate.format(fenetre.debut);
+      if (fenetre.nombre > 1) {
+        texte += ' — vue ' + fenetre.nombre + ' fois, la dernière le '
+          + formatDate.format(fenetre.derniere);
       }
       return texte + '.';
     }
@@ -364,14 +357,14 @@
 
     // Le courriel de relance est pré-rempli mais JAMAIS envoyé par l'app
     // (0003) : le membre du comité l'ajuste et l'envoie depuis son client mail.
-    function hrefEcrire(membre, ligne, serie, numero) {
-      const sujet = 'Votre emplacement ' + numero + ' — Orford sur le Lac';
+    function hrefEcrire(membre, cas) {
+      const sujet = 'Votre emplacement ' + cas.numero + ' — Orford sur le Lac';
       const corps = [
         'Bonjour ' + membre.nom + ',',
         '',
-        'En passant près des structures, le comité a remarqué que l\'emplacement ' + numero
-          + ' (attribué au ' + adresseLisible(ligne) + ') est libre'
-          + (serie.debut ? ' depuis le ' + formatDate.format(serie.debut) : '') + '.',
+        'En passant près des structures, le comité a remarqué que l\'emplacement ' + cas.numero
+          + ' (attribué au ' + adresseLisible(cas.ligne) + ') est libre'
+          + (cas.serie.debut ? ' depuis le ' + formatDate.format(cas.serie.debut) : '') + '.',
         '',
         'Utilisez-vous encore cet emplacement cette saison ? Si vous n\'en avez plus besoin, '
           + 'dites-le-nous : un autre membre de la communauté pourra en profiter.',
@@ -421,7 +414,7 @@
             champ('lien-courriel').href = 'mailto:' + courriel;
             champ('texte-courriel').textContent = courriel;
             champ('lien-courriel').hidden = false;
-            champ('bouton-ecrire').setAttribute('href', hrefEcrire(membre, cas.ligne, cas.serie, cas.numero));
+            champ('bouton-ecrire').setAttribute('href', hrefEcrire(membre, cas));
             champ('bouton-ecrire').hidden = false;
           }
         } else {
