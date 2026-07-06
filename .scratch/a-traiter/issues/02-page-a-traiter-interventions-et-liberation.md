@@ -39,3 +39,7 @@ Public aîné : cartes aérées, français simple et rassurant (la page parle de
 ## Blocked by
 
 - `01-derivations-a-traiter-et-journal-en-lecture.md`
+
+## Comments
+
+- 2026-07-06 : refonte après test terrain de Jeremy (~25 cas) — les cartes-cas dépliées deviennent un registre de rangées compactes + fiche wa-dialog (voir la révision en tête du brief) ; « intervention » devient « note » au journal (glossaire mis à jour). Captures et scénarios refaits ; les critères d'acceptation restent couverts sous ces nouveaux termes et cette nouvelle forme.

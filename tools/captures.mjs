@@ -119,7 +119,7 @@ export const REPONSES_MOCK = {
       { date: '2026-04-01T12:00:00.000Z', action: 'observation', numero: 75, demandeId: '', details: 'occupé' },
       { date: '2026-05-01T12:00:00.000Z', action: 'observation', numero: 75, demandeId: '', details: 'libre' },
       { date: '2026-06-01T12:00:00.000Z', action: 'observation', numero: 75, demandeId: '', details: 'libre' },
-      { date: '2026-06-05T14:00:00.000Z', action: 'intervention', numero: 75, demandeId: '', details: 'Message laissé sur le répondeur, je rappelle la semaine prochaine. — Diane' },
+      { date: '2026-06-05T14:00:00.000Z', action: 'note', numero: 75, demandeId: '', details: 'Message laissé sur le répondeur, je rappelle la semaine prochaine. — Diane' },
       { date: '2026-06-20T12:00:00.000Z', action: 'observation', numero: 75, demandeId: '', details: 'libre' },
       { date: '2026-05-03T12:00:00.000Z', action: 'observation', numero: 76, demandeId: '', details: 'libre' },
       { date: '2026-06-12T12:00:00.000Z', action: 'observation', numero: 76, demandeId: '', details: 'occupé' },
@@ -132,7 +132,7 @@ export const REPONSES_MOCK = {
   sauverStructure: { ok: true, structure: {} },
   observerEmplacement: { ok: true, observation: {} },
   observerLot: { ok: true, lot: { compte: 1 } },
-  ajouterIntervention: { ok: true, intervention: {} },
+  ajouterNote: { ok: true, note: {} },
   libererEmplacement: { ok: true, liberation: {} },
 };
 
@@ -145,12 +145,11 @@ INVENTAIRE_APRES_OBSERVATION.emplacements = INVENTAIRE_APRES_OBSERVATION.emplace
     : ligne),
 );
 
-// Inventaire APRÈS une intervention sur 75 : la carte-cas du succès montre la
-// nouvelle intervention en tête des « dernières interventions ».
-export const INVENTAIRE_APRES_INTERVENTION = structuredClone(REPONSES_MOCK.inventaire);
-INVENTAIRE_APRES_INTERVENTION.journal.push({
+// Inventaire APRÈS une note sur 75 : la rangée du succès compte « 2 notes ».
+export const INVENTAIRE_APRES_NOTE = structuredClone(REPONSES_MOCK.inventaire);
+INVENTAIRE_APRES_NOTE.journal.push({
   date: '2026-07-06T10:00:00.000Z',
-  action: 'intervention',
+  action: 'note',
   numero: 75,
   demandeId: '',
   details: 'Parlé au membre : il vide l’emplacement d’ici la fin du mois. — Jeremy',
@@ -264,38 +263,43 @@ export const CAPTURES = [
     attendre: '#message-succes:not([hidden])',
     reponses: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
   { nom: 'structures-erreur', page: 'structures.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
-  // Page « À traiter » (décision 0014) : files dérivées, interventions, libération.
+  // Page « À traiter » (décision 0014) : registre scannable + fiche (dialog).
   { nom: 'a-traiter-connexion', page: 'a-traiter.html', attendre: '#etat-connexion:not([hidden])' },
   { nom: 'a-traiter-mdp-refuse', page: 'a-traiter.html', etat: 'mdp-refuse', attendre: '#erreur-connexion:not([hidden])' },
   { nom: 'a-traiter-chargement', page: 'a-traiter.html', etat: 'chargement', attendre: '#etat-chargement:not([hidden])' },
-  // Files peuplées : 75 avant 84 (plus anciennement libre d'abord — tri visible).
-  { nom: 'a-traiter-liste', page: 'a-traiter.html', etat: 'liste', attendre: '.carte-cas' },
+  // Registre peuplé : 75 avant 84 (plus anciennement libre d'abord — tri visible).
+  { nom: 'a-traiter-liste', page: 'a-traiter.html', etat: 'liste', attendre: '.rangee-cas' },
   { nom: 'a-traiter-liste-vide', page: 'a-traiter.html', etat: 'liste-vide', attendre: '#etat-liste:not([hidden])' },
-  // Historique complet déplié (chronologique, tous types d'événements).
-  { nom: 'a-traiter-historique', page: 'a-traiter.html', etat: 'liste',
-    cliquer: '.carte-cas[data-numero="76"] .details-historique [part~="header"]',
-    attendre: '.carte-cas[data-numero="76"] .details-historique[open]', presenceSeule: true },
-  // Ajout d'intervention : succès (la carte du dossier montre la nouvelle note).
-  { nom: 'a-traiter-intervention-succes', page: 'a-traiter.html', etat: 'liste',
-    remplir: [{ selecteur: '.carte-cas[data-numero="75"] .champ-intervention textarea',
+  // La fiche d'un cas attribué : membre, journal complet (icônes), gestes.
+  { nom: 'a-traiter-fiche', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-cas[data-numero="75"]',
+    attendre: '#fiche-cas[open]', presenceSeule: true, pleinVue: true },
+  // La fiche d'un « À identifier » : pas de membre, journal + note seulement.
+  { nom: 'a-traiter-fiche-a-identifier', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-cas[data-numero="76"]',
+    attendre: '#fiche-cas[open]', presenceSeule: true, pleinVue: true },
+  // Note ajoutée : la fiche se referme, la rangée du dossier compte 2 notes.
+  { nom: 'a-traiter-note-succes', page: 'a-traiter.html', etat: 'liste',
+    ouvrir: '.rangee-cas[data-numero="75"]',
+    remplir: [{ selecteur: '#champ-note textarea',
       valeur: 'Parlé au membre : il vide l’emplacement d’ici la fin du mois. — Jeremy' }],
-    cliquer: '.carte-cas[data-numero="75"] .bouton-intervention',
+    cliquer: '#ajouter-note',
     attendre: '#message-succes:not([hidden])',
-    reponses: { inventaire: INVENTAIRE_APRES_INTERVENTION } },
-  // Échec d'écriture : le texte saisi est conservé, l'erreur vit dans la carte.
-  { nom: 'a-traiter-intervention-erreur', page: 'a-traiter.html', etat: 'liste',
-    remplir: [{ selecteur: '.carte-cas[data-numero="75"] .champ-intervention textarea',
-      valeur: 'Message laissé au membre. — Diane' }],
-    cliquer: '.carte-cas[data-numero="75"] .bouton-intervention',
-    attendre: '.carte-cas[data-numero="75"] .erreur-cas:not([hidden])',
-    reponses: { ajouterIntervention: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
+    reponses: { inventaire: INVENTAIRE_APRES_NOTE } },
+  // Échec d'écriture : le texte saisi est conservé, l'erreur vit dans la fiche.
+  { nom: 'a-traiter-note-erreur', page: 'a-traiter.html', etat: 'liste',
+    ouvrir: '.rangee-cas[data-numero="75"]',
+    remplir: [{ selecteur: '#champ-note textarea', valeur: 'Message laissé au membre. — Diane' }],
+    cliquer: '#ajouter-note',
+    attendre: '#fiche-erreur:not([hidden])', pleinVue: true,
+    reponses: { ajouterNote: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
   // Le dialogue de confirmation : aucun tap accidentel ne retire une adresse.
   { nom: 'a-traiter-confirmation-liberation', page: 'a-traiter.html', etat: 'liste',
-    cliquer: '.carte-cas[data-numero="75"] .bouton-liberer',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-liberer'],
     attendre: '#dialogue-liberer[open]', presenceSeule: true, pleinVue: true },
   // Succès de libération : au rechargement (reponsesApres), 75 a quitté la file.
   { nom: 'a-traiter-liberation-succes', page: 'a-traiter.html', etat: 'liste',
-    cliquer: ['.carte-cas[data-numero="75"] .bouton-liberer', '#dialogue-liberer-confirmer'],
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-liberer', '#dialogue-liberer-confirmer'],
     attendre: '#message-succes:not([hidden])',
     reponsesApres: { inventaire: INVENTAIRE_APRES_LIBERATION } },
   { nom: 'a-traiter-erreur', page: 'a-traiter.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },

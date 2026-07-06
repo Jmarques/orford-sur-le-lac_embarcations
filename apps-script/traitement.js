@@ -1,8 +1,8 @@
 // Traitement des cas de la page « À traiter » (décision 0014) : logique pure,
 // partagée entre Apps Script et les tests node, calquée sur observation.js.
-// Deux gestes seulement : l'intervention en texte libre (mémoire du comité,
-// appendée au Journal) et la libération (retrait de l'adresse, journalisée) —
-// aucun état de suivi stocké, les files restent entièrement dérivées.
+// Deux gestes seulement : la note au journal (texte libre, mémoire du comité)
+// et la libération (retrait de l'adresse, journalisée) — aucun état de suivi
+// stocké, les files restent entièrement dérivées.
 
 function numeroValide_(numero) {
   if (!Number.isInteger(Number(numero)) || Number(numero) <= 0) {
@@ -11,16 +11,16 @@ function numeroValide_(numero) {
   return Number(numero);
 }
 
-// Une intervention n'écrit QUE dans le Journal : le statut reste factuel
-// (0011/0014), aucune ligne d'Emplacements n'est touchée.
-function preparerIntervention(corps) {
+// Une note n'écrit QUE dans le Journal : le statut reste factuel (0011/0014),
+// aucune ligne d'Emplacements n'est touchée.
+function preparerNote(corps) {
   var numero = numeroValide_(corps.numero);
   var texte = String(corps.texte === undefined || corps.texte === null ? '' : corps.texte).trim();
   if (texte === '') {
-    throw new Error('L\'intervention est vide — écrire ce qui a été fait ou convenu avant d\'ajouter.');
+    throw new Error('La note est vide — écrire ce qui a été fait ou convenu avant de l\'ajouter au journal.');
   }
   return {
-    evenement: { action: 'intervention', numero: numero, details: texte },
+    evenement: { action: 'note', numero: numero, details: texte },
   };
 }
 
@@ -51,5 +51,5 @@ function preparerLiberation(corps, lignesEmplacements) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { preparerIntervention, preparerLiberation };
+  module.exports = { preparerNote, preparerLiberation };
 }

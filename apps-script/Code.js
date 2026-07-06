@@ -49,8 +49,8 @@ function doPost(e) {
     if (corps.action === 'observerLot') {
       return reponseJson_({ ok: true, lot: observerLot(corps) });
     }
-    if (corps.action === 'ajouterIntervention') {
-      return reponseJson_({ ok: true, intervention: ajouterIntervention(corps) });
+    if (corps.action === 'ajouterNote') {
+      return reponseJson_({ ok: true, note: ajouterNote(corps) });
     }
     if (corps.action === 'libererEmplacement') {
       return reponseJson_({ ok: true, liberation: libererEmplacement(corps) });

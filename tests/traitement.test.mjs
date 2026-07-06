@@ -3,29 +3,29 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { preparerIntervention, preparerLiberation } = require('../apps-script/traitement.js');
+const { preparerNote, preparerLiberation } = require('../apps-script/traitement.js');
 const { fusionnerLigne } = require('../apps-script/tableur.js');
 
 const ATTRIBUE = { numero: 75, numeroAdresse: 12, rue: 'Rue des Érables', note: '', occupationObservee: 'libre', dateObservation: '2026-06-20T12:00:00.000Z' };
 
-// --- Intervention (0014) : texte libre appendé au Journal, rien d'autre ---
+// --- Note au journal (0014) : texte libre appendé au Journal, rien d'autre ---
 
-test('une intervention vide ou blanche est refusée — le Journal ne reçoit jamais de ligne muette', () => {
-  assert.throws(() => preparerIntervention({ numero: 75, texte: '' }), /vide/i);
-  assert.throws(() => preparerIntervention({ numero: 75, texte: '   ' }), /vide/i);
-  assert.throws(() => preparerIntervention({ numero: 75 }), /vide/i);
+test('une note vide ou blanche est refusée — le Journal ne reçoit jamais de ligne muette', () => {
+  assert.throws(() => preparerNote({ numero: 75, texte: '' }), /vide/i);
+  assert.throws(() => preparerNote({ numero: 75, texte: '   ' }), /vide/i);
+  assert.throws(() => preparerNote({ numero: 75 }), /vide/i);
 });
 
 test('un numéro d\'emplacement invalide est refusé en nommant l\'attendu', () => {
-  assert.throws(() => preparerIntervention({ numero: 'quatorze', texte: 'Appel fait.' }), /numéro/i);
-  assert.throws(() => preparerIntervention({ numero: -3, texte: 'Appel fait.' }), /numéro/i);
+  assert.throws(() => preparerNote({ numero: 'quatorze', texte: 'Appel fait.' }), /numéro/i);
+  assert.throws(() => preparerNote({ numero: -3, texte: 'Appel fait.' }), /numéro/i);
 });
 
-test('une intervention valide devient un événement Journal dédié, rattaché au numéro, texte épuré', () => {
-  const { evenement } = preparerIntervention(
+test('une note valide devient un événement Journal dédié, rattaché au numéro, texte épuré', () => {
+  const { evenement } = preparerNote(
     { numero: 75, texte: '  Toléré jusqu\'à la fin juin. — Jeremy  ' },
   );
-  assert.equal(evenement.action, 'intervention');
+  assert.equal(evenement.action, 'note');
   assert.equal(evenement.numero, 75);
   assert.equal(evenement.details, 'Toléré jusqu\'à la fin juin. — Jeremy');
 });

@@ -162,14 +162,14 @@ test('aucune observation « occupé » lisible : pas de fenêtre — la ligne re
 test('l\'historique fusionne tous les types d\'événements du numéro, du plus ancien au plus récent', () => {
   const historique = historiqueEmplacement([
     observation(75, 'libre', '2026-06-01T12:00:00.000Z'),
-    { date: '2026-05-10T12:00:00.000Z', action: 'intervention', numero: 75, demandeId: '', details: 'Message laissé au membre — Jeremy' },
+    { date: '2026-05-10T12:00:00.000Z', action: 'note', numero: 75, demandeId: '', details: 'Message laissé au membre — Jeremy' },
     observation(75, 'occupé', '2026-04-01T12:00:00.000Z'),
     { date: '2026-06-15T12:00:00.000Z', action: 'libération', numero: 75, demandeId: '', details: 'Adresse retirée' },
     observation(76, 'libre', '2026-03-01T12:00:00.000Z'), // autre numéro
     { date: '2026-05-01T12:00:00.000Z', action: 'structure', numero: '', demandeId: '', details: 'S01 → …' }, // sans numéro
   ], 75);
   assert.deepEqual(historique.map((e) => e.action),
-    ['observation', 'intervention', 'observation', 'libération']);
+    ['observation', 'note', 'observation', 'libération']);
   assert.deepEqual(historique.map((e) => e.date.toISOString()), [
     '2026-04-01T12:00:00.000Z',
     '2026-05-10T12:00:00.000Z',

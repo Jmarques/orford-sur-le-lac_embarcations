@@ -182,11 +182,11 @@ function appliquerObservation_(emplacements, numero, prepare) {
   journaliser_(prepare.evenement);
 }
 
-// Consigne une intervention (décision 0014) : texte libre appendé au Journal,
-// rattaché au numéro. La ligne d'Emplacements n'est pas touchée — le statut
-// reste factuel, la mémoire du comité vit dans le Journal.
-function ajouterIntervention(corps) {
-  var prepare = preparerIntervention(corps);
+// Ajoute une note au journal d'un emplacement (décision 0014) : texte libre
+// appendé au Journal, rattaché au numéro. La ligne d'Emplacements n'est pas
+// touchée — le statut reste factuel, la mémoire du comité vit dans le Journal.
+function ajouterNote(corps) {
+  var prepare = preparerNote(corps);
   journaliser_(prepare.evenement);
   return prepare.evenement;
 }

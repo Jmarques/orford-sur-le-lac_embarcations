@@ -67,24 +67,14 @@
       </form>
     </wa-card>
 
-    <!-- État : chargement — le squelette pré-dessine la vraie page (titre de
-         section, deux cartes-dossiers) pour éviter tout saut de mise en page. -->
+    <!-- État : chargement — le squelette pré-dessine les deux sections du
+         registre (titre puis rangées) pour éviter tout saut de mise en page. -->
     <div id="etat-chargement" class="wa-stack wa-gap-l" role="status" aria-busy="true" hidden>
       <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
-      <wa-card>
-        <div class="wa-stack wa-gap-m">
-          <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
-          <wa-skeleton class="squelette-ligne" effect="sheen"></wa-skeleton>
-          <wa-skeleton class="squelette-champ" effect="sheen"></wa-skeleton>
-        </div>
-      </wa-card>
-      <wa-card>
-        <div class="wa-stack wa-gap-m">
-          <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
-          <wa-skeleton class="squelette-ligne" effect="sheen"></wa-skeleton>
-          <wa-skeleton class="squelette-champ" effect="sheen"></wa-skeleton>
-        </div>
-      </wa-card>
+      <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+      <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+      <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
+      <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
       <p class="wa-visually-hidden">Chargement des cas à traiter…</p>
     </div>
 
@@ -103,12 +93,14 @@
       </div>
     </div>
 
-    <!-- État : les files de cas (décision 0014) — sections empilées, dérivées
-         du statut ; rien n'est stocké, un cas sort tout seul quand une
-         observation le referme. -->
+    <!-- État : le registre des cas (décision 0014) — sections empilées de
+         rangées scannables ; le travail (membre, journal, gestes) vit dans la
+         fiche, jamais dans le registre. Les files sont dérivées du statut :
+         rien n'est stocké, un cas sort tout seul quand une observation le
+         referme. -->
     <div id="etat-liste" class="wa-stack wa-gap-xl" hidden>
       <!-- Titre invisible : le h1 du header nomme déjà la page (0016) ; il
-           reste pour la structure lecteur d'écran et comme cible de focus. -->
+           reste pour la structure lecteur d'écran. -->
       <h2 id="titre-liste" class="wa-visually-hidden">Les cas à traiter</h2>
       <!-- tabindex : cible de focus après une libération (le dossier a quitté
            la file — le focus va au message qui explique quoi). Un élément
@@ -120,7 +112,7 @@
       <!-- La seule consigne de la page : dite une fois (0016). -->
       <p class="wa-color-text-quiet wa-text-pretty">Cette page se tient à jour toute seule :
         dès qu'une tournée observe qu'un cas est réglé, il disparaît de la liste —
-        il n'y a rien à fermer ici.</p>
+        il n'y a rien à fermer ici. Touchez un cas pour ouvrir sa fiche.</p>
 
       <section class="wa-stack wa-gap-m" aria-labelledby="titre-attribue-libre">
         <div class="wa-stack wa-gap-2xs">
@@ -136,7 +128,7 @@
         <p id="vide-attribue-libre" class="section-vide" hidden>
           <wa-icon name="circle-check"></wa-icon> Aucun emplacement à traiter.
         </p>
-        <div id="liste-attribue-libre" class="wa-stack wa-gap-l"></div>
+        <ul id="liste-attribue-libre" class="liste-cas wa-stack wa-gap-s"></ul>
       </section>
 
       <section class="wa-stack wa-gap-m" aria-labelledby="titre-a-identifier">
@@ -152,7 +144,7 @@
         <p id="vide-a-identifier" class="section-vide" hidden>
           <wa-icon name="circle-check"></wa-icon> Aucun emplacement à traiter.
         </p>
-        <div id="liste-a-identifier" class="wa-stack wa-gap-l"></div>
+        <ul id="liste-a-identifier" class="liste-cas wa-stack wa-gap-s"></ul>
       </section>
     </div>
   </main>
@@ -162,61 +154,75 @@
       <a class="lien-comite" href=""></a></span>
   </footer>
 
-  <!-- Modèle d'une carte-cas, commune aux deux sections (rempli par
-       textContent : jamais de HTML de la Sheet — anti-XSS). -->
-  <template id="modele-cas">
-    <wa-card class="carte-cas">
-      <div class="wa-stack wa-gap-m">
-        <div class="wa-split wa-align-items-baseline">
-          <!-- tabindex : cible de focus après un ajout d'intervention. -->
-          <h4 class="wa-heading-s champ-numero" tabindex="-1"></h4>
-          <span class="wa-caption-m wa-color-text-quiet champ-structure" hidden></span>
+  <!-- Modèle d'une rangée du registre (remplie par textContent : jamais de
+       HTML de la Sheet — anti-XSS). Toute la rangée est le bouton. -->
+  <template id="modele-rangee">
+    <li class="cas">
+      <button type="button" class="rangee-cas">
+        <span class="rangee-texte">
+          <span class="rangee-titre"><span class="rangee-numero"></span> <span
+            class="rangee-structure wa-color-text-quiet"></span></span>
+          <span class="rangee-signal"></span>
+          <span class="rangee-meta wa-caption-m wa-color-text-quiet"></span>
+        </span>
+        <wa-icon class="rangee-chevron" name="chevron-right" aria-hidden="true"></wa-icon>
+      </button>
+    </li>
+  </template>
+
+  <!-- La fiche d'un cas : le membre, le journal complet et les gestes —
+       tout le travail vit ici, le registre reste scannable. -->
+  <wa-dialog id="fiche-cas" label="Emplacement">
+    <div class="wa-stack wa-gap-l corps-fiche">
+      <div id="fiche-membre" class="wa-stack wa-gap-2xs" hidden>
+        <span id="fiche-membre-nom" class="champ-membre-nom"></span>
+        <span id="fiche-membre-adresse" class="wa-color-text-quiet"></span>
+        <div class="wa-cluster wa-gap-l liens-contact">
+          <a id="fiche-telephone" hidden><wa-icon name="phone"></wa-icon> <span id="fiche-telephone-texte"></span></a>
+          <a id="fiche-courriel" hidden><wa-icon name="envelope"></wa-icon> <span id="fiche-courriel-texte"></span></a>
         </div>
-        <p class="champ-signal wa-text-pretty"></p>
-        <div class="bloc-membre wa-stack wa-gap-2xs" hidden>
-          <span class="champ-membre-nom"></span>
-          <span class="wa-color-text-quiet champ-membre-adresse"></span>
-          <div class="wa-cluster wa-gap-l liens-contact">
-            <a class="lien-telephone" hidden><wa-icon name="phone"></wa-icon> <span class="texte-telephone"></span></a>
-            <a class="lien-courriel" hidden><wa-icon name="envelope"></wa-icon> <span class="texte-courriel"></span></a>
-          </div>
-          <p class="contact-absent wa-caption-m wa-color-text-quiet" hidden>Aucun membre inscrit
-            dans l'onglet Membres pour cette adresse.</p>
-        </div>
-        <div class="bloc-interventions wa-stack wa-gap-xs" hidden>
-          <p class="wa-caption-m wa-color-text-quiet titre-interventions">Dernières interventions</p>
-          <ul class="liste-evenements liste-interventions wa-stack wa-gap-s"></ul>
-        </div>
-        <wa-details class="details-historique" hidden>
-          <ol class="liste-evenements liste-historique wa-stack wa-gap-xs"></ol>
-        </wa-details>
-        <form class="formulaire-cas wa-stack wa-gap-s">
-          <wa-textarea class="champ-intervention" label="Ajouter une intervention" rows="2" resize="auto"
-                       hint="Ce qui a été fait ou convenu — signez si vous le souhaitez, ex. « toléré jusqu'en juin — Jeremy »."></wa-textarea>
+        <p id="fiche-membre-absent" class="wa-caption-m wa-color-text-quiet" hidden>Aucun membre inscrit
+          dans l'onglet Membres pour cette adresse.</p>
+      </div>
+      <div class="wa-stack wa-gap-s">
+        <h3 class="wa-heading-s">Journal de l'emplacement</h3>
+        <ol id="fiche-journal" class="liste-evenements wa-stack wa-gap-s"></ol>
+        <p id="fiche-journal-vide" class="wa-caption-m wa-color-text-quiet" hidden>Rien au journal
+          pour l'instant.</p>
+        <!-- Le champ vit en pied du journal : le geste se lit comme « j'ajoute
+             une ligne à ce journal ». -->
+        <form id="formulaire-note" class="wa-stack wa-gap-s">
+          <wa-textarea id="champ-note" label="Ajouter une note" rows="2" resize="auto"
+                       placeholder="ex. : courriel envoyé, coup de téléphone, toléré jusqu'en juin — Jeremy"></wa-textarea>
           <!-- L'erreur d'envoi vit à côté des boutons : c'est là que regarde
                l'utilisateur au moment où elle apparaît. Le texte saisi est conservé. -->
-          <wa-callout class="erreur-cas" variant="danger" role="alert" tabindex="-1" hidden>
+          <wa-callout id="fiche-erreur" variant="danger" role="alert" tabindex="-1" hidden>
             <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-            <span class="erreur-cas-texte"></span>
+            <span id="fiche-erreur-texte"></span>
           </wa-callout>
-          <div class="wa-cluster wa-gap-s">
-            <wa-button class="bouton-intervention" type="submit" appearance="outlined" variant="brand">
-              <wa-icon slot="start" name="plus"></wa-icon>
-              Ajouter
-            </wa-button>
-            <wa-button class="bouton-ecrire" appearance="outlined" hidden>
-              <wa-icon slot="start" name="envelope"></wa-icon>
-              Écrire au membre
-            </wa-button>
-            <wa-button class="bouton-liberer" appearance="outlined" hidden>
-              <wa-icon slot="start" name="unlock"></wa-icon>
-              Libérer l'emplacement
+          <div class="wa-cluster">
+            <wa-button id="ajouter-note" type="submit" appearance="outlined" variant="brand">
+              <wa-icon slot="start" name="pen"></wa-icon>
+              Ajouter la note
             </wa-button>
           </div>
         </form>
       </div>
-    </wa-card>
-  </template>
+      <!-- Les deux gestes structurés (0014) vivent dans le corps, après le
+           journal : un pied à trois boutons chevaucherait le contenu. -->
+      <div class="wa-cluster wa-gap-s">
+        <wa-button id="fiche-ecrire" appearance="outlined" hidden>
+          <wa-icon slot="start" name="envelope"></wa-icon>
+          Écrire au membre
+        </wa-button>
+        <wa-button id="fiche-liberer" appearance="outlined" hidden>
+          <wa-icon slot="start" name="unlock"></wa-icon>
+          Libérer l'emplacement
+        </wa-button>
+      </div>
+    </div>
+    <wa-button slot="footer" appearance="plain" data-dialog="close">Fermer</wa-button>
+  </wa-dialog>
 
   <!-- Confirmation avant de libérer : aucun tap accidentel ne retire une adresse. -->
   <wa-dialog id="dialogue-liberer" label="Libérer l'emplacement ?">
@@ -233,14 +239,13 @@
   <script src="eau.js"></script>
   <script src="grille.js"></script>
   <script type="module">
-    // Pas de wa-textarea/wa-details ici : ils ne vivent que dans le <template>
-    // (le loader ne les découvre qu'à leur insertion) — les attendre au
-    // chargement bloquerait la page pour toujours.
     await Promise.all([
       customElements.whenDefined('wa-button'),
       customElements.whenDefined('wa-input'),
       customElements.whenDefined('wa-card'),
       customElements.whenDefined('wa-callout'),
+      customElements.whenDefined('wa-textarea'),
+      customElements.whenDefined('wa-dialog'),
     ]);
 
     // Filet de sécurité : liens de contact du comité, si configurés.
@@ -300,63 +305,40 @@
         && String(membre.rue).trim() === String(ligne.rue).trim());
     }
 
-    // « Libre depuis » en faits observés, jamais en mois calendaires (0014) :
-    // le début de la série, le nombre d'observations, la dernière date.
-    function texteSignalLibre(serie) {
-      if (!serie.debut) return 'Observé libre, à une date inconnue (Journal incomplet).';
-      if (serie.nombre === 1) {
-        return 'Observé libre le ' + formatDate.format(serie.debut) + ' — une seule observation pour l\'instant.';
-      }
-      return 'Observé libre depuis le ' + formatDate.format(serie.debut) + ' — '
-        + serie.nombre + ' observations, la dernière le ' + formatDate.format(serie.derniere) + '.';
+    // Le signal d'une rangée « Attribué, libre » : depuis quand, étayé par
+    // combien d'observations — des faits, jamais des mois calendaires (0014).
+    function signalLibre(serie) {
+      const depuis = serie.debut
+        ? 'Libre depuis le ' + formatDate.format(serie.debut)
+        : 'Libre depuis une date inconnue';
+      return depuis + ' · ' + (serie.nombre === 1 ? '1 observation' : serie.nombre + ' observations');
     }
 
-    // Le signal d'un « À identifier » : la fenêtre d'apparition dérivée par
-    // grille.js (fenetreApparition) — la page ne fait que la mettre en mots.
-    function texteSignalAIdentifier(ligne) {
+    // Le signal d'une rangée « À identifier » : la fenêtre d'apparition
+    // dérivée par grille.js — la page ne fait que la mettre en mots.
+    function signalAIdentifier(ligne) {
       const fenetre = fenetreApparition(ligne, donnees.journal);
       if (!fenetre) {
         const date = new Date(ligne.dateObservation);
         return Number.isNaN(date.valueOf())
-          ? 'Embarcation observée sur place, à une date inconnue (Journal incomplet).'
-          : 'Embarcation observée sur place le ' + formatDate.format(date) + '.';
+          ? 'Embarcation observée, à une date inconnue'
+          : 'Embarcation observée le ' + formatDate.format(date);
       }
       let texte = fenetre.libreAvant
         ? 'Embarcation apparue entre le ' + formatDate.format(fenetre.libreAvant)
           + ' et le ' + formatDate.format(fenetre.debut)
-        : 'Embarcation observée sur place depuis le ' + formatDate.format(fenetre.debut);
-      if (fenetre.nombre > 1) {
-        texte += ' — vue ' + fenetre.nombre + ' fois, la dernière le '
-          + formatDate.format(fenetre.derniere);
-      }
-      return texte + '.';
+        : 'Embarcation observée depuis le ' + formatDate.format(fenetre.debut);
+      if (fenetre.nombre > 1) texte += ' · vue ' + fenetre.nombre + ' fois';
+      return texte;
     }
 
-    function libelleEvenement(evenement) {
-      if (evenement.action === 'observation') {
-        return ETATS_OCCUPATION.includes(evenement.details)
-          ? 'Observé ' + evenement.details
-          : 'Observation — ' + evenement.details;
-      }
-      if (evenement.action === 'intervention') return 'Intervention — ' + evenement.details;
-      if (evenement.action === 'libération') return 'Libération — ' + evenement.details;
-      return evenement.action + (evenement.details ? ' — ' + evenement.details : '');
+    function nombreDeNotes(historique) {
+      const notes = historique.filter((e) => e.action === 'note').length;
+      return notes === 0 ? 'aucune note' : notes === 1 ? '1 note' : notes + ' notes';
     }
 
-    function ligneEvenement(date, texte) {
-      const element = document.createElement('li');
-      const quand = document.createElement('span');
-      quand.className = 'wa-caption-m wa-color-text-quiet';
-      quand.textContent = formatDate.format(date);
-      const quoi = document.createElement('span');
-      quoi.className = 'wa-text-pretty';
-      quoi.textContent = texte;
-      element.append(quand, document.createElement('br'), quoi);
-      return element;
-    }
-
-    // Le courriel de relance est pré-rempli mais JAMAIS envoyé par l'app
-    // (0003) : le membre du comité l'ajuste et l'envoie depuis son client mail.
+    // Le courriel pré-rempli n'est JAMAIS envoyé par l'app (0003) : le membre
+    // du comité l'ajuste et l'envoie depuis son propre client mail.
     function hrefEcrire(membre, cas) {
       const sujet = 'Votre emplacement ' + cas.numero + ' — Orford sur le Lac';
       const corps = [
@@ -377,103 +359,42 @@
         + '&body=' + encodeURIComponent(corps);
     }
 
-    // Le cas en attente de confirmation de libération : { numero, carte }.
-    let liberationCourante = null;
-
-    function carteCas(cas, avecAttribution) {
-      const carte = document.getElementById('modele-cas').content.cloneNode(true);
-      const hote = carte.querySelector('wa-card');
-      hote.dataset.numero = String(cas.numero);
-      const champ = (classe) => carte.querySelector('.' + classe);
-
-      champ('champ-numero').textContent = 'Emplacement ' + cas.numero;
-      const structure = structureParNumero.get(cas.numero);
-      if (structure) {
-        champ('champ-structure').textContent = 'Structure ' + structure;
-        champ('champ-structure').hidden = false;
-      }
-
-      champ('champ-signal').textContent = avecAttribution
-        ? texteSignalLibre(cas.serie)
-        : texteSignalAIdentifier(cas.ligne);
-
-      if (avecAttribution) {
-        champ('bloc-membre').hidden = false;
-        champ('champ-membre-adresse').textContent = adresseLisible(cas.ligne);
-        const membre = chercherMembre(cas.ligne);
-        if (membre) {
-          champ('champ-membre-nom').textContent = String(membre.nom || '').trim();
-          const telephone = String(membre.telephone || '').trim();
-          if (telephone) {
-            champ('lien-telephone').href = 'tel:' + telephone.replace(/[^+\d]/g, '');
-            champ('texte-telephone').textContent = telephone;
-            champ('lien-telephone').hidden = false;
-          }
-          const courriel = String(membre.courriel || '').trim();
-          if (courriel) {
-            champ('lien-courriel').href = 'mailto:' + courriel;
-            champ('texte-courriel').textContent = courriel;
-            champ('lien-courriel').hidden = false;
-            champ('bouton-ecrire').setAttribute('href', hrefEcrire(membre, cas));
-            champ('bouton-ecrire').hidden = false;
-          }
-        } else {
-          // Contact absent de l'onglet Membres (Sheet à la main — 0002) :
-          // l'adresse reste, la carte le dit sans planter.
-          champ('champ-membre-nom').hidden = true;
-          champ('contact-absent').hidden = false;
-        }
-
-        const boutonLiberer = champ('bouton-liberer');
-        boutonLiberer.hidden = false;
-        boutonLiberer.addEventListener('click', () => {
-          liberationCourante = { numero: cas.numero, carte: hote };
-          const dialogue = document.getElementById('dialogue-liberer');
-          dialogue.setAttribute('label', 'Libérer l\'emplacement ' + cas.numero + ' ?');
-          document.getElementById('dialogue-liberer-texte').textContent =
-            'L\'adresse ' + adresseLisible(cas.ligne) + ' sera retirée de l\'emplacement '
-            + cas.numero + ' et la libération sera consignée au Journal. L\'emplacement '
-            + 'redeviendra disponible pour un autre membre de la communauté.';
-          dialogue.setAttribute('open', '');
-        });
-      }
-
-      const historique = historiqueEmplacement(donnees.journal, cas.numero);
-      const interventions = historique.filter((e) => e.action === 'intervention');
-      if (interventions.length > 0) {
-        champ('bloc-interventions').hidden = false;
-        const liste = champ('liste-interventions');
-        // Les deux plus récentes, la plus fraîche d'abord : reprendre un
-        // dossier sans fouiller — le reste vit dans l'historique complet.
-        const recentes = interventions.slice(-2).reverse();
-        champ('titre-interventions').textContent =
-          recentes.length === 1 ? 'Dernière intervention' : 'Dernières interventions';
-        for (const intervention of recentes) {
-          liste.appendChild(ligneEvenement(intervention.date, intervention.details));
-        }
-      }
-      if (historique.length > 0) {
-        const details = champ('details-historique');
-        details.hidden = false;
-        details.setAttribute('summary', 'Tout l\'historique ('
-          + (historique.length === 1 ? '1 événement' : historique.length + ' événements') + ')');
-        const liste = champ('liste-historique');
-        for (const evenement of historique) {
-          liste.appendChild(ligneEvenement(evenement.date, libelleEvenement(evenement)));
-        }
-      }
-
-      champ('formulaire-cas').addEventListener('submit', (evenement) => {
-        evenement.preventDefault();
-        envoyerIntervention(hote, cas.numero);
-      });
-
-      return carte;
-    }
+    // --- Le registre : une rangée scannable par cas, le travail dans la fiche ---
 
     // La structure de chaque numéro, dérivée des grilles (0009) — présentation
     // seulement : les avertissements d'analyse appartiennent à la page Structures.
     let structureParNumero = new Map();
+
+    function rangeeCas(cas, avecAttribution) {
+      const rangee = document.getElementById('modele-rangee').content.cloneNode(true);
+      const bouton = rangee.querySelector('.rangee-cas');
+      bouton.dataset.numero = String(cas.numero);
+
+      rangee.querySelector('.rangee-numero').textContent = 'Emplacement ' + cas.numero;
+      const structure = structureParNumero.get(cas.numero);
+      // Espace insécable après le point médian : jamais de « · » orphelin en
+      // fin de ligne quand la mention de structure se replie.
+      rangee.querySelector('.rangee-structure').textContent =
+        structure ? '· Structure ' + structure : '';
+
+      rangee.querySelector('.rangee-signal').textContent = avecAttribution
+        ? signalLibre(cas.serie)
+        : signalAIdentifier(cas.ligne);
+
+      const historique = historiqueEmplacement(donnees.journal, cas.numero);
+      const morceauxMeta = [];
+      if (avecAttribution) {
+        const membre = chercherMembre(cas.ligne);
+        morceauxMeta.push(membre && String(membre.nom || '').trim()
+          ? String(membre.nom).trim()
+          : adresseLisible(cas.ligne));
+      }
+      morceauxMeta.push(nombreDeNotes(historique));
+      rangee.querySelector('.rangee-meta').textContent = morceauxMeta.join(' · ');
+
+      bouton.addEventListener('click', () => ouvrirFiche(cas, avecAttribution));
+      return rangee;
+    }
 
     function afficherCas() {
       structureParNumero = new Map();
@@ -497,28 +418,133 @@
       document.getElementById('vide-' + nom).hidden = cas.length > 0;
       const liste = document.getElementById('liste-' + nom);
       liste.replaceChildren();
-      for (const unCas of cas) liste.appendChild(carteCas(unCas, avecAttribution));
+      for (const unCas of cas) liste.appendChild(rangeeCas(unCas, avecAttribution));
+    }
+
+    // --- La fiche d'un cas : membre, journal complet, gestes ---
+
+    // Icône et libellé de chaque type d'événement du journal. L'observation
+    // reprend l'icône de la tournée (list-check) : c'est elle qui l'a écrite.
+    const EVENEMENTS_JOURNAL = {
+      observation: { icone: 'list-check', libelle: 'Observation' },
+      note: { icone: 'pen', libelle: 'Note' },
+      'libération': { icone: 'unlock', libelle: 'Libération' },
+    };
+
+    function texteEvenement(evenement) {
+      if (evenement.action === 'observation') {
+        return ETATS_OCCUPATION.includes(evenement.details)
+          ? 'Observé ' + evenement.details
+          : 'Observation — ' + evenement.details;
+      }
+      if (evenement.action === 'note' || evenement.action === 'libération') return evenement.details;
+      return evenement.action + (evenement.details ? ' — ' + evenement.details : '');
+    }
+
+    function ligneJournal(evenement) {
+      const element = document.createElement('li');
+      element.className = 'ligne-journal';
+      const type = EVENEMENTS_JOURNAL[evenement.action];
+      const icone = document.createElement('wa-icon');
+      icone.setAttribute('name', type ? type.icone : 'circle-info');
+      icone.setAttribute('label', type ? type.libelle : 'Événement');
+      const bloc = document.createElement('span');
+      bloc.className = 'texte-journal';
+      const quand = document.createElement('span');
+      quand.className = 'wa-caption-m wa-color-text-quiet';
+      quand.textContent = formatDate.format(evenement.date);
+      const quoi = document.createElement('span');
+      quoi.className = 'wa-text-pretty';
+      quoi.textContent = texteEvenement(evenement);
+      bloc.append(quand, quoi);
+      element.append(icone, bloc);
+      return element;
+    }
+
+    // Le cas ouvert dans la fiche : { cas, avecAttribution }.
+    let ficheCourante = null;
+
+    function ouvrirFiche(cas, avecAttribution) {
+      ficheCourante = { cas, avecAttribution };
+      const fiche = document.getElementById('fiche-cas');
+      const structure = structureParNumero.get(cas.numero);
+      fiche.setAttribute('label', 'Emplacement ' + cas.numero
+        + (structure ? ' · Structure ' + structure : ''));
+
+      const blocMembre = document.getElementById('fiche-membre');
+      blocMembre.hidden = !avecAttribution;
+      document.getElementById('fiche-ecrire').hidden = true;
+      document.getElementById('fiche-liberer').hidden = !avecAttribution;
+      if (avecAttribution) {
+        document.getElementById('fiche-membre-adresse').textContent = adresseLisible(cas.ligne);
+        const membre = chercherMembre(cas.ligne);
+        const nom = document.getElementById('fiche-membre-nom');
+        const telephone = document.getElementById('fiche-telephone');
+        const courriel = document.getElementById('fiche-courriel');
+        nom.hidden = telephone.hidden = courriel.hidden = true;
+        document.getElementById('fiche-membre-absent').hidden = !!membre;
+        if (membre) {
+          nom.hidden = false;
+          nom.textContent = String(membre.nom || '').trim();
+          const numeroTelephone = String(membre.telephone || '').trim();
+          if (numeroTelephone) {
+            telephone.href = 'tel:' + numeroTelephone.replace(/[^+\d]/g, '');
+            document.getElementById('fiche-telephone-texte').textContent = numeroTelephone;
+            telephone.hidden = false;
+          }
+          const adresseCourriel = String(membre.courriel || '').trim();
+          if (adresseCourriel) {
+            courriel.href = 'mailto:' + adresseCourriel;
+            document.getElementById('fiche-courriel-texte').textContent = adresseCourriel;
+            courriel.hidden = false;
+            const ecrire = document.getElementById('fiche-ecrire');
+            ecrire.setAttribute('href', hrefEcrire(membre, cas));
+            ecrire.hidden = false;
+          }
+        }
+      }
+
+      const journal = document.getElementById('fiche-journal');
+      const historique = historiqueEmplacement(donnees.journal, cas.numero);
+      journal.replaceChildren(...historique.map(ligneJournal));
+      document.getElementById('fiche-journal-vide').hidden = historique.length > 0;
+
+      document.getElementById('champ-note').value = '';
+      document.getElementById('fiche-erreur').hidden = true;
+      document.getElementById('ajouter-note').loading = false;
+      fiche.setAttribute('open', '');
     }
 
     // Erreur « métier » renvoyée par l'API, par opposition aux erreurs techniques.
     class ErreurApi extends Error {}
 
-    function montrerErreurCas(carte, message) {
-      const callout = carte.querySelector('.erreur-cas');
-      carte.querySelector('.erreur-cas-texte').textContent = message;
+    function montrerErreurFiche(message) {
+      const callout = document.getElementById('fiche-erreur');
+      document.getElementById('fiche-erreur-texte').textContent = message;
       callout.hidden = false;
       callout.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       callout.focus();
     }
 
-    async function envoyerIntervention(carte, numero) {
-      const bouton = carte.querySelector('.bouton-intervention');
+    // Ferme la fiche et attend la fin de son animation : wa-dialog restaure le
+    // focus à la fermeture — le re-rendu doit venir APRÈS.
+    function fermerFiche() {
+      return new Promise((fin) => {
+        const fiche = document.getElementById('fiche-cas');
+        fiche.addEventListener('wa-after-hide', fin, { once: true });
+        fiche.removeAttribute('open');
+      });
+    }
+
+    async function envoyerNote() {
+      const bouton = document.getElementById('ajouter-note');
       if (bouton.loading) return; // pas de double envoi
-      carte.querySelector('.erreur-cas').hidden = true;
-      const texte = String(carte.querySelector('.champ-intervention').value || '').trim();
+      document.getElementById('fiche-erreur').hidden = true;
+      const { numero } = ficheCourante.cas;
+      const texte = String(document.getElementById('champ-note').value || '').trim();
       // Même règle que le serveur : le Journal ne reçoit jamais de ligne muette.
       if (!texte) {
-        montrerErreurCas(carte, 'L\'intervention est vide — écrivez ce qui a été fait ou convenu, puis ajoutez-la.');
+        montrerErreurFiche('La note est vide — écrivez ce qui a été fait ou convenu, puis ajoutez-la au journal.');
         return;
       }
       bouton.loading = true;
@@ -527,36 +553,43 @@
         const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
         const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
           method: 'POST',
-          body: JSON.stringify({ action: 'ajouterIntervention', motDePasse, numero, texte }),
+          body: JSON.stringify({ action: 'ajouterNote', motDePasse, numero, texte }),
         });
         const resultat = await reponse.json();
         if (!resultat.ok) {
           if (resultat.code === 'accesRefuse') {
             sessionStorage.removeItem(CLE_SESSION);
+            await fermerFiche();
             montrerConnexion(true);
             return;
           }
           throw new ErreurApi(resultat.erreur);
         }
+        await fermerFiche();
         // État frais depuis la Sheet (0002) plutôt qu'une mise à jour locale.
-        await chargerCas(motDePasse, 'Intervention ajoutée pour l\'emplacement ' + numero + '.', numero);
+        await chargerCas(motDePasse, 'Note ajoutée au journal de l\'emplacement ' + numero + '.', numero);
       } catch (erreurEnvoi) {
         // Une erreur métier est affichée à l'utilisateur : info en console,
         // pas error (la boucle de captures échoue sur toute console.error).
-        if (erreurEnvoi instanceof ErreurApi) console.info('Intervention refusée :', erreurEnvoi.message);
-        else console.error('Intervention impossible :', erreurEnvoi);
-        montrerErreurCas(carte,
-          'Impossible d\'ajouter l\'intervention — votre texte est conservé. '
+        if (erreurEnvoi instanceof ErreurApi) console.info('Note refusée :', erreurEnvoi.message);
+        else console.error('Note impossible :', erreurEnvoi);
+        montrerErreurFiche('Impossible d\'ajouter la note — votre texte est conservé. '
           + 'Vérifiez votre connexion Internet, puis réessayez.'
           + (erreurEnvoi instanceof ErreurApi ? ' Détail : ' + erreurEnvoi.message : ''));
         bouton.loading = false;
       }
     }
 
-    async function envoyerLiberation(numero, carte) {
-      const bouton = carte.querySelector('.bouton-liberer');
+    document.getElementById('formulaire-note').addEventListener('submit', (evenement) => {
+      evenement.preventDefault();
+      envoyerNote();
+    });
+
+    async function envoyerLiberation() {
+      const bouton = document.getElementById('fiche-liberer');
       if (bouton.loading) return; // pas de double envoi
-      carte.querySelector('.erreur-cas').hidden = true;
+      document.getElementById('fiche-erreur').hidden = true;
+      const { numero } = ficheCourante.cas;
       bouton.loading = true;
       try {
         // Mot de passe dans le corps POST, jamais en URL (décision 0008).
@@ -569,41 +602,44 @@
         if (!resultat.ok) {
           if (resultat.code === 'accesRefuse') {
             sessionStorage.removeItem(CLE_SESSION);
+            await fermerFiche();
             montrerConnexion(true);
             return;
           }
           throw new ErreurApi(resultat.erreur);
         }
+        await fermerFiche();
         // État frais depuis la Sheet (0002) : le cas sort de la file, la
         // grille des structures reflète la décision au prochain chargement.
         await chargerCas(motDePasse, 'Emplacement ' + numero + ' libéré — son adresse a été retirée.');
       } catch (erreurEnvoi) {
         if (erreurEnvoi instanceof ErreurApi) console.info('Libération refusée :', erreurEnvoi.message);
         else console.error('Libération impossible :', erreurEnvoi);
-        montrerErreurCas(carte,
-          'Impossible de libérer l\'emplacement. Vérifiez votre connexion Internet, puis réessayez.'
+        montrerErreurFiche('Impossible de libérer l\'emplacement. '
+          + 'Vérifiez votre connexion Internet, puis réessayez.'
           + (erreurEnvoi instanceof ErreurApi ? ' Détail : ' + erreurEnvoi.message : ''));
+      } finally {
         bouton.loading = false;
       }
     }
 
-    document.getElementById('dialogue-liberer-confirmer').addEventListener('click', () => {
-      const { numero, carte } = liberationCourante;
-      liberationCourante = null;
-      // Attendre la fermeture complète : wa-dialog restaure le focus à la fin
-      // de son animation — l'envoi (et le re-rendu) doit venir APRÈS.
-      document.getElementById('dialogue-liberer')
-        .addEventListener('wa-after-hide', () => envoyerLiberation(numero, carte), { once: true });
+    document.getElementById('fiche-liberer').addEventListener('click', () => {
+      const { cas } = ficheCourante;
+      const dialogue = document.getElementById('dialogue-liberer');
+      dialogue.setAttribute('label', 'Libérer l\'emplacement ' + cas.numero + ' ?');
+      document.getElementById('dialogue-liberer-texte').textContent =
+        'L\'adresse ' + adresseLisible(cas.ligne) + ' sera retirée de l\'emplacement '
+        + cas.numero + ' et la libération sera consignée au journal. L\'emplacement '
+        + 'redeviendra disponible pour un autre membre de la communauté.';
+      dialogue.setAttribute('open', '');
     });
 
-    // Focus sûr sur un composant Web Awesome qui vient d'être re-rendu :
-    // attendre la fin de son rendu (updateComplete) sinon .focus() touche un
-    // élément interne encore null ; ignorer s'il a quitté le DOM entre-temps.
-    function focusComposant(element) {
-      Promise.resolve(element.updateComplete).then(() => {
-        if (element.isConnected) element.focus();
-      });
-    }
+    document.getElementById('dialogue-liberer-confirmer').addEventListener('click', () => {
+      // La confirmation se referme d'elle-même (data-dialog) ; l'envoi part
+      // après sa fermeture, la fiche reste ouverte en dessous en cas d'erreur.
+      document.getElementById('dialogue-liberer')
+        .addEventListener('wa-after-hide', () => envoyerLiberation(), { once: true });
+    });
 
     async function chargerCas(motDePasse, messageSucces, numeroCible) {
       montrerEtat('chargement');
@@ -622,6 +658,11 @@
           throw new ErreurApi(resultat.erreur);
         }
         sessionStorage.setItem(CLE_SESSION, motDePasse);
+        // Un backend pas encore redéployé ne renvoie ni journal ni membres :
+        // la page marche en mode dégradé, mais le dit à qui ouvre la console.
+        if (!resultat.journal || !resultat.membres) {
+          console.info('L\'API ne renvoie pas journal/membres — backend à redéployer (npm run deploy).');
+        }
         donnees = {
           structures: resultat.structures || [],
           emplacements: resultat.emplacements || [],
@@ -633,10 +674,10 @@
         succes.hidden = !messageSucces;
         if (messageSucces) {
           document.getElementById('message-succes-texte').textContent = messageSucces;
-          // Retour au dossier travaillé (l'intervention ajoutée se relit sur
-          // place) ; un cas disparu (libéré) renvoie au message qui l'explique.
+          // Retour au dossier travaillé (la note ajoutée se relit en rouvrant
+          // la fiche) ; un cas disparu (libéré) renvoie au message qui l'explique.
           const cible = numeroCible
-            && document.querySelector('wa-card[data-numero="' + numeroCible + '"] .champ-numero');
+            && document.querySelector('.rangee-cas[data-numero="' + numeroCible + '"]');
           (cible || succes).focus();
         }
       } catch (erreur) {

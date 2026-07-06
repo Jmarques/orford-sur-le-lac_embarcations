@@ -647,7 +647,8 @@ wa-callout::part(icon) {
   color: var(--wa-color-text-quiet);
 }
 
-/* Page « À traiter » (décision 0014) — sections empilées et cartes-cas. */
+/* Page « À traiter » (décision 0014) — registre de rangées scannables ; le
+   travail (membre, journal, gestes) vit dans la fiche (wa-dialog). */
 
 /* Ligne « rien à traiter » d'une section : calme et positive, pas une alarme. */
 .section-vide {
@@ -660,12 +661,95 @@ wa-callout::part(icon) {
   color: var(--wa-color-success-fill-loud);
 }
 
-/* Listes d'événements (interventions, historique) : des lignes datées, pas
-   des puces — la date en petit au-dessus du fait. */
+/* Le registre est une vraie liste, sans puces. */
+.liste-cas {
+  list-style: none;
+  margin: 0;
+  padding-inline-start: 0;
+}
+
+/* Une rangée = un bouton pleine largeur en carte-galet (ligne d'eau au
+   sommet, liseré sable, ombre douce) : toute la surface est la cible. */
+.rangee-cas {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: var(--wa-space-m);
+  inline-size: 100%;
+  /* native.css (Web Awesome) donne aux <button> la hauteur d'un contrôle de
+     formulaire et interdit le repli du texte : cette rangée est une carte —
+     sa hauteur suit son contenu, ses lignes se replient. */
+  block-size: auto;
+  white-space: normal;
+  /* Rangée de registre, pas carte-dossier : dense mais cible large (~25 cas
+     réels à balayer sans défilement excessif). */
+  padding: var(--wa-space-s) var(--wa-space-l);
+  background: var(--wa-color-surface-raised);
+  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+  border-block-start: var(--wa-border-width-l) solid var(--wa-color-brand-fill-loud);
+  border-radius: var(--wa-border-radius-m);
+  box-shadow: var(--wa-shadow-s);
+  font: inherit;
+  color: var(--wa-color-text-normal);
+  text-align: start;
+  cursor: pointer;
+}
+.rangee-cas:hover {
+  background: var(--wa-color-surface-default);
+}
+.rangee-cas:focus-visible {
+  outline: var(--wa-focus-ring);
+  outline-offset: var(--wa-focus-ring-offset);
+}
+.rangee-texte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wa-space-3xs);
+  flex: 1;
+  min-inline-size: 0;
+}
+/* Le numéro en voix de titre (Fraunces, couleur d'eau) : l'identité du cas
+   se repère au premier balayage. */
+.rangee-numero {
+  font-family: var(--wa-font-family-heading);
+  font-weight: var(--wa-font-weight-semibold);
+  font-size: var(--wa-font-size-m);
+  color: var(--wa-color-brand-on-quiet);
+}
+/* La clé du tri (« Libre depuis le… ») se lit au balayage : légèrement
+   affirmée, sans crier. */
+.rangee-signal {
+  font-weight: var(--wa-font-weight-semibold);
+}
+.rangee-chevron {
+  color: var(--wa-color-text-quiet);
+}
+
+/* Silhouette d'une rangée du registre (chargement). */
+.squelette-rangee {
+  block-size: var(--wa-space-5xl);
+}
+
+/* Journal de la fiche : une ligne datée par événement, icône du type en tête
+   (l'observation reprend l'icône de la tournée). Pas de puces. */
 .liste-evenements {
   list-style: none;
   margin: 0;
   padding-inline-start: 0;
+}
+.ligne-journal {
+  display: flex;
+  align-items: start;
+  gap: var(--wa-space-s);
+}
+.ligne-journal > wa-icon {
+  color: var(--wa-color-brand-on-quiet);
+  margin-block-start: var(--wa-space-2xs);
+}
+.texte-journal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wa-space-3xs);
 }
 
 /* Liens de contact du membre : cibles généreuses (public aîné). */

@@ -135,6 +135,16 @@ try {
         });
       }
       await page.goto(urlDeScenario(BASE, scenario));
+      // `ouvrir` : clics d'ouverture AVANT le remplissage (ex. la rangée qui
+      // ouvre la fiche où vit le champ) — même mécanique que `cliquer`.
+      for (const selecteur of [].concat(scenario.ouvrir || [])) {
+        await page.waitForSelector(selecteur, { timeout: 15000 });
+        await page.waitForFunction(
+          () => document.querySelectorAll(':not(:defined)').length === 0,
+          { timeout: 15000 },
+        );
+        await page.click(selecteur);
+      }
       // `remplir` : champs remplis AVANT les clics ({ selecteur, valeur }) —
       // le sélecteur traverse le shadow DOM (ex. le <textarea> interne d'un
       // wa-textarea), même garde d'upgrade que les clics.
@@ -171,6 +181,16 @@ try {
         });
       }
       await page.evaluate(() => document.fonts.ready);
+      // Les wa-icon chargent leur SVG à la demande : une capture prise avant
+      // la fin du fetch perd des glyphes (chevron absent au premier passage,
+      // présent une fois le cache chaud). On attend chaque icône visible —
+      // un nom d'icône invalide fait échouer le run, c'est voulu.
+      await page.waitForFunction(
+        () => [...document.querySelectorAll('wa-icon')]
+          .filter((icone) => icone.checkVisibility())
+          .every((icone) => icone.shadowRoot && icone.shadowRoot.querySelector('svg')),
+        { timeout: 15000 },
+      );
       await page.waitForTimeout(600);
       const nomFichier = `${scenario.nom}--${nomViewport}.png`;
       await page.screenshot({ path: `${SORTIE}${nomFichier}`, fullPage: !scenario.pleinVue });

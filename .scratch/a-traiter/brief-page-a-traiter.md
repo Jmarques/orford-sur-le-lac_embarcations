@@ -1,5 +1,15 @@
 # Brief — page « À traiter »
 
+> Révision 2026-07-06, après test terrain de Jeremy (~25 cas réels) et débat
+> avec un expert UX : la page sépare le **scan** (registre de rangées
+> compactes : numéro + structure, « Libre depuis… · N observations », membre,
+> « N notes ») du **travail** (fiche en wa-dialog : membre + liens, journal
+> complet avec icônes — l'observation reprend l'icône de la tournée —, ajout
+> de note en pied de journal, Écrire au membre, Libérer). Vocabulaire décidé
+> par Jeremy et entériné au glossaire : « **note** » et « **journal de
+> l'emplacement** » remplacent « intervention » (trop clinique). Le reste du
+> brief vaut sous cette révision.
+
 ## Audience et contexte
 Membres du comité (public aîné), au bureau — desktop d'abord, mobile fonctionnel.
 Tâche : mesurer l'ampleur du travail d'un regard, reprendre un dossier sans fouiller,
