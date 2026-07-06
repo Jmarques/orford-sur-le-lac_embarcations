@@ -281,13 +281,19 @@ function fantomeOccupation(ligne) {
     : '';
 }
 
+// Un emplacement est attribué quand sa ligne porte une adresse complète —
+// une cellule à moitié effacée (Sheet éditée à la main, 0002) ne compte pas.
+function estAttribue_(ligne) {
+  return !!(ligne && String(ligne.numeroAdresse || '').trim() && String(ligne.rue || '').trim());
+}
+
 // Le statut métier d'un emplacement, DÉRIVÉ du croisement attribution ×
 // occupation observée — jamais stocké (décision 0011). `ligne` = la ligne
 // d'Emplacements du numéro, ou undefined si elle n'existe pas encore.
 // Cinq cases ; `probleme: true` marque les deux que le comité doit repérer
 // d'un coup d'œil. Libellés auto-explicatifs (ils nomment les deux axes).
 function statutEmplacement(ligne) {
-  var attribue = !!(ligne && String(ligne.numeroAdresse || '').trim() && String(ligne.rue || '').trim());
+  var attribue = estAttribue_(ligne);
   var occupation = fantomeOccupation(ligne);
 
   if (occupation === '') {
@@ -317,6 +323,19 @@ function statutEmplacement(ligne) {
   return {
     code: 'disponible', libelle: 'Disponible', probleme: false,
     explication: 'L\'emplacement n\'est attribué à personne et a été observé libre — prêt à être attribué.',
+  };
+}
+
+// Les gestes de traitement structurés offerts par la fiche d'un emplacement
+// (décision 0018) : dérivés du statut seul, jamais de la page qui ouvre la
+// fiche. Libérer exige une attribution ; écrire au membre exige en plus un
+// courriel connu dans l'onglet Membres. `membre` = la ligne Membres de
+// l'adresse attribuée, ou undefined.
+function gestesEmplacement(ligne, membre) {
+  var attribue = estAttribue_(ligne);
+  return {
+    liberer: attribue,
+    ecrire: attribue && !!(membre && String(membre.courriel || '').trim()),
   };
 }
 
@@ -495,5 +514,5 @@ function filesATraiter(lignesEmplacements, evenements) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, ETATS_OCCUPATION };
 }

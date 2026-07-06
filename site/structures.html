@@ -310,38 +310,6 @@
     </form>
   </template>
 
-  <!-- Panneau d'emplacement : statut, occupation en un geste (T-B), membre (T-C). -->
-  <wa-dialog id="panneau-emplacement" label="Emplacement">
-    <div class="wa-stack wa-gap-l corps-panneau">
-      <wa-callout id="panneau-statut">
-        <wa-icon id="panneau-statut-icone" slot="icon" name="circle-info"></wa-icon>
-        <div class="wa-stack wa-gap-2xs">
-          <strong id="panneau-statut-libelle"></strong>
-          <span id="panneau-statut-detail" class="wa-caption-m"></span>
-        </div>
-      </wa-callout>
-      <!-- L'état courant (un fait) vit sous le statut, jamais sous le pli. -->
-      <p id="panneau-observation-date" class="wa-caption-m wa-color-text-quiet"></p>
-      <p id="panneau-position" class="wa-color-text-quiet"></p>
-      <p id="panneau-note" class="note-membre wa-text-pretty" hidden></p>
-      <div class="wa-stack wa-gap-s">
-        <h3 class="wa-heading-s">Qu'observez-vous sur place ?</h3>
-        <!-- Deux réponses seulement : sur place, on voit une embarcation ou pas. -->
-        <div class="boutons-occupation">
-          <wa-button class="bouton-occupation" data-occupation="occupé" appearance="outlined" size="l">Occupé</wa-button>
-          <wa-button class="bouton-occupation" data-occupation="libre" appearance="outlined" size="l">Libre</wa-button>
-        </div>
-        <!-- Sous les boutons (ils doivent rester au-dessus du pli sur mobile) ;
-             amené en vue par scrollIntoView à l'apparition. -->
-        <wa-callout id="panneau-erreur" variant="danger" role="alert" hidden>
-          <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-          <span id="panneau-erreur-texte"></span>
-        </wa-callout>
-      </div>
-    </div>
-    <wa-button slot="footer" appearance="plain" size="l" data-dialog="close">Fermer</wa-button>
-  </wa-dialog>
-
   <!-- Avertissement avant d'envoyer une tournée partielle (portée flexible,
        0013) : le nombre exact de non-relevés est annoncé, terminer reste
        l'action normale (brand, pas danger — rien n'est perdu ni écrit). -->
@@ -381,6 +349,7 @@
   <script src="config.js"></script>
   <script src="eau.js"></script>
   <script src="grille.js"></script>
+  <script src="fiche.js"></script>
   <script type="module">
     // Pas de wa-badge ici : les seules badges vivent dans des <template>
     // (le loader ne les découvre qu'à leur insertion) — l'attendre au
@@ -466,7 +435,7 @@
       bouton.dataset.numero = String(emplacement.numero);
       bouton.textContent = String(emplacement.numero);
       bouton.setAttribute('aria-label', description);
-      bouton.addEventListener('click', () => ouvrirPanneau(emplacement));
+      bouton.addEventListener('click', () => fiche.ouvrir(emplacement.numero));
       cellule.appendChild(bouton);
       return cellule;
     }
@@ -498,7 +467,7 @@
       return table;
     }
 
-    // `interactif` : les cellules ouvrent le panneau (pas dans l'aperçu d'édition).
+    // `interactif` : les cellules ouvrent la fiche (pas dans l'aperçu d'édition).
     function grilleDeStructure(analyse, marquages, interactif) {
       return tableauDeGrille(analyse, (emplacement) =>
         celluleEmplacement(emplacement, marquages, interactif));
@@ -708,139 +677,23 @@
       return carte;
     }
 
-    // --- Panneau d'emplacement (T-B : statut + observation ; T-C : membre) ---
+    // --- Fiche d'emplacement (décision 0018) : composant partagé, onglet
+    // Observer d'abord sur cette page. Les gestes suivent le statut ; après
+    // chaque geste la fiche reste ouverte et la grille se re-rend derrière. ---
 
-    // Adresse toujours affichée « numeroAdresse rue » (décision 0012).
-    function adresseLisible(ligne) {
-      return String(ligne.numeroAdresse).trim() + ' ' + String(ligne.rue).trim();
-    }
-
-    // Apparence et explication du statut dans le panneau, par code.
-    const PANNEAU_STATUTS = {
-      conforme: { variante: 'success', icone: 'circle-check', detail: (a) => 'Attribué à ' + a + ' et observé occupé — tout est en ordre.' },
-      peutEtreALiberer: { variante: 'warning', icone: 'triangle-exclamation', detail: (a) => 'Attribué à ' + a + ' mais observé libre — le membre ne l\'utilise peut-être plus.' },
-      orphelin: { variante: 'danger', icone: 'triangle-exclamation', detail: () => 'Non attribué, mais une embarcation s\'y trouve — à identifier avant de pouvoir attribuer l\'emplacement.' },
-      disponible: { variante: 'brand', icone: 'circle-check', detail: () => 'Non attribué et observé libre — prêt à être attribué.' },
-      pasObserve: { variante: 'neutral', icone: 'circle-question', detail: (a) => (a ? 'Attribué à ' + a + ' ; personne n\'a encore noté ce qui s\'y trouve.' : 'Non attribué ; personne n\'a encore noté ce qui s\'y trouve.') },
-    };
-
-    const formatDateObservation = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
-
-    // L'emplacement affiché dans le panneau ouvert : { numero, structure, niveau }.
-    let panneauCourant = null;
-
-    function ouvrirPanneau(emplacement) {
-      panneauCourant = emplacement;
-      const panneau = document.getElementById('panneau-emplacement');
-      const ligne = lignePourNumero(emplacement.numero);
-      const statut = statutEmplacement(ligne);
-      const apparence = PANNEAU_STATUTS[statut.code];
-
-      panneau.setAttribute('label', 'Emplacement ' + emplacement.numero);
-      const callout = document.getElementById('panneau-statut');
-      callout.setAttribute('variant', apparence.variante);
-      document.getElementById('panneau-statut-icone').setAttribute('name', apparence.icone);
-      document.getElementById('panneau-statut-libelle').textContent = statut.libelle;
-      document.getElementById('panneau-statut-detail').textContent =
-        apparence.detail(ligne && String(ligne.numeroAdresse || '').trim() ? adresseLisible(ligne) : '');
-
-      document.getElementById('panneau-position').textContent =
-        'Structure ' + emplacement.structure
-        + (emplacement.niveau !== '' ? ' · Niveau ' + emplacement.niveau : '');
-
-      const note = document.getElementById('panneau-note');
-      note.hidden = !(ligne && String(ligne.note || '').trim());
-      if (!note.hidden) note.textContent = 'Note du comité : ' + ligne.note;
-
-      const occupation = ligne ? ligne.occupationObservee : '';
-      // L'état courant = seul bouton plein (brand) + coche ; il est aussi dit
-      // en toutes lettres sous les boutons — la couleur ne porte jamais seule.
-      const valeurCourante = ETATS_OCCUPATION.includes(occupation) ? occupation : null;
-      for (const bouton of panneau.querySelectorAll('.bouton-occupation')) {
-        const actuel = bouton.dataset.occupation === valeurCourante;
-        bouton.querySelector('wa-icon')?.remove();
-        if (actuel) {
-          bouton.setAttribute('variant', 'brand');
-          bouton.setAttribute('appearance', 'accent');
-          const coche = document.createElement('wa-icon');
-          coche.setAttribute('slot', 'start');
-          coche.setAttribute('name', 'check');
-          bouton.prepend(coche);
-        } else {
-          bouton.removeAttribute('variant');
-          bouton.setAttribute('appearance', 'outlined');
-        }
-        bouton.setAttribute('aria-pressed', String(actuel));
-        bouton.loading = false;
-        bouton.disabled = false;
-      }
-      const date = ligne && ligne.dateObservation ? new Date(ligne.dateObservation) : null;
-      const dateValide = date && !Number.isNaN(date.valueOf());
-      document.getElementById('panneau-observation-date').textContent =
-        valeurCourante
-          ? 'Dernière observation : ' + valeurCourante
-            + (dateValide ? ', le ' + formatDateObservation.format(date) : ' (date inconnue)') + '.'
-          : 'Jamais observé pour l\'instant.';
-
-      document.getElementById('panneau-erreur').hidden = true;
-      panneau.setAttribute('open', '');
-    }
-
-    async function envoyerObservation(occupation) {
-      const panneau = document.getElementById('panneau-emplacement');
-      const boutons = [...panneau.querySelectorAll('.bouton-occupation')];
-      if (boutons.some((b) => b.loading)) return; // pas de double envoi
-      document.getElementById('panneau-erreur').hidden = true;
-      for (const bouton of boutons) {
-        bouton.disabled = true;
-        bouton.loading = bouton.dataset.occupation === occupation;
-      }
-      const { numero, structure } = panneauCourant;
-      try {
-        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
-        const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
-        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'observerEmplacement', motDePasse, numero, occupation }),
-        });
-        const resultat = await reponse.json();
-        if (!resultat.ok) {
-          if (resultat.code === 'accesRefuse') {
-            panneau.removeAttribute('open');
-            sessionStorage.removeItem(CLE_SESSION);
-            montrerConnexion(true);
-            return;
-          }
-          throw new ErreurApi(resultat.erreur);
-        }
-        // Attendre la fermeture complète : wa-dialog restaure le focus vers la
-        // cellule d'origine à la fin de son animation — notre focus sur la
-        // carte doit venir APRÈS, sinon il est écrasé.
-        await new Promise((fin) => {
-          panneau.addEventListener('wa-after-hide', fin, { once: true });
-          panneau.removeAttribute('open');
-        });
-        // État frais depuis la Sheet (0002) plutôt qu'une mise à jour locale.
-        await chargerStructures(motDePasse, 'Emplacement ' + numero + ' — occupation notée : ' + occupation + '.', structure);
-      } catch (erreurEnvoi) {
-        if (erreurEnvoi instanceof ErreurApi) console.info('Observation refusée :', erreurEnvoi.message);
-        else console.error('Observation impossible :', erreurEnvoi);
-        document.getElementById('panneau-erreur-texte').textContent =
-          'Impossible d\'enregistrer l\'observation. Vérifiez votre connexion Internet, puis réessayez.'
-          + (erreurEnvoi instanceof ErreurApi ? ' Détail : ' + erreurEnvoi.message : '');
-        const callout = document.getElementById('panneau-erreur');
-        callout.hidden = false;
-        callout.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        for (const bouton of boutons) {
-          bouton.disabled = false;
-          bouton.loading = false;
-        }
-      }
-    }
-
-    for (const bouton of document.querySelectorAll('#panneau-emplacement .bouton-occupation')) {
-      bouton.addEventListener('click', () => envoyerObservation(bouton.dataset.occupation));
-    }
+    const fiche = creerFicheEmplacement({
+      ongletParDefaut: 'observer',
+      donnees: () => donneesCourantes,
+      motDePasse: () => sessionStorage.getItem(CLE_SESSION) || '',
+      surDonneesFraiches: (inventaire) => {
+        afficherInventaire(inventaire.structures || [], inventaire.emplacements || [],
+          donneesCourantes.types, inventaire.membres || [], inventaire.journal || []);
+      },
+      surSessionExpiree: () => {
+        sessionStorage.removeItem(CLE_SESSION);
+        montrerConnexion(true);
+      },
+    });
 
     // --- Tournée (décision 0013) : écran dédié par structure, fantôme + tap ---
 
@@ -959,7 +812,8 @@
     function fermerTournee() {
       const id = tourneeCourante.structure;
       tourneeCourante = null;
-      afficherInventaire(donneesCourantes.structures, donneesCourantes.emplacements, donneesCourantes.types);
+      afficherInventaire(donneesCourantes.structures, donneesCourantes.emplacements,
+        donneesCourantes.types, donneesCourantes.membres, donneesCourantes.journal);
       const bouton = document.querySelector('wa-card[data-structure="' + id + '"] .bouton-tournee');
       if (bouton) focusComposant(bouton);
     }
@@ -1149,7 +1003,8 @@
     // vierge, badge et grille compris. `idRefocus` remet le focus sur le
     // bouton Modifier de la carte quittée (clavier, lecteurs d'écran).
     function fermerEditions(idRefocus) {
-      afficherInventaire(donneesCourantes.structures, donneesCourantes.emplacements, donneesCourantes.types);
+      afficherInventaire(donneesCourantes.structures, donneesCourantes.emplacements,
+        donneesCourantes.types, donneesCourantes.membres, donneesCourantes.journal);
       if (idRefocus) {
         const bouton = document.querySelector('wa-card[data-structure="' + idRefocus + '"] .bouton-modifier');
         if (bouton) focusComposant(bouton);
@@ -1370,15 +1225,18 @@
     }
 
     // L'état courant de l'inventaire : la base des aperçus d'édition (les
-    // conflits se calculent toujours contre les autres structures).
-    let donneesCourantes = { structures: [], emplacements: [], types: [] };
+    // conflits se calculent toujours contre les autres structures) et de la
+    // fiche d'emplacement (membre et journal, décision 0018).
+    let donneesCourantes = { structures: [], emplacements: [], types: [], membres: [], journal: [] };
 
-    function afficherInventaire(lignesStructures, lignesEmplacements, typesConfig) {
+    function afficherInventaire(lignesStructures, lignesEmplacements, typesConfig, membres, journal) {
       editionCourante = null; // tout rendu complet détruit les formulaires ouverts
       donneesCourantes = {
         structures: lignesStructures,
         emplacements: lignesEmplacements,
         types: typesConfig,
+        membres: membres || [],
+        journal: journal || [],
       };
       if (lignesStructures.length === 0) {
         montrerEtat('vide');
@@ -1450,7 +1308,13 @@
         }
         sessionStorage.setItem(CLE_SESSION, motDePasse);
         const typesConfig = reponseConfig.ok ? reponseConfig.config.types : [];
-        afficherInventaire(reponseInventaire.structures, reponseInventaire.emplacements, typesConfig);
+        // Un backend pas encore redéployé ne renvoie ni journal ni membres :
+        // la fiche marche en mode dégradé, mais le dit à qui ouvre la console.
+        if (!reponseInventaire.journal || !reponseInventaire.membres) {
+          console.info('L\'API ne renvoie pas journal/membres — backend à redéployer (npm run deploy).');
+        }
+        afficherInventaire(reponseInventaire.structures, reponseInventaire.emplacements, typesConfig,
+          reponseInventaire.membres, reponseInventaire.journal);
         const succes = document.getElementById('message-succes');
         succes.hidden = !messageSucces;
         if (messageSucces) {

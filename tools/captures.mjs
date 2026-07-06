@@ -203,32 +203,66 @@ export const CAPTURES = [
   { nom: 'structures-liste', page: 'structures.html', etat: 'liste', attendre: '.carte-structure' },
   { nom: 'structures-liste-defilee', page: 'structures.html', etat: 'liste', attendre: '.carte-structure', defiler: '.grille-structure' },
   { nom: 'structures-liste-vide', page: 'structures.html', etat: 'liste-vide', attendre: '#etat-vide:not([hidden])' },
-  // Panneau d'emplacement (T-B), un scénario par statut (0011). `pleinVue` :
-  // un <dialog> du top layer se rend mal en capture pleine page — viewport seul.
-  { nom: 'structures-panneau-orphelin', page: 'structures.html', etat: 'liste',
+  // Fiche d'emplacement (décision 0018) : le drawer partagé, un scénario par
+  // statut sur l'onglet Observer (l'onglet de cette page). `pleinVue` : un
+  // <dialog> du top layer se rend mal en capture pleine page — viewport seul.
+  { nom: 'structures-fiche-orphelin', page: 'structures.html', etat: 'liste',
     cliquer: '.bouton-cellule[data-numero="76"]', attendre: '.bouton-occupation', pleinVue: true },
-  { nom: 'structures-panneau-conforme', page: 'structures.html', etat: 'liste',
+  { nom: 'structures-fiche-conforme', page: 'structures.html', etat: 'liste',
     cliquer: '.bouton-cellule[data-numero="74"]', attendre: '.bouton-occupation', pleinVue: true },
-  { nom: 'structures-panneau-attribue-libre', page: 'structures.html', etat: 'liste',
+  { nom: 'structures-fiche-attribue-libre', page: 'structures.html', etat: 'liste',
     cliquer: '.bouton-cellule[data-numero="75"]', attendre: '.bouton-occupation', pleinVue: true },
-  { nom: 'structures-panneau-disponible', page: 'structures.html', etat: 'liste',
+  { nom: 'structures-fiche-disponible', page: 'structures.html', etat: 'liste',
     cliquer: '.bouton-cellule[data-numero="77"]', attendre: '.bouton-occupation', pleinVue: true },
-  { nom: 'structures-panneau-pas-observe', page: 'structures.html', etat: 'liste',
+  { nom: 'structures-fiche-pas-observe', page: 'structures.html', etat: 'liste',
     cliquer: '.bouton-cellule[data-numero="90"]', attendre: '.bouton-occupation', pleinVue: true },
+  // L'onglet Traiter, accessible depuis la grille (0018) : journal, note et
+  // gestes selon le statut — avec membre (75, attribué) et sans (76, orphelin).
+  { nom: 'structures-fiche-traiter', page: 'structures.html', etat: 'liste',
+    cliquer: ['.bouton-cellule[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]'],
+    attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
+  { nom: 'structures-fiche-traiter-a-identifier', page: 'structures.html', etat: 'liste',
+    cliquer: ['.bouton-cellule[data-numero="76"]', '#fiche-onglets wa-tab[panel="traiter"]'],
+    attendre: '#fiche-journal .ligne-journal', pleinVue: true },
   // La légende explique ses termes au toucher (wa-popover ancré au jeton).
   // `presenceSeule` : c'est l'attribut [open] qui prouve l'ouverture — le host
   // wa-popover est « invisible » pour Playwright même ouvert.
   { nom: 'structures-legende-explication', page: 'structures.html', etat: 'liste',
     cliquer: '#legende-conflit', attendre: 'wa-popover[for="legende-conflit"][open]',
     presenceSeule: true, pleinVue: true },
-  { nom: 'structures-panneau-erreur', page: 'structures.html', etat: 'liste',
+  { nom: 'structures-fiche-erreur', page: 'structures.html', etat: 'liste',
     cliquer: ['.bouton-cellule[data-numero="76"]', '.bouton-occupation[data-occupation="libre"]'],
-    attendre: '#panneau-erreur:not([hidden])', pleinVue: true,
+    attendre: '#fiche-erreur-observer:not([hidden])', pleinVue: true,
     reponses: { observerEmplacement: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
+  // Observation réussie : la fiche RESTE ouverte (0018) — le statut de 76
+  // bascule d'« À identifier » (danger) à « Disponible » (brand) sous les
+  // yeux, la grille derrière se recolore. `reponsesApres` : l'inventaire
+  // rechargé après le geste, pas celui du premier chargement.
   { nom: 'structures-observation-succes', page: 'structures.html', etat: 'liste',
     cliquer: ['.bouton-cellule[data-numero="76"]', '.bouton-occupation[data-occupation="libre"]'],
-    attendre: '#message-succes:not([hidden])',
-    reponses: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
+    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    reponsesApres: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
+  // Note ajoutée depuis la grille : fiche ouverte, journal enrichi (6e ligne
+  // pour 75), champ vidé.
+  { nom: 'structures-fiche-note-succes', page: 'structures.html', etat: 'liste',
+    ouvrir: ['.bouton-cellule[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]'],
+    remplir: { selecteur: '#fiche-champ-note textarea', valeur: 'Parlé au membre : il vide l\'emplacement d\'ici la fin du mois. — Jeremy' },
+    cliquer: '#fiche-ajouter-note',
+    attendre: '#fiche-journal .ligne-journal:nth-of-type(6)', pleinVue: true,
+    reponsesApres: { inventaire: INVENTAIRE_APRES_NOTE } },
+  // La confirmation avant de libérer : aucun tap accidentel ne retire une
+  // adresse. `presenceSeule` : host wa-dialog « invisible » pour Playwright.
+  { nom: 'structures-fiche-confirmation-liberation', page: 'structures.html', etat: 'liste',
+    cliquer: ['.bouton-cellule[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]',
+      '#fiche-liberer'],
+    attendre: '#fiche-dialogue-liberer[open]', presenceSeule: true, pleinVue: true },
+  // Libération depuis la grille : confirmation, puis fiche TOUJOURS ouverte —
+  // le statut bascule à « Disponible » et la libération se lit au journal.
+  { nom: 'structures-fiche-liberation-succes', page: 'structures.html', etat: 'liste',
+    cliquer: ['.bouton-cellule[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]',
+      '#fiche-liberer', '#fiche-dialogue-liberer-confirmer'],
+    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    reponsesApres: { inventaire: INVENTAIRE_APRES_LIBERATION } },
   { nom: 'structures-edition', page: 'structures.html', etat: 'liste', cliquer: '[data-structure="S02"] .bouton-modifier', attendre: '.mode-edition:not([hidden]) .apercu-grille .grille-emplacements' },
   // `:not([disabled])` : le bouton n'est cliquable qu'une fois le formulaire initialisé.
   { nom: 'structures-edition-erreur', page: 'structures.html', etat: 'liste',

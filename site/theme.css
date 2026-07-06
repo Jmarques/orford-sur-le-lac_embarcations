@@ -600,15 +600,15 @@ wa-skeleton {
   margin: 0;
 }
 
-/* Panneau d'emplacement : gros boutons d'observation côte à côte, qui
+/* Fiche d'emplacement : gros boutons d'observation côte à côte, qui
    passent à la ligne quand l'écran est étroit. */
 .boutons-occupation {
   display: flex;
   flex-wrap: wrap;
   gap: var(--wa-space-xs);
 }
-/* Trois colonnes strictement égales (insensibles à la coche d'état courant).
-   Sur téléphone, pile complète — trois cibles pleine largeur identiques. */
+/* Colonnes strictement égales (insensibles à la coche d'état courant).
+   Sur téléphone, pile complète — des cibles pleine largeur identiques. */
 .bouton-occupation {
   flex: 1 1 0;
   min-inline-size: 0;
@@ -616,15 +616,6 @@ wa-skeleton {
 @media (max-width: 480px) {
   .bouton-occupation {
     flex-basis: 100%;
-  }
-
-  /* Le panneau se resserre : tout l'essentiel (statut, état courant, les
-     trois boutons) doit tenir au-dessus du pli du wa-dialog. */
-  .corps-panneau {
-    gap: var(--wa-space-m);
-  }
-  #panneau-emplacement::part(body) {
-    padding: var(--wa-space-m);
   }
 }
 
@@ -797,12 +788,72 @@ wa-callout::part(icon) {
   gap: var(--wa-space-3xs);
 }
 
-/* Liens de contact du membre : cibles généreuses (public aîné). */
+/* Fiche d'emplacement (décision 0018) : drawer partagé Structures + À traiter.
+   Sur téléphone elle monte du bas, à la hauteur de son contenu (la grille
+   reste visible au-dessus) ; sur grand écran elle glisse du côté, à la
+   largeur par défaut du composant. */
+#fiche-emplacement[placement='bottom'] {
+  --size: fit-content;
+}
+/* Coussin sous le dernier geste : marge de sécurité sur les écrans courts et
+   dégagement de la barre système des téléphones à encoche (part `body`
+   documentée par wa-drawer). */
+#fiche-emplacement[placement='bottom']::part(body) {
+  padding-block-end: calc(var(--wa-space-l) + env(safe-area-inset-bottom, 0px));
+}
+/* Les panneaux d'onglet respirent au-dessus, sans gouttière latérale : le
+   corps du drawer (--spacing) porte déjà les marges (--padding documenté
+   par wa-tab-panel). */
+#fiche-emplacement wa-tab-panel {
+  --padding: var(--wa-space-m) 0 0 0;
+}
+/* Seul le journal défile (contrainte « pas de scroll de la fiche ») : au-delà
+   d'environ quatre événements, la liste défile en interne, calée sur le plus
+   récent au rendu. */
+.zone-journal {
+  max-block-size: calc(var(--wa-space-5xl) * 3);
+  overflow-y: auto;
+}
+/* Dans la fiche, un événement tient sur une ligne (date puis texte, repli
+   naturel pour les notes longues) : plus d'histoire dans la même hauteur. */
+.zone-journal .texte-journal {
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: var(--wa-space-xs);
+  align-items: baseline;
+}
+@media (max-width: 480px) {
+  /* La fiche se resserre : l'essentiel (statut, membre, onglet actif) doit
+     tenir sur un écran de téléphone sans défilement du drawer. */
+  #fiche-emplacement {
+    --spacing: var(--wa-space-m);
+  }
+  .corps-fiche-emplacement {
+    gap: var(--wa-space-s);
+  }
+  .zone-journal {
+    max-block-size: calc(var(--wa-space-5xl) * 1.5);
+  }
+  #fiche-emplacement wa-tab-panel {
+    --padding: var(--wa-space-s) 0 0 0;
+  }
+}
+
+/* Le détail du statut dans le callout de la fiche : taille de caption, mais
+   la COULEUR vient du variant du callout (wa-caption-m imposerait le quiet
+   de la surface de page — contraste non garanti sur fond coloré). */
+.detail-statut {
+  font-size: var(--wa-font-size-s);
+}
+
+/* Liens de contact du membre : cibles généreuses (public aîné) — la hauteur
+   de frappe approche 44px sans gonfler visuellement la ligne. */
 .liens-contact a {
   display: inline-flex;
   align-items: center;
   gap: var(--wa-space-2xs);
-  padding-block: var(--wa-space-2xs);
+  padding-block: var(--wa-space-xs);
+  margin-block: calc(-1 * var(--wa-space-2xs));
 }
 
 /* Le nom du membre porte le dossier : légèrement affirmé, sans crier. */
