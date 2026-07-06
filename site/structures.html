@@ -151,6 +151,11 @@
           change, un troisième l'efface. Les emplacements que vous ne touchez pas
           garderont leur dernière observation.</p>
       </div>
+      <!-- La progression reste sous les yeux pendant tout le défilement de la
+           grille (sticky) ; pastille toujours libellée (décision 0016). -->
+      <div class="porte-compteur">
+        <span id="compteur-tournee" class="compteur-tournee" role="status"></span>
+      </div>
       <div id="grille-tournee" class="grille-structure"></div>
       <p class="indice-defilement wa-caption-s wa-color-text-quiet" hidden>Faites
         glisser la grille vers la gauche pour voir tous les emplacements.</p>
@@ -174,6 +179,30 @@
           Terminer la tournée
         </wa-button>
         <wa-button id="retour-liste" appearance="plain" size="l">Retour à la liste</wa-button>
+      </div>
+    </section>
+
+    <!-- État : résumé d'une tournée envoyée (décision 0013). Un seul foyer :
+         le callout succès porte tout le bilan — total relevé et changements,
+         l'information intéressante pour le comité. -->
+    <section id="etat-resume" class="wa-stack wa-gap-l" hidden>
+      <h2 id="titre-resume" class="wa-heading-l" tabindex="-1"></h2>
+      <wa-callout variant="success">
+        <wa-icon slot="icon" name="circle-check"></wa-icon>
+        <div class="wa-stack wa-gap-xs">
+          <span id="resume-bilan"></span>
+          <ul id="resume-changements" class="liste-changements" hidden></ul>
+        </div>
+      </wa-callout>
+      <div class="wa-cluster wa-gap-s">
+        <!-- Sur la dernière structure de la liste, « Structure suivante »
+             disparaît et le retour devient la seule action — promue primaire
+             (une seule action primaire par vue). -->
+        <wa-button id="structure-suivante" variant="brand" size="l">
+          Structure suivante
+          <wa-icon slot="end" name="arrow-right"></wa-icon>
+        </wa-button>
+        <wa-button id="resume-retour-liste" appearance="plain" size="l">Retour à la liste</wa-button>
       </div>
     </section>
   </main>
@@ -312,6 +341,19 @@
     <wa-button slot="footer" appearance="plain" size="l" data-dialog="close">Fermer</wa-button>
   </wa-dialog>
 
+  <!-- Avertissement avant d'envoyer une tournée partielle (portée flexible,
+       0013) : le nombre exact de non-relevés est annoncé, terminer reste
+       l'action normale (brand, pas danger — rien n'est perdu ni écrit). -->
+  <wa-dialog id="dialogue-terminer-tournee" label="Terminer la tournée ?">
+    <p id="dialogue-terminer-texte" class="wa-text-pretty"></p>
+    <wa-button id="dialogue-terminer-confirmer" slot="footer" variant="brand" data-dialog="close">
+      Terminer quand même
+    </wa-button>
+    <wa-button slot="footer" appearance="plain" data-dialog="close">
+      Continuer le relevé
+    </wa-button>
+  </wa-dialog>
+
   <!-- Confirmation avant de quitter une tournée dont les observations ne sont pas envoyées. -->
   <wa-dialog id="dialogue-quitter-tournee" label="Quitter la tournée ?">
     <p id="dialogue-quitter-texte" class="wa-text-pretty"></p>
@@ -366,6 +408,7 @@
       vide: document.getElementById('etat-vide'),
       liste: document.getElementById('etat-liste'),
       tournee: document.getElementById('etat-tournee'),
+      resume: document.getElementById('etat-resume'),
     };
 
     function montrerEtat(nom) {
@@ -815,10 +858,17 @@
         tourneeCourante = null;
         return;
       }
-      tourneeCourante = { structure: id, releves: relevesConserves || {} };
+      tourneeCourante = {
+        structure: id,
+        releves: relevesConserves || {},
+        // Un numéro en double (erreur de données) a plusieurs cellules mais
+        // une seule observation : le total compte des numéros, pas des cellules.
+        total: new Set(analyse.emplacements.map((e) => e.numero)).size,
+      };
       document.getElementById('titre-tournee').textContent = 'Tournée de la structure ' + id;
       document.getElementById('grille-tournee')
         .replaceChildren(tableauDeGrille(analyse, celluleTournee));
+      majCompteurTournee();
       document.getElementById('tournee-erreur').hidden = true;
       document.getElementById('terminer-tournee').hidden = false;
       montrerEtat('tournee');
@@ -847,6 +897,9 @@
       const numero = Number(bouton.dataset.numero);
       const fantome = fantomeOccupation(lignePourNumero(numero));
       const etat = tourneeCourante.releves[numero] || '';
+      // Le changement est l'information intéressante du comité (0013) : la
+      // cellule dont l'état confirmé diffère du fantôme porte le mot en puce.
+      const change = aChangeTournee(fantome, etat);
       bouton.className = 'bouton-cellule-tournee '
         + (etat === 'occupé' ? 'releve releve-occupe'
           : etat === 'libre' ? 'releve releve-libre'
@@ -865,11 +918,17 @@
         mot.textContent = fantome || '—';
       }
       bouton.replaceChildren(numeroTexte, mot);
+      if (change) {
+        const marqueur = document.createElement('span');
+        marqueur.className = 'marqueur-change';
+        marqueur.textContent = 'a changé';
+        bouton.appendChild(marqueur);
+      }
 
       const position = 'Emplacement ' + numero
         + (bouton.dataset.niveau !== '' ? ', niveau ' + bouton.dataset.niveau : '');
       bouton.setAttribute('aria-label', position + ' — ' + (etat
-        ? 'relevé : ' + etat
+        ? 'relevé : ' + etat + (change ? ', a changé' : '')
         : (fantome ? 'dernière observation : ' + fantome : 'jamais observé') + ', pas encore relevé'));
     }
 
@@ -883,6 +942,15 @@
         '#grille-tournee .bouton-cellule-tournee[data-numero="' + numero + '"]')) {
         habillerCelluleTournee(bouton);
       }
+      majCompteurTournee();
+    }
+
+    // « 12/16 relevés » : mis à jour à chaque tap — y compris quand le
+    // troisième tap fait redescendre le compte.
+    function majCompteurTournee() {
+      const compte = lotDeTournee(tourneeCourante.releves).length;
+      document.getElementById('compteur-tournee').textContent =
+        compte + '/' + tourneeCourante.total + (compte > 1 ? ' relevés' : ' relevé');
     }
 
     // Retour à la liste sans envoi : re-rendu depuis l'état courant (rien n'a
@@ -912,11 +980,33 @@
     });
     document.getElementById('dialogue-quitter-confirmer').addEventListener('click', fermerTournee);
 
+    // « Terminer la tournée » : rien relevé = simple retour (rien n'est
+    // écrit) ; relevé partiel = avertissement chiffré qui laisse terminer
+    // quand même ou continuer (portée flexible, 0013) ; tout relevé = envoi.
+    function demanderFinDeTournee() {
+      if (document.getElementById('terminer-tournee').loading) return;
+      const observations = lotDeTournee(tourneeCourante.releves);
+      if (observations.length === 0) {
+        fermerTournee();
+        return;
+      }
+      const nonReleves = tourneeCourante.total - observations.length;
+      if (nonReleves === 0) {
+        envoyerTournee();
+        return;
+      }
+      document.getElementById('dialogue-terminer-texte').textContent = nonReleves === 1
+        ? '1 emplacement non relevé — il gardera sa dernière observation.'
+        : nonReleves + ' emplacements non relevés — ils garderont leur dernière observation.';
+      document.getElementById('dialogue-terminer-tournee').setAttribute('open', '');
+    }
+
     async function envoyerTournee() {
       const terminer = document.getElementById('terminer-tournee');
       if (terminer.loading) return; // pas de double envoi
       const observations = lotDeTournee(tourneeCourante.releves);
-      // Aucune cellule touchée : rien à envoyer, rien n'est écrit (0013).
+      // Tout a été dé-relevé (troisièmes taps) depuis l'avertissement ou
+      // l'erreur : plus rien à envoyer, rien n'est écrit (0013).
       if (observations.length === 0) {
         fermerTournee();
         return;
@@ -947,13 +1037,17 @@
           }
           throw new ErreurApi(resultat.erreur);
         }
+        // Le bilan se calcule sur l'état d'AVANT l'envoi (les fantômes que le
+        // membre avait sous les yeux) — construit avant de lâcher la tournée.
+        const fantomes = {};
+        for (const observation of observations) {
+          fantomes[observation.numero] = fantomeOccupation(lignePourNumero(observation.numero));
+        }
+        const resume = resumeDeTournee(tourneeCourante.releves, fantomes);
+        const suivante = structureSuivante(
+          donneesCourantes.structures.map((ligne) => ligne.id), structure);
         tourneeCourante = null;
-        // État frais depuis la Sheet (0002) : la liste revient avec les
-        // statuts recalculés à partir des observations de la tournée.
-        await chargerStructures(motDePasse,
-          'Tournée de la structure ' + structure + ' enregistrée : '
-          + (observations.length === 1 ? '1 observation notée.' : observations.length + ' observations notées.'),
-          structure);
+        afficherResume(structure, resume, suivante);
       } catch (erreurEnvoi) {
         // Une erreur métier est affichée à l'utilisateur : info en console,
         // pas error (la boucle de captures échoue sur toute console.error).
@@ -978,8 +1072,72 @@
       }
     }
 
-    document.getElementById('terminer-tournee').addEventListener('click', envoyerTournee);
+    document.getElementById('terminer-tournee').addEventListener('click', demanderFinDeTournee);
+    document.getElementById('dialogue-terminer-confirmer').addEventListener('click', envoyerTournee);
+    // Le réessai part directement : l'avertissement de fin partielle a déjà
+    // été accepté avant le premier envoi.
     document.getElementById('tournee-reessayer').addEventListener('click', envoyerTournee);
+
+    // --- Résumé d'une tournée envoyée (0013) : bilan, puis enchaînement ---
+
+    // Le résumé affiché : { structure, suivante } — les deux sorties en dépendent.
+    let resumeCourant = null;
+
+    function afficherResume(structure, resume, suivante) {
+      resumeCourant = { structure, suivante };
+      document.getElementById('titre-resume').textContent =
+        'Tournée de la structure ' + structure + ' enregistrée';
+      document.getElementById('resume-bilan').textContent =
+        (resume.compte === 1 ? '1 emplacement relevé' : resume.compte + ' emplacements relevés')
+        + (resume.changements.length === 0 ? ', aucun changement.'
+          : resume.changements.length === 1 ? ', 1 changement :'
+          : ', ' + resume.changements.length + ' changements :');
+      const liste = document.getElementById('resume-changements');
+      liste.replaceChildren();
+      liste.hidden = resume.changements.length === 0;
+      for (const changement of resume.changements) {
+        const element = document.createElement('li');
+        const numero = document.createElement('strong');
+        numero.textContent = 'n° ' + changement.numero;
+        element.append(numero, ' — maintenant ' + changement.occupation);
+        liste.appendChild(element);
+      }
+      const boutonSuivante = document.getElementById('structure-suivante');
+      const boutonRetour = document.getElementById('resume-retour-liste');
+      boutonSuivante.hidden = !suivante;
+      // Une seule action primaire par vue : sur la dernière structure de la
+      // liste, le retour — devenu la seule action — est promu primaire.
+      if (suivante) {
+        boutonRetour.setAttribute('appearance', 'plain');
+        boutonRetour.removeAttribute('variant');
+      } else {
+        boutonRetour.setAttribute('appearance', 'accent');
+        boutonRetour.setAttribute('variant', 'brand');
+      }
+      montrerEtat('resume');
+      window.scrollTo(0, 0);
+      document.getElementById('titre-resume').focus();
+    }
+
+    document.getElementById('structure-suivante').addEventListener('click', async () => {
+      const { suivante } = resumeCourant;
+      resumeCourant = null;
+      // Fantômes frais depuis la Sheet (0002) avant d'ouvrir la suivante ;
+      // si elle a disparu ou est devenue illisible entre-temps, ouvrirTournee
+      // laisse la liste.
+      await chargerStructures(sessionStorage.getItem(CLE_SESSION) || '');
+      if (!etats.liste.hidden) ouvrirTournee(suivante);
+    });
+
+    document.getElementById('resume-retour-liste').addEventListener('click', async () => {
+      const { structure } = resumeCourant;
+      resumeCourant = null;
+      // Statuts frais depuis la Sheet (0002) — l'effet de la tournée se voit.
+      // Pas de message succès en plus : le résumé était la confirmation (0016).
+      await chargerStructures(sessionStorage.getItem(CLE_SESSION) || '');
+      const cible = document.querySelector('wa-card[data-structure="' + structure + '"] .champ-id');
+      if (!etats.liste.hidden && cible) cible.focus();
+    });
 
     // --- Édition (contrat complet : type, saisie, embarcations, emplacements, notes) ---
 
@@ -1333,10 +1491,11 @@
     });
 
     // Hook de test (décision 0006) : ?etat=mot-de-passe|mdp-refuse|chargement|
-    // liste|liste-vide|erreur|tournee fige la page dans un état pour les
-    // captures. Inerte sans paramètre. `liste` et `tournee` passent par un vrai
-    // fetch (API mockée par Playwright) ; sur le vrai site, ils aboutissent à
-    // l'écran de connexion.
+    // liste|liste-vide|erreur|tournee|tournee-derniere fige la page dans un
+    // état pour les captures. Inerte sans paramètre. `liste` et `tournee*`
+    // passent par un vrai fetch (API mockée par Playwright) ; sur le vrai
+    // site, ils aboutissent à l'écran de connexion. `tournee-derniere` ouvre
+    // la dernière structure de la liste — son résumé n'a pas de suivante.
     const etatForce = new URLSearchParams(location.search).get('etat');
     if (etatForce === 'mot-de-passe') montrerConnexion(false);
     else if (etatForce === 'mdp-refuse') montrerConnexion(true);
@@ -1344,9 +1503,11 @@
     else if (etatForce === 'erreur') montrerErreur();
     else if (etatForce === 'liste-vide') afficherInventaire([], [], []);
     else if (etatForce === 'liste') chargerStructures('capture');
-    else if (etatForce === 'tournee') {
+    else if (etatForce === 'tournee' || etatForce === 'tournee-derniere') {
       chargerStructures('capture').then(() => {
-        if (!etats.liste.hidden) ouvrirTournee('S01');
+        if (etats.liste.hidden) return;
+        const ids = donneesCourantes.structures.map((ligne) => ligne.id);
+        ouvrirTournee(etatForce === 'tournee' ? 'S01' : ids[ids.length - 1]);
       });
     }
     else {

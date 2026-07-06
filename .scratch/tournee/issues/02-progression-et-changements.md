@@ -1,6 +1,6 @@
 # 02 — Progression et changements
 
-Status: ready-for-agent
+Status: ready-for-human — implémenté, à valider sur le vrai site
 
 ## Parent
 
@@ -12,12 +12,12 @@ Rendre la tournée lisible pendant et après le relevé. Un compteur « relevés
 
 ## Acceptance criteria
 
-- [ ] Compteur « relevés / total » visible en permanence, mis à jour à chaque tap (y compris l'annulation au troisième tap).
-- [ ] Marqueur « a changé » sur toute cellule confirmée à un état différent de son fantôme ; une cellule sans fantôme confirmée ne porte pas le marqueur à tort — logique couverte en tests node.
-- [ ] Avertissement de fin partielle : déclenché seulement s'il reste des cellules non relevées, nombre exact annoncé, permet de terminer ou de continuer le relevé.
-- [ ] Écran de résumé après envoi : total relevé, liste des changements avec numéro et nouvel état, formulation en français simple ; cas « aucun changement » traité (« 16 relevés, aucun changement »).
-- [ ] Captures mockées : compteur en cours, cellules marquées « a changé », avertissement partiel, résumé avec et sans changements ; console propre ; `npm run verify` vert.
-- [ ] Revue UI sur captures fraîches passée.
+- [x] Compteur « relevés / total » visible en permanence (pastille sticky), mis à jour à chaque tap (y compris l'annulation au troisième tap).
+- [x] Marqueur « a changé » sur toute cellule confirmée à un état différent de son fantôme ; une cellule sans fantôme confirmée ne porte pas le marqueur à tort — logique couverte en tests node (`aChangeTournee`).
+- [x] Avertissement de fin partielle : déclenché seulement s'il reste des cellules non relevées, nombre exact annoncé, permet de terminer ou de continuer le relevé.
+- [x] Écran de résumé après envoi : total relevé, liste des changements avec numéro et nouvel état, formulation en français simple ; cas « aucun changement » traité (« 1 emplacement relevé, aucun changement. »).
+- [x] Captures mockées : compteur en cours, cellules marquées « a changé » (sur fond rempli ET clair), avertissement partiel, résumé avec et sans changements ; console propre ; `npm run verify` vert.
+- [x] Revue UI sur captures fraîches passée — corrections appliquées : bordure et taille de la puce « a changé » (contraste sur cellule claire), hauteur de rangée uniforme.
 
 ## Blocked by
 

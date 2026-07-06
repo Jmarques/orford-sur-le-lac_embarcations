@@ -50,3 +50,39 @@ Terminer).
 ## Entrée
 Bouton « Faire la tournée » (copy exacte) sur chaque carte de structure, à côté
 de « Modifier » ; masqué si la grille est non parsable (rien à relever).
+
+## Progression et changements (issue 02)
+- **Compteur « 12/16 relevés »** : pastille libellée (jamais de nombre nu —
+  0016), un seul foyer, collante (sticky) pour rester visible pendant tout le
+  défilement de la grille ; `role="status"` pour les lecteurs d'écran. Mise à
+  jour à chaque tap, y compris quand le troisième tap fait redescendre le
+  compte.
+- **Marqueur « a changé »** : le changement est l'information intéressante du
+  comité. Puce libellée « a changé » DANS la cellule (troisième ligne), tons
+  warning (`warning-fill-normal` + `on-normal`) — lisible sur la cellule
+  occupée (fond brand loud) comme sur la libre (fond clair). Le mot porte le
+  signal, la couleur le renforce (jamais seule). Une cellule sans fantôme
+  confirmée n'a pas de marqueur : rien n'a « changé ».
+- **Avertissement de fin partielle** : wa-dialog (pattern du dialogue de
+  sortie), déclenché seulement si des cellules restent non relevées ET qu'il y
+  a quelque chose à envoyer. Texte : « 3 emplacements non relevés — ils
+  garderont leur dernière observation. » Terminer est l'action normale, pas
+  destructrice : bouton confirmant en brand (« Terminer quand même »),
+  « Continuer le relevé » en plain. Zéro relevé : fermeture directe, rien à
+  envoyer, pas de dialogue.
+- **Écran de résumé (après envoi réussi)** : même squelette que la tournée
+  (titre + contenu + rangée de boutons, alignés à gauche). Un seul foyer : un
+  wa-callout succès portant tout le bilan — phrase « 14 emplacements relevés,
+  2 changements : » suivie de la liste « n° 43 — maintenant libre ». Cas sans
+  changement : « 16 emplacements relevés, aucun changement. » Français simple,
+  vocabulaire du glossaire (occupé/libre, emplacement, tournée).
+
+## Enchaînement (issue 03)
+- Le résumé propose « Structure suivante » (variant brand, flèche en fin) qui
+  recharge l'inventaire (fantômes frais — 0002) puis ouvre la tournée de la
+  structure suivante dans l'ordre de la liste.
+- Dernière structure : le bouton suivante n'apparaît pas ; « Retour à la
+  liste » devient l'action primaire (une seule action primaire par vue).
+- « Retour à la liste » recharge aussi l'inventaire : les statuts reflètent la
+  tournée envoyée ; focus sur la carte de la structure relevée. Pas de message
+  succès en plus : le résumé EST la confirmation (0016).
