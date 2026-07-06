@@ -48,8 +48,10 @@ export function fichiersBaseline() {
 // Compare une capture fraîche à sa baseline. Retourne :
 //   { statut: 'identique' | 'nouvelle' | 'modifiee', pixels?, artefacts? }
 // et écrit <nom>--avant.png (+ <nom>--difference.png si dimensions égales)
-// dans dossierDiff quand la capture diffère.
-export function comparerCapture(nom, octetsFrais, dossierDiff) {
+// dans dossierDiff quand la capture diffère. Une capture visuellement
+// identique mais aux octets différents (bruit sous le seuil, ex. frame de
+// spinner) est ramenée aux octets de la baseline : git reste propre.
+export function comparerCapture(nom, octetsFrais, cheminFrais, dossierDiff) {
   const baseline = baselineDe(`screenshots/${nom}`);
   if (baseline === null) return { statut: 'nouvelle' };
   if (baseline.equals(octetsFrais)) return { statut: 'identique' };
@@ -72,7 +74,10 @@ export function comparerCapture(nom, octetsFrais, dossierDiff) {
   const pixels = pixelmatch(avant.data, apres.data, difference.data, avant.width, avant.height, {
     threshold: 0.1,
   });
-  if (pixels <= PIXELS_TOLERES) return { statut: 'identique' };
+  if (pixels <= PIXELS_TOLERES) {
+    writeFileSync(cheminFrais, baseline);
+    return { statut: 'identique' };
+  }
 
   ecrireAvant();
   const cheminDiff = `${dossierDiff}${nom.replace('.png', '')}--difference.png`;

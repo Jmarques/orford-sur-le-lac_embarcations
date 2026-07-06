@@ -8,12 +8,13 @@ Gestion des emplacements d'embarcation — Orford sur le Lac. Site statique (`si
 - Scripts jetables (vérification pilotée au navigateur…) : dans `tmp/` du projet, lancés `node tmp/x.mjs`, nettoyés `rm -f tmp/x.mjs` — ces patterns sont pré-approuvés. Jamais depuis un autre répertoire.
 - Fichiers : outils Write/Edit uniquement — jamais `cat`/`echo`/heredoc.
 - **Les subagents n'ont pas de shell quand ils n'en ont pas besoin** : un subagent de revue UI reçoit Read/Glob/Grep seulement (les consignes ne suffisent pas — seul le retrait de l'outil garantit zéro prompt). Toujours lancer `npm run screenshots` (ou `verify`) AVANT de l'invoquer, et lui dire que les captures sont fraîches.
+- **Revue visuelle = le delta seulement** (décision 0017) : `screenshots/` est committé — c'est la baseline. `npm run screenshots` compare à HEAD et liste les captures modifiées/nouvelles (avant/différence dans `screenshots/.diff/`, gitignoré). Ne faire revoir QUE ces captures-là ; « aucune différence » = pas de revue visuelle. Changement intentionnel → committer les PNG avec le code. Boucle interne sur une page : `npm run screenshots -- --page structures` (verify reste complet).
 - Pour zoomer une capture soi-même : `sips` nu (allowlisté), jamais précédé de `cd` ni suivi de `&&`.
 
 ## UX/UI (obligatoire pour toute page ou section)
 1. **Avant tout markup** : écrire un design brief (audience, ton, hiérarchie, états vide/chargement/erreur/succès) et lire `principles.md` + `composition.md` du skill webawesome-design.
 2. Web Awesome partout ; variables visuelles uniquement dans `site/theme.css` (tokens `--wa-*`) — décision 0004.
-3. **Après** : passer la polish checklist de composition.md, puis revue critique par un subagent en lecture seule sur un rendu (`npm run screenshots` produit tous les états dans `screenshots/`), pas seulement sur le code. Une page « conforme mais générique » est un échec.
+3. **Après** : passer la polish checklist de composition.md, puis revue critique par un subagent en lecture seule sur un rendu (`npm run screenshots` produit tous les états dans `screenshots/` et liste le delta vs baseline — donner au subagent ces captures-là, avec les avant/différence de `screenshots/.diff/`), pas seulement sur le code. Une page « conforme mais générique » est un échec.
 4. Public : majoritairement aîné — typographie généreuse, cibles larges, langage simple et rassurant.
 5. **Textes visibles par l'utilisateur** : tout nom d'entité (comité, structures, rôles…) vient de CONTEXT.md. Terme absent du glossaire → demander à Jeremy ou passer par `/domain-modeling` ; ne jamais inventer un nom d'organisation ou de concept dans l'UI.
 

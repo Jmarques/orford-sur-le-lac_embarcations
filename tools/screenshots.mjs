@@ -8,6 +8,7 @@
 
 import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import {
@@ -25,16 +26,34 @@ import {
   preparerDossierDiff,
 } from './diff-captures.mjs';
 
-const PORT = 8907;
-const BASE = `http://localhost:${PORT}`;
 const SORTIE = fileURLToPath(new URL('../screenshots/', import.meta.url));
 const DOSSIER_DIFF = `${SORTIE}.diff/`;
 const enDirect = process.argv.includes('--live');
 const indexArgPage = process.argv.indexOf('--page');
 const pageFiltree = indexArgPage === -1 ? null : process.argv[indexArgPage + 1].replace(/\.html$/, '');
 
+// Port libre attribué par l'OS : un port fixe se fait voler par les serveurs
+// orphelins des autres sessions (npx tué ≠ http-server tué), et on capture
+// alors le site d'un AUTRE checkout sans s'en apercevoir.
+async function portLibre() {
+  return new Promise((resoudre, rejeter) => {
+    const sonde = createServer();
+    sonde.once('error', rejeter);
+    sonde.listen(0, '127.0.0.1', () => {
+      const { port } = sonde.address();
+      sonde.close(() => resoudre(port));
+    });
+  });
+}
+
+const PORT = await portLibre();
+const BASE = `http://localhost:${PORT}`;
+
 async function attendreServeur() {
   for (let essai = 0; essai < 40; essai++) {
+    if (serveurMort) {
+      throw new Error('http-server est mort au démarrage — port volé ou dépendance absente.');
+    }
     try {
       const reponse = await fetch(`${BASE}/index.html`);
       if (reponse.ok) return;
@@ -47,6 +66,12 @@ async function attendreServeur() {
 const serveur = spawn('npx', ['http-server', 'site', '-p', String(PORT), '-c-1', '--silent'], {
   stdio: 'ignore',
 });
+// Si le serveur meurt en cours de run, échouer bruyamment plutôt que de
+// laisser un autre processus répondre à sa place.
+let serveurMort = false;
+serveur.on('exit', () => {
+  serveurMort = true;
+});
 
 let codeSortie = 0;
 try {
@@ -55,7 +80,11 @@ try {
 
   let scenarios = enDirect ? CAPTURES.filter((c) => !c.etat) : CAPTURES;
   if (pageFiltree) {
-    scenarios = scenarios.filter((c) => c.page === `${pageFiltree}.html`);
+    // Accepte le fichier (« index », « structures.html ») ou le préfixe des
+    // noms de scénarios (« accueil ») — les deux vocabulaires coexistent.
+    scenarios = scenarios.filter(
+      (c) => c.page === `${pageFiltree}.html` || c.nom.startsWith(`${pageFiltree}-`),
+    );
     if (scenarios.length === 0) {
       throw new Error(`Aucun scénario pour la page « ${pageFiltree} » — voir tools/captures.mjs.`);
     }
@@ -66,6 +95,9 @@ try {
   const navigateur = await chromium.launch();
   for (const scenario of scenarios) {
     for (const [nomViewport, viewport] of Object.entries(VIEWPORTS)) {
+      if (serveurMort) {
+        throw new Error('http-server est mort en cours de run — captures interrompues.');
+      }
       // reducedMotion : les animations du thème (toutes sous
       // prefers-reduced-motion) ne polluent pas le diff pixel vs baseline.
       const page = await navigateur.newPage({ viewport, reducedMotion: 'reduce' });
@@ -136,7 +168,8 @@ try {
   const modifiees = [];
   const nouvelles = [];
   for (const nomFichier of generees) {
-    const resultat = comparerCapture(nomFichier, readFileSync(`${SORTIE}${nomFichier}`), DOSSIER_DIFF);
+    const chemin = `${SORTIE}${nomFichier}`;
+    const resultat = comparerCapture(nomFichier, readFileSync(chemin), chemin, DOSSIER_DIFF);
     if (resultat.statut === 'nouvelle') nouvelles.push(nomFichier);
     if (resultat.statut === 'modifiee') modifiees.push({ nom: nomFichier, ...resultat });
   }
