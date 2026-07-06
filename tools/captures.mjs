@@ -189,9 +189,16 @@ export const CAPTURES = [
   { nom: 'structures-erreur', page: 'structures.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
 ];
 
-// Motifs de bruit console tolérés (regex). Vide par défaut : tout error/warning
-// fait échouer npm run screenshots — c'est voulu (leçon des size="large" dépréciés).
-export const CONSOLE_IGNOREE = [];
+// Motifs de bruit console tolérés (regex). Liste minimale : tout autre
+// error/warning fait échouer npm run screenshots — c'est voulu (leçon des
+// size="large" dépréciés).
+export const CONSOLE_IGNOREE = [
+  // Avertissement de performance Chromium émis par la LECTURE des pixels que
+  // fait la capture Playwright elle-même sur le canvas WebGL de la bande
+  // d'identité (site/eau.js, décision 0015) — bruit de la mesure, pas de la
+  // page ; n'apparaît jamais en usage réel.
+  /GPU stall due to ReadPixels/,
+];
 
 export function estProblemeConsole(type, texte, motifsIgnores) {
   if (type !== 'error' && type !== 'warning') return false;

@@ -1,14 +1,11 @@
 /*
  * Thème du site — TOUTE la personnalisation visuelle vit ici (décision 0004).
+ * Direction esthétique : « Le lac au petit matin » (décision 0015) —
+ * Fraunces + Nunito Sans + wordmark script, verts d'eau/sable, galets,
+ * bande d'identité animée sous l'eau (site/eau.js lit les tokens --osl-eau-*).
  *
- * Pour changer le design plus tard, il suffit de toucher :
- *   1. les classes wa-* sur <html> dans chaque page :
- *      wa-theme-{default|awesome|shoelace}  → le style d'ensemble
- *      wa-palette-{default|bright|shoelace} → les teintes
- *      wa-brand-{cyan|blue|green|…}         → la couleur de marque
- *      wa-light | wa-dark                   → clair / sombre
- *   2. les tokens --wa-* et les classes ci-dessous (tokens sémantiques
- *      uniquement : le mode sombre et le re-branding fonctionnent seuls).
+ * Pour changer le design plus tard : les tokens --wa-* et --osl-* ci-dessous
+ * (valeurs concrètes de la palette lac) et les classes de ce fichier.
  * Aucune page ne doit contenir de couleur, espacement ou taille en dur.
  */
 
@@ -16,9 +13,93 @@
   /* Public majoritairement aîné : toute la typographie légèrement agrandie. */
   --wa-font-size-scale: 1.125;
 
+  /* Typographie de la direction lac : Fraunces (titres, serif d'eau douce)
+     et Nunito Sans (corps, rond et très lisible). */
+  --wa-font-family-heading: 'Fraunces', georgia, serif;
+  --wa-font-family-body: 'Nunito Sans', system-ui, sans-serif;
+
+  /* Formes galets : toute l'échelle de rayons s'arrondit. */
+  --wa-border-radius-scale: 1.5;
+
+  /* Palette lac — marque (verts d'eau), paires fill/on accordées. */
+  --wa-color-brand-fill-loud: #2a6158;
+  --wa-color-brand-on-loud: #f4fbf7;
+  --wa-color-brand-fill-normal: #cfe4db;
+  --wa-color-brand-on-normal: #1f4a42;
+  --wa-color-brand-fill-quiet: #e7f1eb;
+  --wa-color-brand-on-quiet: #2a5b50;
+  --wa-color-brand-border-loud: #2a6158;
+  --wa-color-brand-border-normal: #9cc0b2;
+  --wa-color-brand-border-quiet: #cfe2d8;
+
+  /* Surfaces sable et encres. */
+  --wa-color-surface-default: #f6f4ec;
+  --wa-color-surface-raised: #fbf9f2;
+  --wa-color-surface-lowered: #ebe7da;
+  --wa-color-surface-border: #d8d2bf;
+  --wa-color-text-normal: #253430;
+  --wa-color-text-quiet: #5d6b63;
+  --wa-color-text-link: #2a6158;
+
+  /* Neutres verdis (cartes « filled », callouts neutres, squelettes). */
+  --wa-color-neutral-fill-quiet: #eceade;
+  --wa-color-neutral-on-quiet: #4d564e;
+  --wa-color-neutral-fill-normal: #dfddcf;
+  --wa-color-neutral-on-normal: #3a453e;
+  --wa-color-neutral-border-quiet: #d6d3c2;
+  --wa-color-neutral-border-normal: #b9b6a3;
+
+  /* Sémantiques re-thématisées : vert sauge, ocre sable, brique douce —
+     les statuts de la grille et les callouts restent dans la palette. */
+  --wa-color-success-fill-loud: #38795b;
+  --wa-color-success-on-loud: #f2faf4;
+  --wa-color-success-fill-normal: #cfe6cc;
+  --wa-color-success-on-normal: #2b5236;
+  --wa-color-success-fill-quiet: #e3efe0;
+  --wa-color-success-on-quiet: #2e5c3a;
+  --wa-color-success-border-loud: #38795b;
+  --wa-color-success-border-normal: #93bf97;
+  --wa-color-success-border-quiet: #bcd8bd;
+  --wa-color-warning-fill-loud: #a9821f;
+  --wa-color-warning-on-loud: #fffaef;
+  --wa-color-warning-fill-normal: #f2dfb3;
+  --wa-color-warning-on-normal: #6d5312;
+  --wa-color-warning-fill-quiet: #f7ecd0;
+  --wa-color-warning-on-quiet: #6d5312;
+  --wa-color-warning-border-loud: #a9821f;
+  --wa-color-warning-border-normal: #cfa94e;
+  --wa-color-warning-border-quiet: #e3cf99;
+  --wa-color-danger-fill-loud: #a03a24;
+  --wa-color-danger-on-loud: #fff5f0;
+  --wa-color-danger-fill-normal: #eec9bf;
+  --wa-color-danger-on-normal: #7c2d1c;
+  --wa-color-danger-fill-quiet: #f6ded6;
+  --wa-color-danger-on-quiet: #8a3323;
+  --wa-color-danger-border-loud: #a03a24;
+  --wa-color-danger-border-normal: #c8836f;
+  --wa-color-danger-border-quiet: #e2b6a8;
+
   /* Rythme des mouvements d'eau — lents et calmes, mais perceptibles. */
   --osl-duree-respiration: 12s;
   --osl-duree-houle: 9s;
+
+  /* Scène sous l'eau (lue par site/eau.js — décisions 0004 et 0015) :
+     couleurs de la colonne d'eau et réglages retenus sur le prototype. */
+  --osl-eau-surface: #e9f3ec;
+  --osl-eau-mi: #8dbdad;
+  --osl-eau-fond: #1e524c;
+  --osl-eau-soleil-x: 0.78;
+  --osl-eau-rayons: 1;
+  --osl-eau-miroitement: 1;
+  --osl-eau-profondeur: 1;
+  --osl-eau-vitesse: 1.5;
+  --osl-eau-remous: 1;
+}
+
+/* Encres et fond de page tirés des tokens (le body de chaque page). */
+body {
+  background: var(--wa-color-surface-default);
+  color: var(--wa-color-text-normal);
 }
 
 /* L'attribut hidden doit gagner même sur les utilitaires display:flex
@@ -50,13 +131,16 @@
 
 /* Navigation entre les pages du comité, posée sur la bande de marque.
    inline-flex + gap : le soulignement de l'onglet actif ne couvre pas
-   l'espace entre l'icône et le libellé. */
+   l'espace entre l'icône et le libellé. Padding : cibles généreuses (aînés). */
 .nav-comite a {
   display: inline-flex;
   align-items: center;
   gap: var(--wa-space-2xs);
-  color: var(--wa-color-brand-on-quiet);
+  padding-block: var(--wa-space-2xs);
+  /* La nav vit au bas de la bande, sur l'eau profonde : texte écume. */
+  color: var(--osl-eau-surface);
   text-decoration: none;
+  text-shadow: 0 1px 2px rgb(20 50 45 / 0.6);
 }
 .nav-comite a:hover {
   text-decoration: underline;
@@ -73,23 +157,52 @@
   background: var(--wa-color-brand-fill-loud);
 }
 
-/* Bande d'identité : dégradé doux dans le rôle brand (« field, not feature »).
-   Le texte de la bande reste sur les tokens texte du thème ; seul le titre
-   prend la teinte brand (paire quiet/on-quiet). */
+/* Bande d'identité : la scène sous l'eau (canvas WebGL peint par eau.js).
+   Le dégradé reste en fallback : sans WebGL, la bande garde sa respiration
+   CSS ; avec WebGL, le canvas la recouvre. */
 .bande-lac {
+  /* Même colonne d'eau que la scène (surface → profondeur) : le fallback
+     sans WebGL garde les mêmes contrastes que la version animée. */
   background: linear-gradient(
-    var(--wa-color-brand-fill-quiet),
-    var(--wa-color-brand-fill-normal)
+    var(--osl-eau-surface),
+    var(--osl-eau-mi) 55%,
+    var(--osl-eau-fond)
   );
   padding-block-start: var(--wa-space-2xl);
   position: relative;
   overflow: hidden;
 }
 
-/* Le contenu de la bande passe au-dessus du calque de respiration. */
-.bande-lac > * {
+/* Le canvas de la scène remplit la bande, sous le contenu. */
+.eau-lac {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  z-index: 0;
+}
+
+/* Le contenu de la bande passe au-dessus de la scène et de la respiration. */
+.bande-lac > :not(.eau-lac) {
   position: relative;
   z-index: 1;
+}
+
+/* Identité : le wordmark script du logo, en bronze lisible sur l'eau claire,
+   et le sur-titre du comité en petites capitales espacées. */
+.wordmark-lac {
+  font-family: 'Yellowtail', cursive;
+  font-size: var(--wa-font-size-2xl);
+  /* Bronze foncé : lisible même sur la frame la plus claire des rayons
+     (le haut de la bande est toujours la zone la plus lumineuse). */
+  color: #6d5314;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgb(246 250 247 / 0.75);
+}
+.surtitre-comite {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: var(--wa-font-weight-semibold);
 }
 
 /* Respiration de l'eau : un calque plein cadre porte le même dégradé inversé,
@@ -102,18 +215,35 @@
   z-index: 0;
   pointer-events: none;
   background: linear-gradient(
-    var(--wa-color-brand-fill-normal),
-    var(--wa-color-brand-fill-quiet)
+    var(--osl-eau-fond),
+    var(--osl-eau-mi) 45%,
+    var(--osl-eau-surface)
   );
   opacity: 0;
 }
 
+/* Sur la scène animée, les textes de la bande gardent un halo clair :
+   lisibles quel que soit le moment de l'animation derrière eux. */
 .titre-lac {
-  color: var(--wa-color-brand-on-quiet);
+  color: #16413a;
+  text-shadow: 0 1px 2px rgb(246 250 247 / 0.8), 0 0 20px rgb(246 250 247 / 0.55);
 }
 
 .signature-lac {
-  color: var(--wa-color-brand-on-quiet);
+  color: #16413a;
+  text-shadow: 0 1px 2px rgb(246 250 247 / 0.8);
+}
+
+.sous-titre-lac {
+  color: #16362f;
+  text-shadow: 0 1px 2px rgb(246 250 247 / 0.9), 0 0 16px rgb(246 250 247 / 0.6);
+}
+
+/* En desktop, le titre de bande prend la pleine voix de Fraunces. */
+@media (min-width: 900px) {
+  .titre-lac {
+    font-size: var(--wa-font-size-3xl);
+  }
 }
 
 /* Vagues au bas de la bande : la surface de la page découpe la bande.
@@ -127,18 +257,41 @@
   display: block;
   inline-size: 100%;
   block-size: var(--wa-space-xl);
+  /* La bande a souvent une hauteur fractionnaire (line-heights) : sans ce
+     débord d'un pixel, le sous-pixel restant laisse voir le fond de la bande
+     sous la vague — une fine ligne sur toute la largeur. */
+  margin-block-end: calc(-1 * var(--wa-border-width-s));
 }
 
-/* Pastille ronde pour une icône (recette token-based de composition.md). */
-.pastille-icone {
-  inline-size: var(--wa-space-3xl);
-  block-size: var(--wa-space-3xl);
-  border-radius: var(--wa-border-radius-circle);
-  background: var(--wa-color-brand-fill-loud);
-  color: var(--wa-color-brand-on-loud);
-  display: grid;
-  place-items: center;
-  font-size: var(--wa-font-size-l);
+/* Cartes-galets : pas de bordure grise de librairie — un liseré sable, la
+   ligne d'eau posée au sommet, une ombre douce, et un fond un demi-cran plus
+   clair que la page (les cartes « filled » restent volontairement en retrait). */
+wa-card {
+  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+  border-block-start: var(--wa-border-width-l) solid var(--wa-color-brand-fill-loud);
+  box-shadow: var(--wa-shadow-m);
+}
+wa-card:not([appearance='filled']) {
+  background-color: var(--wa-color-surface-raised);
+}
+
+/* Tous les boutons sont des galets (pilule). */
+wa-button::part(base) {
+  border-radius: var(--wa-border-radius-pill);
+}
+
+/* Les titres internes des cartes prennent la couleur d'eau : la structure
+   d'un formulaire ou d'une carte se lit d'un coup d'œil. */
+wa-card h2,
+wa-card h3 {
+  color: var(--wa-color-brand-on-quiet);
+}
+
+/* Les silhouettes de chargement suivent les surfaces du thème (le gris-bleu
+   par défaut jure sur le sable — propriétés documentées de wa-skeleton). */
+wa-skeleton {
+  --color: var(--wa-color-surface-lowered);
+  --sheen-color: var(--wa-color-surface-border);
 }
 
 /* Silhouettes de champs pendant le chargement (skeleton). */
@@ -290,6 +443,8 @@
    (pastille + libellé + compte) qui ouvre son explication au toucher. */
 .legende-statuts {
   row-gap: var(--wa-space-xs);
+  /* Lisibilité aînés : la légende au corps normal, pas en caption. */
+  font-size: var(--wa-font-size-m);
 }
 /* Entrée de légende : bouton discret sans bordure (mini-cellule + libellé) —
    le mobilier reste plus silencieux que le contenu qu'il explique. */
@@ -474,9 +629,9 @@ wa-callout::part(icon) {
   }
 }
 
-/* Pied de page discret. */
+/* Pied de page discret mais lisible (public aîné). */
 .pied {
   padding-block: var(--wa-space-xl);
   color: var(--wa-color-text-quiet);
-  font-size: var(--wa-font-size-s);
+  font-size: var(--wa-font-size-m);
 }

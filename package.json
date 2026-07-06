@@ -7,6 +7,7 @@
     "test": "node --test --test-reporter=spec 'tests/*.test.mjs'",
     "test:resume": "node --test --test-reporter=dot 'tests/*.test.mjs'",
     "screenshots": "node tools/screenshots.mjs",
+    "frames-eau": "node tools/eau-frames.mjs",
     "copie-grille": "node tools/copie-grille.mjs",
     "verify": "npm run copie-grille && npm run test:resume && npm run screenshots",
     "logs": "clasp tail-logs",
