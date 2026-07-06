@@ -1,6 +1,6 @@
 # 01 — Tournée minimale de bout en bout
 
-Status: ready-for-agent
+Status: ready-for-human — implémenté (commit 8a4cc30), à valider sur le vrai site
 
 ## Parent
 
@@ -14,14 +14,14 @@ La logique d'état de la tournée (cycle de tap, contenu du lot) vit en fonction
 
 ## Acceptance criteria
 
-- [ ] Un bouton « Faire la tournée » (copy exacte) sur chaque carte de structure ouvre l'écran de tournée de cette structure seule.
-- [ ] Cellule avec fantôme : tap 1 = confirmé identique, tap 2 = basculé, tap 3 = non relevé ; cellule sans fantôme : tap 1 = occupé, tap 2 = libre, tap 3 = non relevé — couvert par des tests node sur les fonctions pures (prior art `tests/grille.test.mjs`).
-- [ ] « Terminer la tournée » n'envoie que les cellules touchées ; les autres gardent leur ancienne observation et sa date (vérifiable en données mockées).
-- [ ] L'action serveur de lot écrit cellules + Journal (un événement par observation, date serveur), refuse un lot entièrement si une valeur est invalide, crée les lignes absentes — tests node (prior art `tests/observation.test.mjs`), lot vide et lot mixte créations/mises à jour couverts.
-- [ ] Échec d'envoi : message d'erreur clair, taps conservés, bouton réessayer fonctionnel.
-- [ ] Après envoi réussi, la liste des structures montre les statuts recalculés avec les observations fraîches.
-- [ ] Captures mockées via `?etat=` : écran vierge, cellules mixtes (fantômes/confirmées/sans fantôme), erreur d'envoi ; console error/warning + pageerror font échouer la boucle ; `npm run verify` vert.
-- [ ] Revue UI sur captures fraîches (processus CLAUDE.md) passée.
+- [x] Un bouton « Faire la tournée » (copy exacte) sur chaque carte de structure ouvre l'écran de tournée de cette structure seule.
+- [x] Cellule avec fantôme : tap 1 = confirmé identique, tap 2 = basculé, tap 3 = non relevé ; cellule sans fantôme : tap 1 = occupé, tap 2 = libre, tap 3 = non relevé — couvert par des tests node sur les fonctions pures (prior art `tests/grille.test.mjs`).
+- [x] « Terminer la tournée » n'envoie que les cellules touchées ; les autres gardent leur ancienne observation et sa date (vérifiable en données mockées).
+- [x] L'action serveur de lot écrit cellules + Journal (un événement par observation, date serveur), refuse un lot entièrement si une valeur est invalide, crée les lignes absentes — tests node (prior art `tests/observation.test.mjs`), lot vide et lot mixte créations/mises à jour couverts.
+- [x] Échec d'envoi : message d'erreur clair, taps conservés, bouton réessayer fonctionnel.
+- [x] Après envoi réussi, la liste des structures montre les statuts recalculés avec les observations fraîches.
+- [x] Captures mockées via `?etat=` : écran vierge, cellules mixtes (fantômes/confirmées/sans fantôme), erreur d'envoi ; console error/warning + pageerror font échouer la boucle ; `npm run verify` vert.
+- [x] Revue UI sur captures fraîches (processus CLAUDE.md) passée — corrections appliquées : anneau de focus script supprimé, une seule action primaire en état d'erreur, vocabulaire du glossaire dans les messages.
 
 ## Blocked by
 
