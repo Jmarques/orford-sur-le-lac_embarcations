@@ -1,6 +1,6 @@
 # 03 — Aide (ancre + popover flottant) + garde-fou de sortie
 
-Status: ready-for-agent
+Status: done — commit 2be7fbd
 
 ## Parent
 

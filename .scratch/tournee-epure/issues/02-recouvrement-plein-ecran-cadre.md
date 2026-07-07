@@ -1,6 +1,6 @@
 # 02 — Recouvrement plein écran épuré + cadre
 
-Status: ready-for-agent
+Status: done — commit 2be7fbd
 
 ## Parent
 

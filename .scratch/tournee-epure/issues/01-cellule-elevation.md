@@ -1,6 +1,6 @@
 # 01 — Cellule « Élévation » (empreinte fixe)
 
-Status: ready-for-agent
+Status: done — commit 2be7fbd
 
 ## Parent
 

@@ -1,6 +1,6 @@
 # 04 — Fin de tournée repensée : retour liste + confirmation sur la carte
 
-Status: ready-for-agent
+Status: done — commit 2be7fbd
 
 ## Parent
 
