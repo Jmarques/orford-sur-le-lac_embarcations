@@ -106,20 +106,22 @@ function creerFicheAdresse(options) {
     pasObserve: 'neutral',
   };
 
-  function positionLisible(numero) {
+  // La position de chaque numéro, dérivée des grilles (0009) — calculée UNE
+  // fois par rendu, pas par rangée (l'analyse parcourt toutes les structures).
+  function cartePositions() {
     const { structures } = analyserStructures(options.donnees().structures, []);
+    const positions = new Map();
     for (const analyse of structures) {
-      const emplacement = analyse.emplacements
-        .find((e) => Number(e.numero) === Number(numero));
-      if (emplacement) {
-        return 'Structure ' + emplacement.structure
-          + (emplacement.niveau !== '' ? ' · Niveau ' + emplacement.niveau : '');
+      for (const emplacement of analyse.emplacements) {
+        if (positions.has(Number(emplacement.numero))) continue;
+        positions.set(Number(emplacement.numero), 'Structure ' + emplacement.structure
+          + (emplacement.niveau !== '' ? ' · Niveau ' + emplacement.niveau : ''));
       }
     }
-    return '';
+    return positions;
   }
 
-  function rangeeEmplacement(ligne) {
+  function rangeeEmplacement(ligne, positions) {
     const element = document.createElement('li');
     const bouton = document.createElement('button');
     bouton.type = 'button';
@@ -142,7 +144,7 @@ function creerFicheAdresse(options) {
     pastille.textContent = statut.libelle;
     enTete.append(titre, pastille);
     texte.appendChild(enTete);
-    const position = positionLisible(ligne.numero);
+    const position = positions.get(Number(ligne.numero)) || '';
     if (position) {
       const sousTitre = document.createElement('span');
       sousTitre.className = 'wa-caption-m wa-color-text-quiet';
@@ -272,7 +274,9 @@ function creerFicheAdresse(options) {
     // Les emplacements du dossier : le choix décisif — lequel libérer ? Le
     // statut de chacun se lit en toutes lettres, le tap ouvre sa fiche.
     const liste = el('fiche-adresse-emplacements');
-    liste.replaceChildren(...(cas ? cas.emplacements : []).map(rangeeEmplacement));
+    const positions = cartePositions();
+    liste.replaceChildren(...(cas ? cas.emplacements : [])
+      .map((ligne) => rangeeEmplacement(ligne, positions)));
 
     // Le journal du dossier : notes d'adresse + libérations des emplacements.
     const journal = el('fiche-adresse-journal');

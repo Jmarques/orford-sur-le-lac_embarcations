@@ -16,7 +16,7 @@
 
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
    serieLibreObservee, fenetreApparition, analyserStructures, depassementQuota,
-   ETATS_OCCUPATION */
+   cleAdresse, ETATS_OCCUPATION */
 
 function creerFicheEmplacement(options) {
   // Markup constant (aucune donnée) : tout ce qui vient de la Sheet est posé
@@ -168,10 +168,11 @@ function creerFicheEmplacement(options) {
     return options.donnees().emplacements.find((l) => Number(l.numero) === Number(numero));
   }
 
+  // Par la clé d'adresse normalisée (0019) : « Rue du Lac » et « rue du lac »
+  // (Sheet éditée à la main, 0002) désignent le même membre.
   function chercherMembre(ligne) {
-    return options.donnees().membres.find((membre) =>
-      String(membre.numeroAdresse).trim() === String(ligne.numeroAdresse).trim()
-      && String(membre.rue).trim() === String(ligne.rue).trim());
+    const cle = cleAdresse(ligne);
+    return options.donnees().membres.find((membre) => cle !== '' && cleAdresse(membre) === cle);
   }
 
   // La position d'un numéro, dérivée des grilles (0009). Un numéro « en

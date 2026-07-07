@@ -94,3 +94,11 @@ Rien d'invisible : T2 est la première tranche visible et embarque l'écriture d
 - **Redéploiement backend requis** (leçon du PRD a-traiter, commentaire du 2026-07-06) : la lecture de `quotaAccorde` et la colonne `adresse` du Journal n'existent qu'après `npm run deploy` — la page doit signaler en console un contrat de lecture incomplet, comme elle le fait déjà pour `journal`/`membres`.
 - **UX/UI** : processus obligatoire du CLAUDE.md (brief avant markup, principles + composition, polish checklist, revue ui-critic sur les captures fraîches du delta — 0017). Ton : la section parle de membres de la communauté, jamais de « fautifs » ; l'équité envers ceux qui attendent est la motivation, le ton reste factuel et respectueux.
 - La qualité du signal « quel emplacement libérer » dépend des tournées : sans observations, les statuts des emplacements de la fiche d'adresse afficheront « Non observé » — c'est voulu, le comité voit ce qu'il sait.
+
+## Comments
+
+- 2026-07-06 (implémentation T1–T3, revue de code) — trois écarts au spec entérinés ici :
+  (1) **La libération écrit aussi la colonne `adresse` au Journal** (non demandé) : sans elle, le journal du cas perdrait la libération dès que l'emplacement quitte l'adresse — extension nécessaire au « journal du cas », testée.
+  (2) **La fiche d'adresse sait raconter une adresse revenue dans les règles** (« Dans le quota », dérivation `casAdresse`) : exigé de fait par « fiche mise à jour au retour » après une libération qui referme le cas (0018 : la fiche reste ouverte).
+  (3) **La rangée du registre dit « N emplacements — le quota est de 2 » en texte-signal, pas en wa-badge** : dans une rangée-carte existante, une pastille ferait un second foyer (0016) ; le compte reste en toutes lettres, jamais nu — déviation de forme documentée au brief.
+- 2026-07-06 (revue de code, corrigé) : la recherche du membre des fiches et du registre passe désormais par la clé d'adresse normalisée (l'AC de l'issue 02 était cochée alors que seules les dérivations l'utilisaient) ; la page signale en console l'absence de la colonne `quotaAccorde` (backend déployé mais `setup()` non exécuté), en plus du signal `journal`/`membres` existant.

@@ -5,12 +5,16 @@ Status: needs-triage
 ## What to build
 
 Après le durcissement de l'issue 01, il reste un faux positif occasionnel :
-environ un run sur deux signale UNE capture mobile modifiée (14–93 px), jamais
-la même — observé sur `structures-liste-defilee--mobile` (93 px, décalage
-sous-pixel des bordures pointillées « En double » dans la grille défilée) puis
-`structures-tournee-relevee--mobile` (14 px). Les zones touchées sont les
-bordures pointillées et les zones défilées ; les runs suivants reviennent à
-zéro sans changement de code.
+environ un run sur deux signale UNE capture modifiée, jamais la même —
+observé sur `structures-liste-defilee--mobile` (93 px, décalage sous-pixel
+des bordures pointillées « En double » dans la grille défilée),
+`structures-tournee-relevee--mobile` (14 px), puis
+`structures-fiche-confirmation-liberation--desktop` (15,8–17,1 k px sur
+4 runs : la position de défilement du corps du drawer DERRIÈRE le dialogue
+varie d'environ 25 px d'un run à l'autre — tout le contenu du drawer se
+dédouble dans le diff). Les zones touchées sont les bordures pointillées,
+les zones défilées et le scroll du drawer sous un dialogue ; les runs
+suivants reviennent à zéro sans changement de code.
 
 Diagnostiquer la position de défilement/le rendu sous-pixel au moment de la
 capture (probablement la fin de course de `defiler` et le phasage des dashed

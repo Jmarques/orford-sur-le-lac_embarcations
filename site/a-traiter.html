@@ -262,10 +262,11 @@
       return String(ligne.numeroAdresse).trim() + ' ' + String(ligne.rue).trim();
     }
 
+    // Par la clé d'adresse normalisée (0019) : « Rue du Lac » et « rue du
+    // lac » (Sheet éditée à la main, 0002) désignent le même membre.
     function chercherMembre(ligne) {
-      return donnees.membres.find((membre) =>
-        String(membre.numeroAdresse).trim() === String(ligne.numeroAdresse).trim()
-        && String(membre.rue).trim() === String(ligne.rue).trim());
+      const cle = cleAdresse(ligne);
+      return donnees.membres.find((membre) => cle !== '' && cleAdresse(membre) === cle);
     }
 
     // Le signal d'une rangée « Attribué, libre » : depuis quand, étayé par
@@ -512,6 +513,11 @@
         // la page marche en mode dégradé, mais le dit à qui ouvre la console.
         if (!resultat.journal || !resultat.membres) {
           console.info('L\'API ne renvoie pas journal/membres — backend à redéployer (npm run deploy).');
+        } else if (resultat.membres.length > 0 && !('quotaAccorde' in resultat.membres[0])) {
+          // Colonnes de 0019 absentes (les lignes portent toutes les colonnes
+          // de l'onglet) : les quotas accordés retomberaient à 2 sans le dire.
+          console.info('L\'onglet Membres n\'a pas la colonne quotaAccorde — exécuter setup() '
+            + 'depuis l\'éditeur Apps Script, puis npm run deploy (décision 0019).');
         }
         rangerDonnees(resultat);
         afficherCas();

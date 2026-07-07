@@ -578,16 +578,10 @@ function groupesParAdresse_(lignesEmplacements) {
   });
 }
 
-// Le dossier d'une adresse (0019), hors quota OU dans les règles — la fiche
-// d'adresse reste racontable après une libération qui referme le cas. null si
-// l'adresse n'a aucune attribution lisible.
-function casAdresse(cle, lignesEmplacements, membres) {
-  var groupe = null;
-  groupesParAdresse_(lignesEmplacements).forEach(function (g) {
-    if (!groupe && g.cle === cle) groupe = g;
-  });
-  if (!groupe) return null;
-  var membre = chercherMembreParCle_(membres, cle);
+// Le dossier construit d'un groupe d'attributions : la forme commune de
+// casAdresse et fileHorsQuota.
+function construireCas_(groupe, membres) {
+  var membre = chercherMembreParCle_(membres, groupe.cle);
   var quota = quotaLisible_(membre);
   return {
     cle: groupe.cle,
@@ -600,27 +594,26 @@ function casAdresse(cle, lignesEmplacements, membres) {
   };
 }
 
+// Le dossier d'une adresse (0019), hors quota OU dans les règles — la fiche
+// d'adresse reste racontable après une libération qui referme le cas. null si
+// l'adresse n'a aucune attribution lisible.
+function casAdresse(cle, lignesEmplacements, membres) {
+  var groupe = null;
+  groupesParAdresse_(lignesEmplacements).forEach(function (g) {
+    if (!groupe && g.cle === cle) groupe = g;
+  });
+  return groupe ? construireCas_(groupe, membres) : null;
+}
+
 // La file « Hors quota » (0019) : les attributions regroupées par clé
 // d'adresse ; cas = attributions > quota accordé. Le compte porte sur les
 // attributions, jamais sur l'occupation observée — rien n'est stocké, un cas
 // sort par libération et re-rentre s'il dépasse son exception. Tri : pire
 // dépassement d'abord, puis nombre d'emplacements, puis adresse (stable).
 function fileHorsQuota(lignesEmplacements, membres) {
-  var cas = [];
-  groupesParAdresse_(lignesEmplacements).forEach(function (groupe) {
-    var membre = chercherMembreParCle_(membres, groupe.cle);
-    var quota = quotaLisible_(membre);
-    if (groupe.emplacements.length <= quota) return;
-    cas.push({
-      cle: groupe.cle,
-      adresse: groupe.adresse,
-      membre: membre,
-      quota: quota,
-      nombre: groupe.emplacements.length,
-      depassement: groupe.emplacements.length - quota,
-      emplacements: groupe.emplacements,
-    });
-  });
+  var cas = groupesParAdresse_(lignesEmplacements)
+    .map(function (groupe) { return construireCas_(groupe, membres); })
+    .filter(function (c) { return c.depassement > 0; });
 
   cas.sort(function (a, b) {
     if (b.depassement !== a.depassement) return b.depassement - a.depassement;
@@ -659,13 +652,8 @@ function journalDeCas(evenements, cle, numeros) {
 // d'emplacements de l'adresse attribuée et son quota, SEULEMENT quand
 // l'adresse dépasse — silence quand elle est dans les règles (0016).
 function depassementQuota(ligne, lignesEmplacements, membres) {
-  var cle = cleAdresse(ligne);
-  if (cle === '') return null;
-  var trouve = null;
-  fileHorsQuota(lignesEmplacements, membres).forEach(function (cas) {
-    if (!trouve && cas.cle === cle) trouve = cas;
-  });
-  return trouve ? { nombre: trouve.nombre, quota: trouve.quota } : null;
+  var cas = casAdresse(cleAdresse(ligne), lignesEmplacements, membres);
+  return cas && cas.depassement > 0 ? { nombre: cas.nombre, quota: cas.quota } : null;
 }
 
 if (typeof module !== 'undefined') {
