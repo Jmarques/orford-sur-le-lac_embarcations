@@ -1,6 +1,6 @@
 # 02 — Section « Hors quota » en tête d'À traiter + fiche d'adresse + note d'adresse
 
-Status: ready-for-agent
+Status: ready-for-human — implémenté (tranche T2), à valider sur le vrai site après `npm run deploy`
 
 ## Parent
 
@@ -27,14 +27,18 @@ Vocabulaire : CONTEXT.md ([[Hors quota]], [[Fiche d'adresse]], [[Note (au journa
 
 ## Acceptance criteria
 
-- [ ] Section « Hors quota » en première position : rangées triées, pastille de compte neutre, état vide calme, description en français simple.
-- [ ] La fiche d'adresse s'ouvre au tap : en-tête complet (adresse, membre, contact, fait justifiant le cas — quota par défaut et exception accordée), emplacements avec statut, journal du cas, note, `mailto:`.
-- [ ] La navigation fiche d'adresse → fiche d'emplacement → retour fonctionne dans le même drawer, fiche d'adresse mise à jour au retour (une libération qui referme le cas fait sortir l'adresse du registre à la fermeture).
-- [ ] Ajout de note d'adresse bout en bout : action serveur `note` étendue (adresse acceptée, numéro + adresse à la fois refusé, aucune clé refusée, texte vide refusé, en-têtes réordonnés — prior art `tests/traitement.test.mjs`), événement Journal correct, note visible dans le journal du cas sans fermer la fiche.
-- [ ] La recherche du membre (fiches et registre) passe par la clé d'adresse normalisée.
-- [ ] Captures mockées multi-états via `?etat=` : section vide, section peuplée (tri visible), fiche d'adresse ouverte, fiche avec exception dépassée, note en erreur ; console error/warning + pageerror font échouer la boucle (0006/0017).
-- [ ] Flux complet piloté au navigateur avant livraison ; `npm run verify` vert ; captures du delta revues par un subagent lecture seule, PNG committés avec le code.
+- [x] Section « Hors quota » en première position : rangées triées, pastille de compte neutre, état vide calme, description en français simple.
+- [x] La fiche d'adresse s'ouvre au tap : en-tête complet (adresse, membre, contact, fait justifiant le cas — quota par défaut et exception accordée), emplacements avec statut, journal du cas, note, `mailto:`.
+- [x] La navigation fiche d'adresse → fiche d'emplacement → retour fonctionne dans le même drawer, fiche d'adresse mise à jour au retour (une libération qui referme le cas fait sortir l'adresse du registre à la fermeture).
+- [x] Ajout de note d'adresse bout en bout : action serveur `note` étendue (adresse acceptée, numéro + adresse à la fois refusé, aucune clé refusée, texte vide refusé, en-têtes réordonnés — prior art `tests/traitement.test.mjs`), événement Journal correct, note visible dans le journal du cas sans fermer la fiche.
+- [x] La recherche du membre (fiches et registre) passe par la clé d'adresse normalisée.
+- [x] Captures mockées multi-états via `?etat=` : section vide, section peuplée (tri visible), fiche d'adresse ouverte, fiche avec exception dépassée, note en erreur ; console error/warning + pageerror font échouer la boucle (0006/0017).
+- [x] Flux complet piloté au navigateur avant livraison ; `npm run verify` vert ; captures du delta revues par un subagent lecture seule, PNG committés avec le code.
 
 ## Blocked by
 
 - `.scratch/hors-quota/issues/01-derivations-hors-quota-et-lecture.md`
+
+## Comments
+
+- 2026-07-06 (implémentation) : flux complet vérifié au navigateur (script jetable, supprimé) — note d'adresse (contrat `{ action, adresse, texte }` sans numéro), navigation aller-retour sans drawers empilés, libération refermant le cas sous les yeux (« Dans le quota »), sortie du registre et pastille à jour, focus sur le titre de section, console propre. Revue ui-critic sur les captures fraîches : le fait de la fiche dit désormais le dépassement en toutes lettres (« 4 emplacements attribués, un de plus que l'exception accordée à 3 ») au lieu de faire calculer le lecteur ; la ligne « Détail : … » des erreurs relaie les messages métier du serveur (patron existant — le texte vu en capture est celui du mock) ; le double foyer contact (lien courriel + bouton « Écrire au membre ») sera différencié par la ligne d'aide de l'issue 03.

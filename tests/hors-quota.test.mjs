@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { cleAdresse, fileHorsQuota, journalDeCas, depassementQuota } = require('../apps-script/grille.js');
+const { cleAdresse, casAdresse, fileHorsQuota, journalDeCas, depassementQuota } = require('../apps-script/grille.js');
 
 // Une ligne de l'onglet Emplacements, telle que renvoyée par l'API.
 function ligneEmplacement(surcharges = {}) {
@@ -142,6 +142,22 @@ test('tri : dépassement décroissant, puis nombre d\'emplacements, puis adresse
   ];
   const cas = fileHorsQuota(lignes, [membre({ numeroAdresse: 9, rue: 'Chemin du Lac', quotaAccorde: 3 })]);
   assert.deepEqual(cas.map((c) => c.adresse), ['34 Chemin du Lac', '9 Chemin du Lac', '12 Rue des Érables']);
+});
+
+// --- Le dossier d'une adresse (0019) : racontable même dans les règles ---
+
+test('le dossier d\'une adresse existe aussi dans les règles — la fiche reste racontable après une libération', () => {
+  const cas = casAdresse('12 rue des érables', [ligneEmplacement({ numero: 74 }), ligneEmplacement({ numero: 75 })], [membre()]);
+  assert.equal(cas.nombre, 2);
+  assert.equal(cas.quota, 2);
+  assert.equal(cas.depassement, 0);
+  assert.equal(cas.membre.nom, 'Louise Bédard');
+  assert.deepEqual(cas.emplacements.map((l) => l.numero), [74, 75]);
+});
+
+test('le dossier d\'une adresse sans attribution lisible est null', () => {
+  assert.equal(casAdresse('9 chemin inconnu', troisAttributions(), []), null);
+  assert.equal(casAdresse('', troisAttributions(), []), null);
 });
 
 // --- Le journal d'un cas (0019) : notes d'adresse + libérations de ses emplacements ---

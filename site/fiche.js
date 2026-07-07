@@ -23,6 +23,15 @@ function creerFicheEmplacement(options) {
   document.body.insertAdjacentHTML('beforeend', `
     <wa-drawer id="fiche-emplacement" label="Emplacement">
       <div class="corps-fiche-emplacement wa-stack wa-gap-l">
+        <!-- Retour vers la fiche d'adresse (0019) : présent seulement quand la
+             fiche a été ouverte depuis un cas hors quota — jamais deux drawers
+             empilés, le retour rouvre la fiche d'adresse après la fermeture. -->
+        <div id="fiche-retour-zone" class="wa-cluster" hidden>
+          <wa-button id="fiche-retour" appearance="plain">
+            <wa-icon slot="start" name="arrow-left"></wa-icon>
+            <span id="fiche-retour-texte">Retour</span>
+          </wa-button>
+        </div>
         <wa-callout id="fiche-statut">
           <wa-icon id="fiche-statut-icone" slot="icon" name="circle-info"></wa-icon>
           <div class="wa-stack wa-gap-2xs">
@@ -130,6 +139,11 @@ function creerFicheEmplacement(options) {
 
   // Le numéro affiché dans la fiche ouverte.
   let numeroCourant = null;
+
+  // Le retour de navigation (0019) : posé à l'ouverture depuis une fiche
+  // d'adresse ({ libelle, surRetour }), consommé à la fermeture du drawer —
+  // quelle que soit la façon de fermer (bouton retour, X, échap).
+  let retourCourant = null;
 
   // Adresse toujours affichée « numeroAdresse rue » (décision 0012).
   function adresseLisible(ligne) {
@@ -424,6 +438,9 @@ function creerFicheEmplacement(options) {
   }
 
   async function expirerSession() {
+    // La session est morte : ne pas rouvrir la fiche d'adresse au passage —
+    // la page va montrer l'écran de connexion.
+    retourCourant = null;
     await fermer();
     options.surSessionExpiree();
   }
@@ -567,13 +584,32 @@ function creerFicheEmplacement(options) {
       .addEventListener('wa-after-hide', () => envoyerLiberation(), { once: true });
   });
 
+  // Le bouton retour ne fait que fermer : le retour lui-même est joué à la
+  // fermeture du drawer (wa-after-hide), pour que X et échap reviennent aussi
+  // à la fiche d'adresse — dans ce contexte, elle EST la page d'origine.
+  el('fiche-retour').addEventListener('click', () => drawer.removeAttribute('open'));
+  drawer.addEventListener('wa-after-hide', (evenement) => {
+    if (evenement.target !== drawer || !retourCourant) return;
+    const retour = retourCourant;
+    retourCourant = null;
+    retour.surRetour();
+  });
+
   // Ouvre la fiche d'un numéro sur l'onglet de la page. Attend l'upgrade des
   // composants injectés : poser une propriété (value, loading) sur un élément
   // pas encore upgradé la ferait disparaître à l'upgrade.
-  async function ouvrir(numero) {
+  // `retour` (0019, ouverture depuis une fiche d'adresse) : { libelle,
+  // surRetour } — affiche « Retour à <libelle> » et rejoue surRetour à la
+  // fermeture du drawer.
+  async function ouvrir(numero, retour) {
     await Promise.all(['wa-drawer', 'wa-tab-group', 'wa-textarea', 'wa-button', 'wa-callout']
       .map((nom) => customElements.whenDefined(nom)));
     numeroCourant = numero;
+    retourCourant = retour || null;
+    el('fiche-retour-zone').hidden = !retourCourant;
+    if (retourCourant) {
+      el('fiche-retour-texte').textContent = 'Retour à ' + retourCourant.libelle;
+    }
     // Contenant selon l'écran AU MOMENT de l'ouverture : la fiche monte du bas
     // sur téléphone (la grille reste visible au-dessus), glisse du côté sur
     // grand écran — même contenu (0018). Seuil distinct du 480px de theme.css :

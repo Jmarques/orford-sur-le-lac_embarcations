@@ -12,15 +12,28 @@ function numeroValide_(numero) {
 }
 
 // Une note n'écrit QUE dans le Journal : le statut reste factuel (0011/0014),
-// aucune ligne d'Emplacements n'est touchée.
+// aucune ligne d'Emplacements n'est touchée. Son sujet est un emplacement
+// (numero) OU une adresse (0019, cas hors quota) — exactement l'un des deux.
 function preparerNote(corps) {
-  var numero = numeroValide_(corps.numero);
+  var adresse = String(corps.adresse === undefined || corps.adresse === null ? '' : corps.adresse).trim();
+  var aNumero = corps.numero !== undefined && corps.numero !== null && String(corps.numero).trim() !== '';
+  if (aNumero && adresse !== '') {
+    throw new Error('Une note parle d\'un seul sujet : un numéro d\'emplacement ou une adresse, pas les deux.');
+  }
+  if (!aNumero && adresse === '') {
+    throw new Error('Une note doit viser un numéro d\'emplacement ou une adresse.');
+  }
   var texte = String(corps.texte === undefined || corps.texte === null ? '' : corps.texte).trim();
   if (texte === '') {
     throw new Error('La note est vide — écrire ce qui a été fait ou convenu avant de l\'ajouter au journal.');
   }
   return {
-    evenement: { action: 'note', numero: numero, details: texte },
+    evenement: {
+      action: 'note',
+      numero: aNumero ? numeroValide_(corps.numero) : '',
+      adresse: adresse,
+      details: texte,
+    },
   };
 }
 
@@ -42,9 +55,12 @@ function preparerLiberation(corps, lignesEmplacements) {
   }
   return {
     miseAJour: { numeroAdresse: '', rue: '' },
+    // L'événement porte aussi la clé adresse (0019) : le journal d'un cas hors
+    // quota raconte la libération même après que l'emplacement a quitté l'adresse.
     evenement: {
       action: 'libération',
       numero: numero,
+      adresse: numeroAdresse + ' ' + rue,
       details: 'Adresse retirée : ' + numeroAdresse + ' ' + rue + '.',
     },
   };

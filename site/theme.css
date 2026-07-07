@@ -788,18 +788,74 @@ wa-callout::part(icon) {
   gap: var(--wa-space-3xs);
 }
 
-/* Fiche d'emplacement (décision 0018) : drawer partagé Structures + À traiter.
-   Sur téléphone elle monte du bas, à la hauteur de son contenu (la grille
-   reste visible au-dessus) ; sur grand écran elle glisse du côté, à la
-   largeur par défaut du composant. */
-#fiche-emplacement[placement='bottom'] {
+/* Fiche d'emplacement (décision 0018) et fiche d'adresse (décision 0019) :
+   drawers partagés. Sur téléphone ils montent du bas, à la hauteur de leur
+   contenu (la page reste visible au-dessus) ; sur grand écran ils glissent
+   du côté, à la largeur par défaut du composant. */
+#fiche-emplacement[placement='bottom'],
+#fiche-adresse[placement='bottom'] {
   --size: fit-content;
 }
 /* Coussin sous le dernier geste : marge de sécurité sur les écrans courts et
    dégagement de la barre système des téléphones à encoche (part `body`
    documentée par wa-drawer). */
-#fiche-emplacement[placement='bottom']::part(body) {
+#fiche-emplacement[placement='bottom']::part(body),
+#fiche-adresse[placement='bottom']::part(body) {
   padding-block-end: calc(var(--wa-space-l) + env(safe-area-inset-bottom, 0px));
+}
+
+/* Les emplacements d'une fiche d'adresse (0019) : une rangée-bouton sobre par
+   emplacement — le statut se lit en toutes lettres (pastille), le tap ouvre
+   la fiche d'emplacement. Plus discrète que la carte-galet du registre : ici
+   c'est une liste interne au dossier, pas la file de travail. */
+.liste-emplacements-adresse {
+  list-style: none;
+  margin: 0;
+  padding-inline-start: 0;
+}
+.rangee-emplacement {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: var(--wa-space-s);
+  inline-size: 100%;
+  /* native.css (Web Awesome) fige les <button> à une hauteur de contrôle et
+     interdit le repli : cette rangée est une surface — hauteur au contenu. */
+  block-size: auto;
+  white-space: normal;
+  padding: var(--wa-space-s) var(--wa-space-m);
+  background: var(--wa-color-surface-default);
+  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+  border-radius: var(--wa-border-radius-m);
+  font: inherit;
+  color: var(--wa-color-text-normal);
+  text-align: start;
+  cursor: pointer;
+}
+.rangee-emplacement:hover {
+  background: var(--wa-color-surface-lowered);
+}
+.rangee-emplacement:focus-visible {
+  outline: var(--wa-focus-ring);
+  outline-offset: var(--wa-focus-ring-offset);
+}
+/* Deux lignes courtes (largeur de drawer) : numéro + pastille de statut,
+   position en légende dessous. */
+.rangee-emplacement-texte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wa-space-3xs);
+  min-inline-size: 0;
+}
+.rangee-emplacement-en-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--wa-space-s);
+  row-gap: var(--wa-space-3xs);
+}
+.rangee-emplacement-titre {
+  font-weight: var(--wa-font-weight-semibold);
 }
 /* Les panneaux d'onglet respirent au-dessus, sans gouttière latérale : le
    corps du drawer (--spacing) porte déjà les marges (--padding documenté
@@ -825,10 +881,12 @@ wa-callout::part(icon) {
 @media (max-width: 480px) {
   /* La fiche se resserre : l'essentiel (statut, membre, onglet actif) doit
      tenir sur un écran de téléphone sans défilement du drawer. */
-  #fiche-emplacement {
+  #fiche-emplacement,
+  #fiche-adresse {
     --spacing: var(--wa-space-m);
   }
-  .corps-fiche-emplacement {
+  .corps-fiche-emplacement,
+  .corps-fiche-adresse {
     gap: var(--wa-space-s);
   }
   .zone-journal {

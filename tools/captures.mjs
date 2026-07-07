@@ -104,15 +104,31 @@ export const REPONSES_MOCK = {
       { numero: 84, numeroAdresse: 234, rue: 'Rue du Pré', note: '', occupationObservee: 'libre', dateObservation: '2026-06-28T12:00:00.000Z' },
       { numero: 90, numeroAdresse: 87, rue: 'Chemin du Lac', note: '', occupationObservee: '', dateObservation: '' },
       { numero: 999, numeroAdresse: '', rue: '', note: '', occupationObservee: 'libre', dateObservation: '2026-06-20T12:00:00.000Z' },
+      // Cas « Hors quota » (0019) — toutes ces lignes sont « non observé » :
+      // un numéro avec ligne vide rend le MÊME statut qu'un numéro sans ligne,
+      // la grille des Structures ne change donc pas. Trois dossiers, le tri se
+      // voit en capture (dépassement, puis nombre, puis adresse) :
+      // 501 Rue du Pré (sans ligne Membres) : 4 emplacements, quota 2 → 1er.
+      { numero: 82, numeroAdresse: 501, rue: 'Rue du Pré', note: '', occupationObservee: '', dateObservation: '' },
+      { numero: 83, numeroAdresse: 501, rue: 'Rue du Pré', note: '', occupationObservee: '', dateObservation: '' },
+      { numero: 86, numeroAdresse: 501, rue: 'Rue du Pré', note: '', occupationObservee: '', dateObservation: '' },
+      { numero: 88, numeroAdresse: 501, rue: 'Rue du Pré', note: '', occupationObservee: '', dateObservation: '' },
+      // 87 Chemin du Lac (John, exception à 3) : 4 emplacements → 2e (dép. 1, 4 empl.).
+      { numero: 91, numeroAdresse: 87, rue: 'Chemin du Lac', note: '', occupationObservee: '', dateObservation: '' },
+      { numero: 92, numeroAdresse: 87, rue: 'Chemin du Lac', note: '', occupationObservee: '', dateObservation: '' },
+      { numero: 93, numeroAdresse: 87, rue: 'Chemin du Lac', note: '', occupationObservee: '', dateObservation: '' },
+      // 234 Rue du Pré (Marie) : 3e emplacement → dép. 1, 3 empl. — dernier.
+      { numero: 85, numeroAdresse: 234, rue: 'Rue du Pré', note: '', occupationObservee: '', dateObservation: '' },
     ],
     // Contact courant par adresse (0010) : la carte-cas d'« À traiter » y
     // trouve nom, courriel et téléphone du membre attribué. `quotaAccorde`
-    // (0019) : Louise Bédard porte une exception à 3 — respectée (1 seul
-    // emplacement), donc invisible tant qu'aucune vue quota ne la dépasse.
+    // (0019) : Louise Bédard porte une exception à 3 respectée (1 seul
+    // emplacement — invisible) ; John Tremblay une exception à 3 DÉPASSÉE
+    // (4 emplacements — cas hors quota malgré l'exception).
     membres: [
       { numeroAdresse: 12, rue: 'Rue des Érables', nom: 'Louise Bédard', courriel: 'louise.bedard@exemple.ca', telephone: '819 555-8765', quotaAccorde: 3 },
       { numeroAdresse: 234, rue: 'Rue du Pré', nom: 'Marie Gagnon', courriel: 'marie.gagnon@exemple.ca', telephone: '819 555-2345', quotaAccorde: '' },
-      { numeroAdresse: 87, rue: 'Chemin du Lac', nom: 'John Tremblay', courriel: 'john.tremblay@exemple.ca', telephone: '', quotaAccorde: '' },
+      { numeroAdresse: 87, rue: 'Chemin du Lac', nom: 'John Tremblay', courriel: 'john.tremblay@exemple.ca', telephone: '', quotaAccorde: 3 },
     ],
     // Le Journal voyage avec l'inventaire (0011) : « libre depuis » (série de
     // 75), fenêtre d'apparition d'un « À identifier » (76 : libre le 3 mai,
@@ -128,6 +144,9 @@ export const REPONSES_MOCK = {
       { date: '2026-06-28T12:00:00.000Z', action: 'observation', numero: 84, demandeId: '', details: 'libre' },
       { date: '2026-06-20T12:00:00.000Z', action: 'observation', numero: 74, demandeId: '', details: 'occupé' },
       { date: '2026-06-20T12:00:00.000Z', action: 'observation', numero: 77, demandeId: '', details: 'libre' },
+      // Une note d'ADRESSE (0019) : keyée par la colonne adresse, numero vide —
+      // le journal du cas hors quota de Marie la raconte.
+      { date: '2026-06-15T09:00:00.000Z', action: 'note', numero: '', adresse: '234 Rue du Pré', demandeId: '', details: 'Convenu au téléphone : elle libère un des trois d\'ici la fin de l\'été. — Diane' },
     ],
   },
   // Réponses aux écritures admin (les captures n'écrivent rien de réel).
@@ -155,6 +174,18 @@ INVENTAIRE_APRES_NOTE.journal.push({
   numero: 75,
   demandeId: '',
   details: 'Parlé au membre : il vide l’emplacement d’ici la fin du mois. — Jeremy',
+});
+
+// Inventaire APRÈS une note d'ADRESSE sur le cas de Marie (0019) : le journal
+// de la fiche d'adresse passe à 2 lignes, fiche toujours ouverte.
+export const INVENTAIRE_APRES_NOTE_ADRESSE = structuredClone(REPONSES_MOCK.inventaire);
+INVENTAIRE_APRES_NOTE_ADRESSE.journal.push({
+  date: '2026-07-06T10:00:00.000Z',
+  action: 'note',
+  numero: '',
+  adresse: '234 Rue du Pré',
+  demandeId: '',
+  details: 'Courriel envoyé pour demander lequel des trois libérer. — Jeremy',
 });
 
 // Inventaire APRÈS la libération de 75 : adresse retirée, événement Journal —
@@ -341,6 +372,46 @@ export const CAPTURES = [
   // Registre peuplé : 75 avant 84 (plus anciennement libre d'abord — tri visible).
   { nom: 'a-traiter-liste', page: 'a-traiter.html', etat: 'liste', attendre: '.rangee-cas' },
   { nom: 'a-traiter-liste-vide', page: 'a-traiter.html', etat: 'liste-vide', attendre: '#etat-liste:not([hidden])' },
+  // Section « Hors quota » (0019) : la fiche d'ADRESSE — fait, membre,
+  // emplacements avec statut, journal du cas, note. Cas standard (Marie,
+  // 3 emplacements, quota 2, une note d'adresse au journal).
+  { nom: 'a-traiter-fiche-adresse', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-cas[data-cle="234 rue du pré"]',
+    attendre: '.rangee-emplacement', pleinVue: true },
+  // Exception accordée DÉPASSÉE (John, 4 emplacements, exception à 3).
+  { nom: 'a-traiter-fiche-adresse-exception', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-cas[data-cle="87 chemin du lac"]',
+    attendre: '.rangee-emplacement', pleinVue: true },
+  // Adresse sans ligne Membres : la fiche le dit calmement (0002).
+  { nom: 'a-traiter-fiche-adresse-sans-membre', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-cas[data-cle="501 rue du pré"]',
+    attendre: '#fiche-adresse-membre-absent:not([hidden])', pleinVue: true },
+  // Note d'adresse ajoutée : fiche TOUJOURS ouverte, journal du cas enrichi
+  // (2e ligne), champ vidé.
+  { nom: 'a-traiter-note-adresse-succes', page: 'a-traiter.html', etat: 'liste',
+    ouvrir: '.rangee-cas[data-cle="234 rue du pré"]',
+    remplir: { selecteur: '#fiche-adresse-champ-note textarea',
+      valeur: 'Courriel envoyé pour demander lequel des trois libérer. — Jeremy' },
+    cliquer: '#fiche-adresse-ajouter-note',
+    attendre: '#fiche-adresse-journal .ligne-journal:nth-of-type(2)', pleinVue: true,
+    reponsesApres: { inventaire: INVENTAIRE_APRES_NOTE_ADRESSE } },
+  // Échec d'écriture : le texte saisi est conservé, l'erreur vit dans la fiche.
+  { nom: 'a-traiter-note-adresse-erreur', page: 'a-traiter.html', etat: 'liste',
+    ouvrir: '.rangee-cas[data-cle="234 rue du pré"]',
+    remplir: { selecteur: '#fiche-adresse-champ-note textarea', valeur: 'Message laissé au membre. — Diane' },
+    cliquer: '#fiche-adresse-ajouter-note',
+    attendre: '#fiche-adresse-erreur:not([hidden])', pleinVue: true,
+    reponses: { ajouterNote: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
+  // Navigation fiche d'adresse → fiche d'emplacement : JAMAIS deux drawers —
+  // la fiche d'emplacement porte le bouton retour vers le dossier (0019).
+  { nom: 'a-traiter-fiche-adresse-vers-emplacement', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-cle="234 rue du pré"]', '.rangee-emplacement[data-numero="84"]'],
+    attendre: '#fiche-retour-zone:not([hidden])', pleinVue: true },
+  // … et retour : la fiche d'adresse se rouvre, re-rendue.
+  { nom: 'a-traiter-retour-fiche-adresse', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-cle="234 rue du pré"]', '.rangee-emplacement[data-numero="84"]',
+      '#fiche-retour'],
+    attendre: '#fiche-adresse-fait', pleinVue: true },
   // La fiche d'un cas attribué, onglet Traiter d'office : membre, journal, gestes.
   { nom: 'a-traiter-fiche', page: 'a-traiter.html', etat: 'liste',
     cliquer: '.rangee-cas[data-numero="75"]',

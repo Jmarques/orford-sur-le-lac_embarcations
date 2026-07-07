@@ -553,12 +553,9 @@ function chercherMembreParCle_(membres, cle) {
   return trouve;
 }
 
-// La file « Hors quota » (0019) : les attributions regroupées par clé
-// d'adresse ; cas = attributions > quota accordé. Le compte porte sur les
-// attributions, jamais sur l'occupation observée — rien n'est stocké, un cas
-// sort par libération et re-rentre s'il dépasse son exception. Tri : pire
-// dépassement d'abord, puis nombre d'emplacements, puis adresse (stable).
-function fileHorsQuota(lignesEmplacements, membres) {
+// Les attributions regroupées par clé d'adresse, dans l'ordre de première
+// rencontre. L'affichage de chaque groupe garde le texte de sa première ligne.
+function groupesParAdresse_(lignesEmplacements) {
   var parCle = {};
   var ordre = [];
   (lignesEmplacements || []).forEach(function (ligne) {
@@ -575,16 +572,47 @@ function fileHorsQuota(lignesEmplacements, membres) {
     }
     parCle[cle].emplacements.push(ligne);
   });
+  return ordre.map(function (cle) {
+    parCle[cle].emplacements.sort(function (a, b) { return Number(a.numero) - Number(b.numero); });
+    return parCle[cle];
+  });
+}
 
+// Le dossier d'une adresse (0019), hors quota OU dans les règles — la fiche
+// d'adresse reste racontable après une libération qui referme le cas. null si
+// l'adresse n'a aucune attribution lisible.
+function casAdresse(cle, lignesEmplacements, membres) {
+  var groupe = null;
+  groupesParAdresse_(lignesEmplacements).forEach(function (g) {
+    if (!groupe && g.cle === cle) groupe = g;
+  });
+  if (!groupe) return null;
+  var membre = chercherMembreParCle_(membres, cle);
+  var quota = quotaLisible_(membre);
+  return {
+    cle: groupe.cle,
+    adresse: groupe.adresse,
+    membre: membre,
+    quota: quota,
+    nombre: groupe.emplacements.length,
+    depassement: Math.max(0, groupe.emplacements.length - quota),
+    emplacements: groupe.emplacements,
+  };
+}
+
+// La file « Hors quota » (0019) : les attributions regroupées par clé
+// d'adresse ; cas = attributions > quota accordé. Le compte porte sur les
+// attributions, jamais sur l'occupation observée — rien n'est stocké, un cas
+// sort par libération et re-rentre s'il dépasse son exception. Tri : pire
+// dépassement d'abord, puis nombre d'emplacements, puis adresse (stable).
+function fileHorsQuota(lignesEmplacements, membres) {
   var cas = [];
-  ordre.forEach(function (cle) {
-    var groupe = parCle[cle];
-    var membre = chercherMembreParCle_(membres, cle);
+  groupesParAdresse_(lignesEmplacements).forEach(function (groupe) {
+    var membre = chercherMembreParCle_(membres, groupe.cle);
     var quota = quotaLisible_(membre);
     if (groupe.emplacements.length <= quota) return;
-    groupe.emplacements.sort(function (a, b) { return Number(a.numero) - Number(b.numero); });
     cas.push({
-      cle: cle,
+      cle: groupe.cle,
       adresse: groupe.adresse,
       membre: membre,
       quota: quota,
@@ -641,5 +669,5 @@ function depassementQuota(ligne, lignesEmplacements, membres) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, cleAdresse, fileHorsQuota, journalDeCas, depassementQuota, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, cleAdresse, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, ETATS_OCCUPATION };
 }

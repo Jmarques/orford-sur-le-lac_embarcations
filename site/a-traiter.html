@@ -67,9 +67,11 @@
       </form>
     </wa-card>
 
-    <!-- État : chargement — le squelette pré-dessine les deux sections du
+    <!-- État : chargement — le squelette pré-dessine les trois sections du
          registre (titre puis rangées) pour éviter tout saut de mise en page. -->
     <div id="etat-chargement" class="wa-stack wa-gap-l" role="status" aria-busy="true" hidden>
+      <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
+      <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
       <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
       <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
       <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
@@ -108,6 +110,28 @@
       <p class="wa-color-text-quiet wa-text-pretty">Cette page se tient à jour toute seule :
         dès qu'une tournée observe qu'un cas est réglé, il disparaît de la liste —
         il n'y a rien à fermer ici. Touchez un cas pour ouvrir sa fiche.</p>
+
+      <!-- « Hors quota » en PREMIÈRE position (décision 0019) : le dossier
+           prioritaire — une question d'équité envers les membres qui
+           attendent. Pastille neutre : une règle de gestion, ni urgence ni
+           anomalie de terrain. -->
+      <section class="wa-stack wa-gap-m" aria-labelledby="titre-hors-quota">
+        <div class="wa-stack wa-gap-2xs">
+          <div class="wa-split wa-align-items-baseline">
+            <!-- tabindex : cible de focus après la connexion et quand une
+                 fiche d'adresse se ferme sur un cas sorti de la file. -->
+            <h3 id="titre-hors-quota" class="wa-heading-m" tabindex="-1">Hors quota</h3>
+            <wa-badge id="compte-hors-quota" class="badge-compte" variant="neutral"
+                      appearance="filled-outlined" pill hidden></wa-badge>
+          </div>
+          <p class="wa-color-text-quiet wa-text-pretty">Des adresses qui ont plus d'emplacements
+            que le quota n'en permet.</p>
+        </div>
+        <p id="vide-hors-quota" class="section-vide" hidden>
+          <wa-icon name="circle-check"></wa-icon> Aucune adresse hors quota.
+        </p>
+        <ul id="liste-hors-quota" class="liste-cas wa-stack wa-gap-s"></ul>
+      </section>
 
       <section class="wa-stack wa-gap-m" aria-labelledby="titre-attribue-libre">
         <div class="wa-stack wa-gap-2xs">
@@ -175,6 +199,7 @@
   <script src="eau.js"></script>
   <script src="grille.js"></script>
   <script src="fiche.js"></script>
+  <script src="fiche-adresse.js"></script>
   <script type="module">
     // wa-textarea et wa-dialog ne sont plus dans le markup de la page : la
     // fiche partagée (fiche.js) injecte et attend les siens — les attendre ici
@@ -312,6 +337,31 @@
       return rangee;
     }
 
+    // Une rangée « Hors quota » (0019) : le cas est une ADRESSE — le fait qui
+    // le justifie en signal, le membre et les notes du dossier en méta.
+    function rangeeAdresse(cas) {
+      const rangee = document.getElementById('modele-rangee').content.cloneNode(true);
+      const bouton = rangee.querySelector('.rangee-cas');
+      bouton.dataset.cle = cas.cle;
+
+      rangee.querySelector('.rangee-numero').textContent = cas.adresse;
+      rangee.querySelector('.rangee-structure').textContent = '';
+      const regle = cas.quota === 2 ? 'le quota est de 2' : 'exception accordée à ' + cas.quota;
+      rangee.querySelector('.rangee-signal').textContent =
+        cas.nombre + ' emplacements — ' + regle;
+
+      const numeros = cas.emplacements.map((l) => Number(l.numero));
+      const journal = journalDeCas(donnees.journal, cas.cle, numeros);
+      const morceauxMeta = [];
+      const nomMembre = cas.membre && String(cas.membre.nom || '').trim();
+      if (nomMembre) morceauxMeta.push(nomMembre);
+      morceauxMeta.push(nombreDeNotes(journal));
+      rangee.querySelector('.rangee-meta').textContent = morceauxMeta.join(' · ');
+
+      bouton.addEventListener('click', () => ouvrirCasAdresse(cas));
+      return rangee;
+    }
+
     function afficherCas() {
       structureParNumero = new Map();
       const { structures } = analyserStructures(donnees.structures, []);
@@ -322,19 +372,20 @@
       }
 
       const files = filesATraiter(donnees.emplacements, donnees.journal);
-      remplirSection('attribue-libre', files.attribueLibre, true);
-      remplirSection('a-identifier', files.aIdentifier, false);
+      remplirSection('hors-quota', fileHorsQuota(donnees.emplacements, donnees.membres), rangeeAdresse);
+      remplirSection('attribue-libre', files.attribueLibre, (cas) => rangeeCas(cas, true));
+      remplirSection('a-identifier', files.aIdentifier, (cas) => rangeeCas(cas, false));
       montrerEtat('liste');
     }
 
-    function remplirSection(nom, cas, avecAttribution) {
+    function remplirSection(nom, cas, construireRangee) {
       const badge = document.getElementById('compte-' + nom);
       badge.hidden = cas.length === 0;
       badge.textContent = cas.length === 1 ? '1 cas' : cas.length + ' cas';
       document.getElementById('vide-' + nom).hidden = cas.length > 0;
       const liste = document.getElementById('liste-' + nom);
       liste.replaceChildren();
-      for (const unCas of cas) liste.appendChild(rangeeCas(unCas, avecAttribution));
+      for (const unCas of cas) liste.appendChild(construireRangee(unCas));
     }
 
     // --- La fiche d'emplacement : composant partagé (décision 0018) ---
@@ -369,12 +420,38 @@
       },
     });
 
+    // La fiche d'adresse (0019) : le dossier d'un cas « Hors quota ». Toucher
+    // un de ses emplacements REMPLACE le drawer par la fiche d'emplacement
+    // (jamais deux empilés) ; la refermer — bouton retour, X ou échap —
+    // rouvre la fiche d'adresse, re-rendue depuis l'état frais.
+    const ficheAdresse = creerFicheAdresse({
+      donnees: () => donnees,
+      motDePasse: () => sessionStorage.getItem(CLE_SESSION) || '',
+      surDonneesFraiches: (resultat) => {
+        rangerDonnees(resultat);
+        afficherCas();
+      },
+      surSessionExpiree: () => {
+        sessionStorage.removeItem(CLE_SESSION);
+        montrerConnexion(true);
+      },
+      surOuvrirEmplacement: async (numero, cle, adresse) => {
+        navigationVersEmplacement = true;
+        await ficheAdresse.fermer();
+        fiche.ouvrir(numero, { libelle: adresse, surRetour: () => ficheAdresse.ouvrir(cle) });
+      },
+    });
+
     // L'origine de la fiche ouverte : tout geste re-rend le registre, donc la
     // rangée qui a ouvert la fiche est DÉTRUITE — le focus restauré par le
     // drawer viserait un nœud détaché. À la fermeture, on le pose nous-mêmes :
     // sur la rangée re-rendue si le cas est encore en file, sinon sur le titre
     // de la section d'où venait la rangée (cas libéré ou refermé).
     let ficheOrigine = null;
+    let ficheAdresseOrigine = null;
+    // Fermeture de la fiche d'adresse POUR ouvrir une fiche d'emplacement :
+    // pas une sortie — le focus ne revient pas au registre à ce moment-là.
+    let navigationVersEmplacement = false;
 
     function ouvrirCas(cas, avecAttribution) {
       ficheOrigine = {
@@ -382,6 +459,11 @@
         titre: avecAttribution ? 'titre-attribue-libre' : 'titre-a-identifier',
       };
       fiche.ouvrir(cas.numero);
+    }
+
+    function ouvrirCasAdresse(cas) {
+      ficheAdresseOrigine = { cle: cas.cle };
+      ficheAdresse.ouvrir(cas.cle);
     }
 
     const elementFiche = document.getElementById('fiche-emplacement');
@@ -393,6 +475,20 @@
       ficheOrigine = null;
       const rangee = document.querySelector('.rangee-cas[data-numero="' + numero + '"]');
       (rangee || document.getElementById(titre)).focus();
+    });
+
+    const elementFicheAdresse = document.getElementById('fiche-adresse');
+    elementFicheAdresse.addEventListener('wa-after-hide', (evenement) => {
+      if (evenement.target !== elementFicheAdresse) return;
+      if (navigationVersEmplacement) {
+        navigationVersEmplacement = false;
+        return;
+      }
+      if (!ficheAdresseOrigine) return;
+      const { cle } = ficheAdresseOrigine;
+      ficheAdresseOrigine = null;
+      const rangee = document.querySelector('.rangee-cas[data-cle="' + cle + '"]');
+      (rangee || document.getElementById('titre-hors-quota')).focus();
     });
 
     async function chargerCas(motDePasse) {
@@ -430,7 +526,7 @@
       await chargerCas(champMotDePasse.value);
       // Après la connexion, le focus quitte le formulaire disparu : on le pose
       // sur le premier titre visible (clavier et lecteurs d'écran).
-      if (!etats.liste.hidden) document.getElementById('titre-attribue-libre').focus();
+      if (!etats.liste.hidden) document.getElementById('titre-hors-quota').focus();
     });
     document.getElementById('reessayer').addEventListener('click', () => {
       chargerCas(sessionStorage.getItem(CLE_SESSION) || champMotDePasse.value);

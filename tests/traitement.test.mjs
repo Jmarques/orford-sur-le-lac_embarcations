@@ -30,6 +30,34 @@ test('une note valide devient un événement Journal dédié, rattaché au numé
   assert.equal(evenement.details, 'Toléré jusqu\'à la fin juin. — Jeremy');
 });
 
+// --- Note d'adresse (0019) : la note d'un cas hors quota parle de l'adresse ---
+
+test('une note d\'adresse valide devient un événement Journal rattaché à l\'adresse, numéro vide', () => {
+  const { evenement } = preparerNote(
+    { adresse: '  234 Rue du Pré ', texte: 'Toléré à 3 tant que la liste d\'attente est vide. — Jeremy' },
+  );
+  assert.equal(evenement.action, 'note');
+  assert.equal(evenement.adresse, '234 Rue du Pré');
+  assert.equal(evenement.numero, '');
+  assert.equal(evenement.details, 'Toléré à 3 tant que la liste d\'attente est vide. — Jeremy');
+});
+
+test('une note avec numéro ET adresse à la fois est refusée — le sujet doit être un seul', () => {
+  assert.throws(
+    () => preparerNote({ numero: 75, adresse: '234 Rue du Pré', texte: 'Appel fait.' }),
+    /un seul/i,
+  );
+});
+
+test('une note sans numéro ni adresse est refusée en nommant l\'attendu', () => {
+  assert.throws(() => preparerNote({ texte: 'Appel fait.' }), /numéro.*adresse|adresse.*numéro/i);
+  assert.throws(() => preparerNote({ adresse: '   ', texte: 'Appel fait.' }), /numéro.*adresse|adresse.*numéro/i);
+});
+
+test('une note d\'adresse vide est refusée comme une note d\'emplacement', () => {
+  assert.throws(() => preparerNote({ adresse: '234 Rue du Pré', texte: '  ' }), /vide/i);
+});
+
 // --- Libération (0014) : l'adresse est retirée, l'événement garde sa trace ---
 
 test('libérer un emplacement sans attribution est refusé avec un message clair', () => {
@@ -49,6 +77,9 @@ test('une libération valide vide l\'adresse (et rien d\'autre) et journalise l\
   assert.equal(evenement.action, 'libération');
   assert.equal(evenement.numero, 75);
   assert.match(evenement.details, /12 Rue des Érables/);
+  // L'événement porte aussi la clé adresse (0019) : le journal du cas hors
+  // quota raconte la libération même après que l'emplacement a quitté l'adresse.
+  assert.equal(evenement.adresse, '12 Rue des Érables');
 });
 
 test('la mise à jour survit à des colonnes réordonnées à la main (0012) : fusion par nom, jamais par position', () => {
