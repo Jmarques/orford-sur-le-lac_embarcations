@@ -15,7 +15,7 @@
 //   surOuvrirEmplacement(numero, cle, adresse) — la page ferme cette fiche et
 //                      ouvre la fiche d'emplacement avec retour (0019).
 
-/* global statutEmplacement, analyserStructures, casAdresse, journalDeCas */
+/* global statutEmplacement, casAdresse, journalDeCas, apparenceStatut, cartePositions, lienMailto */
 
 function creerFicheAdresse(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -97,31 +97,6 @@ function creerFicheAdresse(options) {
     return casAdresse(cleCourante, options.donnees().emplacements, options.donnees().membres);
   }
 
-  // Même pastille de statut que la grille : le libellé en toutes lettres,
-  // la couleur ne porte jamais seule.
-  const VARIANTES_STATUTS = {
-    conforme: 'success',
-    peutEtreALiberer: 'warning',
-    orphelin: 'danger',
-    disponible: 'brand',
-    pasObserve: 'neutral',
-  };
-
-  // La position de chaque numéro, dérivée des grilles (0009) — calculée UNE
-  // fois par rendu, pas par rangée (l'analyse parcourt toutes les structures).
-  function cartePositions() {
-    const { structures } = analyserStructures(options.donnees().structures, []);
-    const positions = new Map();
-    for (const analyse of structures) {
-      for (const emplacement of analyse.emplacements) {
-        if (positions.has(Number(emplacement.numero))) continue;
-        positions.set(Number(emplacement.numero), 'Structure ' + emplacement.structure
-          + (emplacement.niveau !== '' ? ' · Niveau ' + emplacement.niveau : ''));
-      }
-    }
-    return positions;
-  }
-
   function rangeeEmplacement(ligne, positions) {
     const element = document.createElement('li');
     const bouton = document.createElement('button');
@@ -140,16 +115,18 @@ function creerFicheAdresse(options) {
     titre.textContent = 'Emplacement ' + ligne.numero;
     const statut = statutEmplacement(ligne);
     const pastille = document.createElement('wa-badge');
-    pastille.setAttribute('variant', VARIANTES_STATUTS[statut.code]);
+    // La couleur ne porte jamais seule : le libellé accompagne (décision 0016).
+    pastille.setAttribute('variant', apparenceStatut(statut.code).variante);
     pastille.setAttribute('appearance', 'filled-outlined');
     pastille.textContent = statut.libelle;
     enTete.append(titre, pastille);
     texte.appendChild(enTete);
-    const position = positions.get(Number(ligne.numero)) || '';
+    const position = positions.get(Number(ligne.numero));
     if (position) {
       const sousTitre = document.createElement('span');
       sousTitre.className = 'wa-caption-m wa-color-text-quiet';
-      sousTitre.textContent = position;
+      sousTitre.textContent = 'Structure ' + position.structure
+        + (position.niveau !== '' ? ' · Niveau ' + position.niveau : '');
       texte.appendChild(sousTitre);
     }
     const chevron = document.createElement('wa-icon');
@@ -207,9 +184,7 @@ function creerFicheAdresse(options) {
       'Merci,',
       'Le comité administratif — Orford sur le Lac',
     ].join('\n');
-    return 'mailto:' + encodeURIComponent(String(cas.membre.courriel).trim())
-      + '?subject=' + encodeURIComponent(sujet)
-      + '&body=' + encodeURIComponent(corps);
+    return lienMailto({ courriel: cas.membre.courriel, sujet, corps });
   }
 
   // --- Rendu : tout se recalcule depuis donnees(), la fiche se remplit en place ---
@@ -275,7 +250,7 @@ function creerFicheAdresse(options) {
     // Les emplacements du dossier : le choix décisif — lequel libérer ? Le
     // statut de chacun se lit en toutes lettres, le tap ouvre sa fiche.
     const liste = el('fiche-adresse-emplacements');
-    const positions = cartePositions();
+    const positions = cartePositions(options.donnees().structures);
     liste.replaceChildren(...(cas ? cas.emplacements : [])
       .map((ligne) => rangeeEmplacement(ligne, positions)));
 

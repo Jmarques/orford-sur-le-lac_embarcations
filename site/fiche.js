@@ -15,8 +15,9 @@
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
 
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
-   serieLibreObservee, fenetreApparition, analyserStructures, depassementQuota,
-   cleAdresse, ETATS_OCCUPATION */
+   serieLibreObservee, depassementQuota,
+   cleAdresse, ETATS_OCCUPATION, apparenceStatut, proseSignal, formatAdresse,
+   chercherMembreParCle, positionParNumero, lienMailto */
 
 function creerFicheEmplacement(options) {
   // Markup constant (aucune donnée) : tout ce qui vient de la Sheet est posé
@@ -161,7 +162,7 @@ function creerFicheEmplacement(options) {
 
   // Adresse toujours affichée « numeroAdresse rue » (décision 0012).
   function adresseLisible(ligne) {
-    return String(ligne.numeroAdresse).trim() + ' ' + String(ligne.rue).trim();
+    return formatAdresse(ligne.numeroAdresse, ligne.rue);
   }
 
   function lignePourNumero(numero) {
@@ -171,59 +172,24 @@ function creerFicheEmplacement(options) {
   // Par la clé d'adresse normalisée (0019) : « Rue du Lac » et « rue du lac »
   // (Sheet éditée à la main, 0002) désignent le même membre.
   function chercherMembre(ligne) {
-    const cle = cleAdresse(ligne);
-    return options.donnees().membres.find((membre) => cle !== '' && cleAdresse(membre) === cle);
+    return chercherMembreParCle(options.donnees().membres, cleAdresse(ligne));
   }
 
   // La position d'un numéro, dérivée des grilles (0009). Un numéro « en
   // double » (erreur de données) a plusieurs positions : la première est
   // affichée — le marquage de l'erreur appartient aux pages, pas à la fiche.
   function positionPourNumero(numero) {
-    const { structures } = analyserStructures(options.donnees().structures, []);
-    for (const analyse of structures) {
-      const emplacement = analyse.emplacements
-        .find((e) => Number(e.numero) === Number(numero));
-      if (emplacement) return emplacement;
-    }
-    return null;
+    return positionParNumero(numero, options.donnees().structures);
   }
-
-  // Apparence du callout de statut, par code (libellé et explication : grille.js).
-  const APPARENCE_STATUTS = {
-    conforme: { variante: 'success', icone: 'circle-check' },
-    peutEtreALiberer: { variante: 'warning', icone: 'triangle-exclamation' },
-    orphelin: { variante: 'danger', icone: 'triangle-exclamation' },
-    disponible: { variante: 'brand', icone: 'circle-check' },
-    pasObserve: { variante: 'neutral', icone: 'circle-question' },
-  };
 
   // Le fait décisif du statut, en une ligne sous le libellé. Les deux statuts
   // problèmes portent leur signal temporel (des faits observés, jamais des
   // mois calendaires — 0014) ; les autres gardent l'explication dérivée.
   // L'adresse n'y figure jamais : elle vit dans la ligne membre (0016).
   function detailStatut(statut, ligne) {
-    const journal = options.donnees().journal;
-    if (statut.code === 'peutEtreALiberer') {
-      const serie = serieLibreObservee(ligne, journal);
-      return 'Attribué, mais observé libre '
-        + (serie.debut ? 'depuis le ' + formatDate.format(serie.debut) : 'depuis une date inconnue')
-        + ' · ' + (serie.nombre === 1 ? '1 observation' : serie.nombre + ' observations') + '.';
-    }
-    if (statut.code === 'orphelin') {
-      const fenetre = fenetreApparition(ligne, journal);
-      if (!fenetre) {
-        const date = new Date(ligne.dateObservation);
-        return 'Non attribué — embarcation observée'
-          + (Number.isNaN(date.valueOf()) ? ' à une date inconnue.' : ' le ' + formatDate.format(date) + '.');
-      }
-      let texte = fenetre.libreAvant
-        ? 'Non attribué — embarcation apparue entre le ' + formatDate.format(fenetre.libreAvant)
-          + ' et le ' + formatDate.format(fenetre.debut)
-        : 'Non attribué — embarcation observée depuis le ' + formatDate.format(fenetre.debut);
-      if (fenetre.nombre > 1) texte += ' · vue ' + fenetre.nombre + ' fois';
-      return texte + '.';
-    }
-    return statut.explication;
+    // proseSignal (presentation.js) porte la formulation « fiche » du signal ;
+    // les statuts sans dimension temporelle retombent sur l'explication dérivée.
+    return proseSignal(ligne, options.donnees().journal, 'fiche') || statut.explication;
   }
 
   // Icône et libellé de chaque type d'événement du journal. L'observation
@@ -288,11 +254,7 @@ function creerFicheEmplacement(options) {
     } else {
       corps = ['Bonjour ' + membre.nom + ',', '', '', ''].concat(signature).join('\n');
     }
-    // Le courriel aussi est encodé : un « ? » ou « & » dans la cellule (Sheet
-    // éditée à la main, 0002) casserait les paramètres du mailto.
-    return 'mailto:' + encodeURIComponent(String(membre.courriel).trim())
-      + '?subject=' + encodeURIComponent(sujet)
-      + '&body=' + encodeURIComponent(corps);
+    return lienMailto({ courriel: membre.courriel, sujet, corps });
   }
 
   // --- Rendu : tout se recalcule depuis donnees(), la fiche se remplit en place ---
@@ -300,7 +262,7 @@ function creerFicheEmplacement(options) {
   function rendre() {
     const ligne = lignePourNumero(numeroCourant);
     const statut = statutEmplacement(ligne);
-    const apparence = APPARENCE_STATUTS[statut.code];
+    const apparence = apparenceStatut(statut.code);
     const position = positionPourNumero(numeroCourant);
 
     const libelle = 'Emplacement ' + numeroCourant

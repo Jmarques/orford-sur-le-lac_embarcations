@@ -277,6 +277,7 @@
   <script src="config.js"></script>
   <script src="eau.js"></script>
   <script src="grille.js"></script>
+  <script src="presentation.js"></script>
   <script src="client.js"></script>
   <script src="fiche.js"></script>
   <script src="fiche-adresse.js"></script>
@@ -359,42 +360,18 @@
 
     // Adresse toujours affichée « numeroAdresse rue » (décision 0012).
     function adresseLisible(ligne) {
-      return String(ligne.numeroAdresse).trim() + ' ' + String(ligne.rue).trim();
+      return formatAdresse(ligne.numeroAdresse, ligne.rue);
     }
 
     // Par la clé d'adresse normalisée (0019) : « Rue du Lac » et « rue du
     // lac » (Sheet éditée à la main, 0002) désignent le même membre.
     function chercherMembre(ligne) {
-      const cle = cleAdresse(ligne);
-      return donnees.membres.find((membre) => cle !== '' && cleAdresse(membre) === cle);
+      return chercherMembreParCle(donnees.membres, cleAdresse(ligne));
     }
 
-    // Le signal d'une rangée « Attribué, libre » : depuis quand, étayé par
-    // combien d'observations — des faits, jamais des mois calendaires (0014).
-    function signalLibre(serie) {
-      const depuis = serie.debut
-        ? 'Libre depuis le ' + formatDate.format(serie.debut)
-        : 'Libre depuis une date inconnue';
-      return depuis + ' · ' + (serie.nombre === 1 ? '1 observation' : serie.nombre + ' observations');
-    }
-
-    // Le signal d'une rangée « À identifier » : la fenêtre d'apparition
-    // dérivée par grille.js — la page ne fait que la mettre en mots.
-    function signalAIdentifier(ligne) {
-      const fenetre = fenetreApparition(ligne, donnees.journal);
-      if (!fenetre) {
-        const date = new Date(ligne.dateObservation);
-        return Number.isNaN(date.valueOf())
-          ? 'Embarcation observée, à une date inconnue'
-          : 'Embarcation observée le ' + formatDate.format(date);
-      }
-      let texte = fenetre.libreAvant
-        ? 'Embarcation apparue entre le ' + formatDate.format(fenetre.libreAvant)
-          + ' et le ' + formatDate.format(fenetre.debut)
-        : 'Embarcation observée depuis le ' + formatDate.format(fenetre.debut);
-      if (fenetre.nombre > 1) texte += ' · vue ' + fenetre.nombre + ' fois';
-      return texte;
-    }
+    // Le signal temporel d'une rangée (« Libre depuis… », « Embarcation apparue
+    // entre… ») vient de proseSignal (presentation.js), contexte « file » — la
+    // même formulation que la fiche partage ses faits, sans pouvoir diverger.
 
     function nombreDeNotes(historique) {
       const notes = historique.filter((e) => e.action === 'note').length;
@@ -405,7 +382,7 @@
 
     // La structure de chaque numéro, dérivée des grilles (0009) — présentation
     // seulement : les avertissements d'analyse appartiennent à la page Structures.
-    let structureParNumero = new Map();
+    let positionsParNumero = new Map();
 
     function rangeeCas(cas, avecAttribution) {
       const rangee = document.getElementById('modele-rangee').content.cloneNode(true);
@@ -413,15 +390,14 @@
       bouton.dataset.numero = String(cas.numero);
 
       rangee.querySelector('.rangee-numero').textContent = 'Emplacement ' + cas.numero;
-      const structure = structureParNumero.get(cas.numero);
+      const position = positionsParNumero.get(cas.numero);
+      const structure = position ? position.structure : '';
       // Espace insécable après le point médian : jamais de « · » orphelin en
       // fin de ligne quand la mention de structure se replie.
       rangee.querySelector('.rangee-structure').textContent =
         structure ? '· Structure ' + structure : '';
 
-      rangee.querySelector('.rangee-signal').textContent = avecAttribution
-        ? signalLibre(cas.serie)
-        : signalAIdentifier(cas.ligne);
+      rangee.querySelector('.rangee-signal').textContent = proseSignal(cas.ligne, donnees.journal, 'file');
 
       const historique = historiqueEmplacement(donnees.journal, cas.numero);
       const morceauxMeta = [];
@@ -468,7 +444,7 @@
     // L'adresse figée d'une demande : toujours « numeroAdresse rue » (décision
     // 0012), comme le Journal et les fiches ; rempli par textContent (anti-XSS).
     function adresseDemande(demande) {
-      return String(demande.numero).trim() + ' ' + String(demande.rue).trim();
+      return formatAdresse(demande.numero, demande.rue);
     }
 
     // « Reçue le … » ou une mention neutre si la date est illisible (Sheet
@@ -564,13 +540,7 @@
 
     function afficherCas() {
       afficherDemandes();
-      structureParNumero = new Map();
-      const { structures } = analyserStructures(donnees.structures, []);
-      for (const analyse of structures) {
-        for (const emplacement of analyse.emplacements) {
-          structureParNumero.set(Number(emplacement.numero), analyse.id);
-        }
-      }
+      positionsParNumero = cartePositions(donnees.structures);
 
       const files = filesATraiter(donnees.emplacements, donnees.journal);
       remplirSection('hors-quota', fileHorsQuota(donnees.emplacements, donnees.membres), rangeeAdresse);

@@ -12,8 +12,9 @@
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
 
 /* global etatDemande, diffContact, suggestionsEmplacements, situationAttribution,
-   autresDemandesOuvertes, casAdresse, analyserStructures, cleAdresse,
-   statutEmplacement, estMobiliteReduite */
+   autresDemandesOuvertes, casAdresse, cleAdresse,
+   statutEmplacement, estMobiliteReduite, apparenceStatut, formatAdresse,
+   chercherMembreParCle, lienMailto */
 
 function creerFicheDemande(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -148,32 +149,13 @@ function creerFicheDemande(options) {
   // Toujours « numeroAdresse rue » (décision 0012), comme le Journal et les
   // autres fiches — jamais une virgule qui ferait diverger l'affichage.
   function adresseDemande(demande) {
-    return String(demande.numero).trim() + ' ' + String(demande.rue).trim();
+    return formatAdresse(demande.numero, demande.rue);
   }
   function cleDe(demande) {
     return cleAdresse({ numeroAdresse: demande.numero, rue: demande.rue });
   }
   function membreDe(demande) {
-    const cle = cleDe(demande);
-    return options.donnees().membres.find((m) => cle !== '' && cleAdresse(m) === cle);
-  }
-
-  const VARIANTES_STATUTS = {
-    conforme: 'success', peutEtreALiberer: 'warning', orphelin: 'danger',
-    disponible: 'brand', pasObserve: 'neutral',
-  };
-
-  // La position (structure · niveau) de chaque numéro, dérivée des grilles (0009).
-  function cartePositions() {
-    const { structures } = analyserStructures(options.donnees().structures, []);
-    const positions = new Map();
-    for (const analyse of structures) {
-      for (const e of analyse.emplacements) {
-        if (positions.has(Number(e.numero))) continue;
-        positions.set(Number(e.numero), { structure: e.structure, niveau: e.niveau });
-      }
-    }
-    return positions;
+    return chercherMembreParCle(options.donnees().membres, cleDe(demande));
   }
 
   // Une ligne de contact : le champ, la valeur de la demande, et — s'il diffère
@@ -244,9 +226,7 @@ function creerFicheDemande(options) {
       '',
       'Le comité administratif — Orford sur le Lac',
     ].join('\n');
-    return 'mailto:' + encodeURIComponent(String(demande.courriel || '').trim())
-      + '?subject=' + encodeURIComponent(sujet)
-      + '&body=' + encodeURIComponent(corps);
+    return lienMailto({ courriel: demande.courriel, sujet, corps });
   }
 
   // --- Rendu : tout se recalcule depuis donnees(), la fiche se remplit en place ---
@@ -311,7 +291,6 @@ function creerFicheDemande(options) {
     el('fiche-demande-situation').textContent = nombre === 0
       ? 'Aucun emplacement attribué à cette adresse pour l\'instant — ' + regle + '.'
       : nombre + (nombre > 1 ? ' emplacements attribués' : ' emplacement attribué') + ' — ' + regle + '.';
-    const positions = cartePositions();
     const attributions = el('fiche-demande-attributions');
     attributions.replaceChildren(...(cas ? cas.emplacements : []).map((ligne) => {
       const li = document.createElement('li');
@@ -321,7 +300,8 @@ function creerFicheDemande(options) {
       titre.textContent = 'Emplacement ' + ligne.numero;
       const statut = statutEmplacement(ligne);
       const pastille = document.createElement('wa-badge');
-      pastille.setAttribute('variant', VARIANTES_STATUTS[statut.code]);
+      // La couleur ne porte jamais seule : le libellé accompagne (décision 0016).
+      pastille.setAttribute('variant', apparenceStatut(statut.code).variante);
       pastille.setAttribute('appearance', 'filled-outlined');
       pastille.textContent = statut.libelle;
       li.append(titre, pastille);
