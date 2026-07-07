@@ -62,14 +62,19 @@
 
         <section class="wa-stack wa-gap-m">
           <h2 class="wa-heading-l">Votre adresse</h2>
-          <wa-select name="rue" id="champ-rue" class="champ-plein" label="Rue"
-                     placeholder="Choisissez" required>
-            <wa-icon slot="start" name="road"></wa-icon>
-          </wa-select>
-          <wa-input name="numero" class="champ-plein" label="Numéro civique" type="text"
-                    inputmode="numeric" pattern="[0-9]*" required>
-            <wa-icon slot="start" name="hashtag"></wa-icon>
-          </wa-input>
+          <!-- Numéro (court) et rue (le reste) sur une même ligne : l'adresse se
+               lit « 234 Rue du Pré ». Sur très petit écran, les deux repassent
+               l'un sous l'autre (voir theme.css). -->
+          <div class="champ-adresse">
+            <!-- Pas d'icône sur le numéro : sur un champ court de 3 chiffres,
+                 elle mangerait la place ; le label « Numéro » suffit. -->
+            <wa-input name="numero" class="champ-numero" label="Numéro" type="text"
+                      inputmode="numeric" pattern="[0-9]*" required></wa-input>
+            <wa-select name="rue" id="champ-rue" class="champ-rue" label="Rue"
+                       placeholder="Choisissez" required>
+              <wa-icon slot="start" name="road"></wa-icon>
+            </wa-select>
+          </div>
         </section>
 
         <section class="wa-stack wa-gap-m">

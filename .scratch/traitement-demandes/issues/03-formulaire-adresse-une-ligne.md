@@ -1,6 +1,6 @@
 # 03 — Formulaire membre : l'adresse sur une ligne
 
-Status: ready-for-agent
+Status: done
 
 ## Parent
 
@@ -12,10 +12,10 @@ Ajustement purement visuel du formulaire public de demande : le numéro civique 
 
 ## Acceptance criteria
 
-- [ ] Numéro + rue sur une ligne, numéro dimensionné pour 3 caractères, rue fluide
-- [ ] Rendu mobile vérifié en captures : la ligne tient sans troncature ni cibles rétrécies (public aîné — cibles larges)
-- [ ] Aucun changement de champ, de validation ni de soumission ; console propre
-- [ ] Revue ui-critic sur le delta de captures
+- [x] Numéro + rue sur une ligne (desktop), numéro court sans icône (label « Numéro »), rue fluide via `grid` minmax(0,1fr)
+- [x] Rendu mobile vérifié : la ligne tronquait la rue sur téléphone → les deux champs s'empilent pleine largeur sous 40rem (condition de Jeremy « si ça passe sur mobile, sinon empilé »), aucune troncature, cibles larges
+- [x] Aucun changement de champ, de validation ni de soumission ; console propre
+- [x] Revue ui-critic sur le delta (troncature mobile signalée → corrigée par l'empilement)
 
 ## Blocked by
 

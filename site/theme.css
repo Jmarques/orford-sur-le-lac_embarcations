@@ -980,6 +980,24 @@ wa-callout::part(icon) {
   width: 100%;
 }
 
+/* L'adresse sur une ligne (T3) : le numéro civique, court (max 3 chiffres),
+   à gauche ; la rue prend tout le reste. `minmax(0, 1fr)` force la colonne de
+   la rue à rétrécir dans la carte plutôt que de déborder. Sur les écrans
+   étroits (téléphones), la rue n'aurait plus la place d'afficher un nom en
+   entier : les deux champs repassent alors l'un sous l'autre, pleine largeur —
+   l'adresse compacte est un gain de bureau, jamais au prix d'une rue tronquée. */
+.champ-adresse {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: var(--wa-space-m);
+  align-items: start;
+}
+@media (max-width: 40rem) {
+  .champ-adresse {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Animation d'entrée — une seule, sobre : fondu + léger glissement vers le haut,
    en cascade (en-tête puis carte). Désactivée si l'utilisateur préfère réduire
    les animations. Durées/décalages exclusivement en tokens --wa-transition-*. */
