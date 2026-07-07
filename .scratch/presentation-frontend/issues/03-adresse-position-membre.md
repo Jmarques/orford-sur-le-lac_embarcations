@@ -38,6 +38,7 @@ Migrer les copies :
 - **`chercherMembre` exposé sous le nom `chercherMembreParCle(membres, cle)`** (la primitive par clé de grille) : évite la collision avec les fonctions locales `chercherMembre(ligne)`, et gère la demande (clé calculée depuis `numero`/`rue`).
 - **`formatAdresse(numeroAdresse, rue)`** (deux primitives) sert les deux sources (ligne = `numeroAdresse`, demande = `numero`). 4 copies migrées.
 - **Position : 3 consommateurs réels**, pas 5. `structures.html` rend ses grilles directement (aucun lookup par numéro) ; le `cartePositions` de `fiche-demande.js` était du **code mort** (résultat jamais lu) — retiré. Restent fiche.js, fiche-adresse.js, a-traiter.html, via `cartePositions(structures)` (le lookup partagé) ; chaque page formate localement (les formats diffèrent).
+- **Changement de comportement assumé (cas d'erreur seulement)** : l'ancien `structureParNumero` d'a-traiter n'avait pas de garde → pour un numéro **en double** entre structures (une erreur de saisie), il montrait la **dernière** structure. Le `cartePositions` partagé applique « première position gagne » (garde `if (!positions.has(numero))`), comme fiche.js et fiche-adresse le faisaient déjà et comme le veut l'invariant documenté (0009). Donc pour un doublon, a-traiter affiche désormais la **première** structure — cohérent avec le reste de l'app. Aucun doublon dans les fixtures (delta captures nul). Corrige une incohérence, ne régresse rien.
 
 ## Blocked by
 
