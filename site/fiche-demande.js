@@ -134,7 +134,8 @@ function creerFicheDemande(options) {
   const drawer = el('fiche-demande');
   const formatDate = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
 
-  class ErreurApi extends Error {}
+  // ErreurApi (erreur métier montrable) et le transport vers le backend
+  // viennent du module client (client.js, chargé avant fiche-demande.js).
 
   let demandeId = '';
   let numeroChoisi = null; // l'emplacement sélectionné avant confirmation
@@ -421,13 +422,14 @@ function creerFicheDemande(options) {
 
   // --- Gestes : POST (mot de passe en corps, 0008), puis état frais (0002) ---
 
-  async function envoyerAction(corps) {
-    const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
-      method: 'POST',
-      body: JSON.stringify({ ...corps, motDePasse: options.motDePasse() }),
-    });
-    return reponse.json();
-  }
+  // Le seul canal vers le backend (client.js) : URL, corps text/plain (0001),
+  // mot de passe en corps (0008), enveloppe normalisée. La réaction à une
+  // session morte reste ici (sessionEncoreValide) — pas dans le client.
+  const client = creerClient({
+    fetch: (url, params) => window.fetch(url, params),
+    apiUrl: window.OSL_CONFIG.apiUrl,
+    motDePasse: options.motDePasse,
+  });
 
   function fermer() {
     return new Promise((fin) => {
@@ -437,19 +439,21 @@ function creerFicheDemande(options) {
     });
   }
 
-  async function reponseAcceptee(resultat) {
-    if (resultat.ok) return true;
-    if (resultat.code === 'accesRefuse') {
+  // Garde commune des gestes : vrai si la session tient ; une session expirée
+  // ferme la fiche et rend la main à la page (faux). Le client a déjà normalisé
+  // — un refus métier est remonté en ErreurApi avant d'arriver ici.
+  async function sessionEncoreValide(resultat) {
+    if (resultat.accesRefuse) {
       await fermer();
       options.surSessionExpiree();
       return false;
     }
-    throw new ErreurApi(resultat.erreur);
+    return true;
   }
 
   async function rafraichir() {
-    const resultat = await envoyerAction({ action: 'inventaire' });
-    if (!(await reponseAcceptee(resultat))) return false;
+    const resultat = await client.poster({ action: 'inventaire' });
+    if (!(await sessionEncoreValide(resultat))) return false;
     options.surDonneesFraiches(resultat);
     rendre();
     return true;
@@ -461,8 +465,8 @@ function creerFicheDemande(options) {
     cacherErreurs();
     bouton.loading = true;
     try {
-      const resultat = await envoyerAction(corps);
-      if (!(await reponseAcceptee(resultat))) return;
+      const resultat = await client.poster(corps);
+      if (!(await sessionEncoreValide(resultat))) return;
       await rafraichir();
     } catch (erreur) {
       if (erreur instanceof ErreurApi) console.info('Geste refusé :', erreur.message);

@@ -348,6 +348,7 @@
   <script src="config.js"></script>
   <script src="eau.js"></script>
   <script src="grille.js"></script>
+  <script src="client.js"></script>
   <script src="fiche.js"></script>
   <script type="module">
     // Pas de wa-badge ici : les seules badges vivent dans des <template>
@@ -385,6 +386,26 @@
     }
 
     const CLE_SESSION = 'oslMotDePasseComite';
+
+    // Le mot de passe utilisé pour les appels backend : la session, ou la valeur
+    // tentée à la connexion (chargerStructures la pose avant validation). Le
+    // client (client.js) le lit frais à chaque appel — corps text/plain sans
+    // preflight (0001), mot de passe en corps (0008), enveloppe normalisée.
+    let motDePasseActif = sessionStorage.getItem(CLE_SESSION) || '';
+    const client = creerClient({
+      fetch: (url, params) => window.fetch(url, params),
+      apiUrl: window.OSL_CONFIG.apiUrl,
+      motDePasse: () => motDePasseActif,
+    });
+
+    // Réaction commune à une session morte (le client renvoie la sentinelle) :
+    // oublier le mot de passe et réafficher la connexion. Propre à la page.
+    function sessionExpiree() {
+      sessionStorage.removeItem(CLE_SESSION);
+      motDePasseActif = '';
+      montrerConnexion(true);
+    }
+
     const erreurConnexion = document.getElementById('erreur-connexion');
     const champMotDePasse = document.getElementById('champ-mot-de-passe');
 
@@ -871,22 +892,12 @@
       terminer.loading = true;
       const structure = tourneeCourante.structure;
       try {
-        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
-        const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
-        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'observerLot', motDePasse, observations }),
-        });
-        const resultat = await reponse.json();
-        if (!resultat.ok) {
-          if (resultat.code === 'accesRefuse') {
-            sessionStorage.removeItem(CLE_SESSION);
-            // `tourneeCourante` est conservée : après la reconnexion, la
-            // tournée rouvre avec les taps intacts (rien n'est perdu).
-            montrerConnexion(true);
-            return;
-          }
-          throw new ErreurApi(resultat.erreur);
+        const resultat = await client.poster({ action: 'observerLot', observations });
+        if (resultat.accesRefuse) {
+          // `tourneeCourante` est conservée : après la reconnexion, la tournée
+          // rouvre avec les taps intacts (rien n'est perdu).
+          sessionExpiree();
+          return;
         }
         // Le bilan se calcule sur l'état d'AVANT l'envoi (les fantômes que le
         // membre avait sous les yeux) — construit avant de lâcher la tournée.
@@ -1185,24 +1196,14 @@
       bouton.loading = true;
       bouton.disabled = true;
       try {
-        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
-        const motDePasse = sessionStorage.getItem(CLE_SESSION) || '';
-        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'sauverStructure', motDePasse, id, ...valeurs }),
-        });
-        const resultat = await reponse.json();
-        if (!resultat.ok) {
-          if (resultat.code === 'accesRefuse') {
-            sessionStorage.removeItem(CLE_SESSION);
-            montrerConnexion(true);
-            return;
-          }
-          throw new ErreurApi(resultat.erreur);
+        const resultat = await client.poster({ action: 'sauverStructure', id, ...valeurs });
+        if (resultat.accesRefuse) {
+          sessionExpiree();
+          return;
         }
         // État frais depuis la Sheet (0002) plutôt qu'une mise à jour locale.
         editionCourante = null;
-        await chargerStructures(motDePasse, 'Structure ' + id + ' enregistrée.', id);
+        await chargerStructures(motDePasseActif, 'Structure ' + id + ' enregistrée.', id);
       } catch (erreurEnvoi) {
         // Une erreur métier est affichée à l'utilisateur : info en console,
         // pas error (la boucle de captures échoue sur toute console.error).
@@ -1280,30 +1281,25 @@
     }
     window.addEventListener('resize', majIndicesDefilement);
 
-    // Erreur « métier » renvoyée par l'API, par opposition aux erreurs techniques.
-    class ErreurApi extends Error {}
-
     async function chargerStructures(motDePasse, messageSucces, idCible) {
       montrerEtat('chargement');
+      motDePasseActif = motDePasse;
       try {
-        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
         const [reponseInventaire, reponseConfig] = await Promise.all([
-          fetch(window.OSL_CONFIG.apiUrl, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'inventaire', motDePasse }),
-          }).then((r) => r.json()),
-          fetch(window.OSL_CONFIG.apiUrl + '?action=config').then((r) => r.json()),
+          client.poster({ action: 'inventaire' }),
+          // La config est publique et non critique : un refus métier laisse les
+          // types au défaut, une panne réseau fait échouer le chargement.
+          client.obtenir('config').catch((e) => {
+            if (e instanceof ErreurApi) return null;
+            throw e;
+          }),
         ]);
-        if (!reponseInventaire.ok) {
-          if (reponseInventaire.code === 'accesRefuse') {
-            sessionStorage.removeItem(CLE_SESSION);
-            montrerConnexion(true);
-            return;
-          }
-          throw new ErreurApi(reponseInventaire.erreur);
+        if (reponseInventaire.accesRefuse) {
+          sessionExpiree();
+          return;
         }
         sessionStorage.setItem(CLE_SESSION, motDePasse);
-        const typesConfig = reponseConfig.ok ? reponseConfig.config.types : [];
+        const typesConfig = reponseConfig && reponseConfig.config ? reponseConfig.config.types : [];
         // Un backend pas encore redéployé ne renvoie ni journal ni membres :
         // la fiche marche en mode dégradé, mais le dit à qui ouvre la console.
         if (!reponseInventaire.journal || !reponseInventaire.membres) {

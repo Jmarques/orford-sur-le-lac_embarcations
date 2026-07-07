@@ -277,6 +277,7 @@
   <script src="config.js"></script>
   <script src="eau.js"></script>
   <script src="grille.js"></script>
+  <script src="client.js"></script>
   <script src="fiche.js"></script>
   <script src="fiche-adresse.js"></script>
   <script src="fiche-demande.js"></script>
@@ -313,6 +314,25 @@
     }
 
     const CLE_SESSION = 'oslMotDePasseComite';
+
+    // Le mot de passe utilisé pour le chargement : la session, ou la valeur
+    // tentée à la connexion (posée avant validation). Le client (client.js) le
+    // lit frais à chaque appel — text/plain sans preflight (0001), mot de passe
+    // en corps (0008). Les fiches ont leur propre client (session établie).
+    let motDePasseActif = sessionStorage.getItem(CLE_SESSION) || '';
+    const client = creerClient({
+      fetch: (url, params) => window.fetch(url, params),
+      apiUrl: window.OSL_CONFIG.apiUrl,
+      motDePasse: () => motDePasseActif,
+    });
+
+    // Réaction commune à une session morte (le client renvoie la sentinelle) :
+    // oublier le mot de passe et réafficher la connexion. Propre à la page.
+    function sessionExpiree() {
+      sessionStorage.removeItem(CLE_SESSION);
+      motDePasseActif = '';
+      montrerConnexion(true);
+    }
     const erreurConnexion = document.getElementById('erreur-connexion');
     const champMotDePasse = document.getElementById('champ-mot-de-passe');
 
@@ -571,8 +591,7 @@
 
     // --- La fiche d'emplacement : composant partagé (décision 0018) ---
 
-    // Erreur « métier » renvoyée par l'API, par opposition aux erreurs techniques.
-    class ErreurApi extends Error {}
+    // ErreurApi et le transport backend viennent du module client (client.js).
 
     // Range l'inventaire reçu de l'API (0002 : toujours l'état frais).
     function rangerDonnees(resultat) {
@@ -596,10 +615,7 @@
         rangerDonnees(resultat);
         afficherCas();
       },
-      surSessionExpiree: () => {
-        sessionStorage.removeItem(CLE_SESSION);
-        montrerConnexion(true);
-      },
+      surSessionExpiree: sessionExpiree,
     });
 
     // La fiche d'adresse (0019) : le dossier d'un cas « Hors quota ». Toucher
@@ -613,10 +629,7 @@
         rangerDonnees(resultat);
         afficherCas();
       },
-      surSessionExpiree: () => {
-        sessionStorage.removeItem(CLE_SESSION);
-        montrerConnexion(true);
-      },
+      surSessionExpiree: sessionExpiree,
       surOuvrirEmplacement: async (numero, cle, adresse) => {
         navigationVersEmplacement = true;
         await ficheAdresse.fermer();
@@ -635,10 +648,7 @@
         rangerDonnees(resultat);
         afficherCas();
       },
-      surSessionExpiree: () => {
-        sessionStorage.removeItem(CLE_SESSION);
-        montrerConnexion(true);
-      },
+      surSessionExpiree: sessionExpiree,
     });
 
     // L'origine de la fiche ouverte : tout geste re-rend le registre, donc la
@@ -711,19 +721,12 @@
 
     async function chargerCas(motDePasse) {
       montrerEtat('chargement');
+      motDePasseActif = motDePasse;
       try {
-        // Mot de passe dans le corps POST, jamais en URL (décision 0008).
-        const resultat = await fetch(window.OSL_CONFIG.apiUrl, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'inventaire', motDePasse }),
-        }).then((r) => r.json());
-        if (!resultat.ok) {
-          if (resultat.code === 'accesRefuse') {
-            sessionStorage.removeItem(CLE_SESSION);
-            montrerConnexion(true);
-            return;
-          }
-          throw new ErreurApi(resultat.erreur);
+        const resultat = await client.poster({ action: 'inventaire' });
+        if (resultat.accesRefuse) {
+          sessionExpiree();
+          return;
         }
         sessionStorage.setItem(CLE_SESSION, motDePasse);
         // Un backend pas encore redéployé ne renvoie ni journal ni membres :

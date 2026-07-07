@@ -140,6 +140,7 @@
   </footer>
 
   <script src="config.js"></script>
+  <script src="client.js"></script>
   <script src="eau.js"></script>
   <script type="module">
     await Promise.all([
@@ -190,9 +191,14 @@
       }
     }
 
-    // Erreur « métier » renvoyée par l'API (message en français, montrable tel quel),
-    // par opposition aux erreurs techniques (réseau…) qu'on ne montre jamais.
-    class ErreurApi extends Error {}
+    // Le transport vers le backend (client.js) : URL, corps text/plain sans
+    // preflight CORS (0001), enveloppe normalisée. Public — aucun mot de passe
+    // (formulaire de demande). ErreurApi (erreur métier montrable, message
+    // français) vient aussi du client.
+    const client = creerClient({
+      fetch: (url, params) => window.fetch(url, params),
+      apiUrl: window.OSL_CONFIG.apiUrl,
+    });
 
     // Hook de test (décision 0006) : ?etat=chargement|indisponible|succes|erreur-envoi
     // fige la page dans un état pour les captures d'écran. Inerte sans paramètre.
@@ -206,9 +212,7 @@
         return;
       }
       try {
-        const reponse = await fetch(window.OSL_CONFIG.apiUrl + '?action=config');
-        const resultat = await reponse.json();
-        if (!resultat.ok) throw new ErreurApi(resultat.erreur);
+        const resultat = await client.obtenir('config');
         remplirSelect(document.getElementById('champ-rue'), resultat.config.rues);
         remplirSelect(document.getElementById('champ-type'), resultat.config.types);
         montrerEtat('formulaire');
@@ -234,13 +238,9 @@
       erreurEnvoi.hidden = true;
       bouton.loading = true;
       try {
-        // Corps en text/plain (défaut de fetch pour une chaîne) : pas de preflight CORS.
-        const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
-          method: 'POST',
-          body: JSON.stringify(Object.fromEntries(new FormData(etats.formulaire))),
-        });
-        const resultat = await reponse.json();
-        if (!resultat.ok) throw new ErreurApi(resultat.erreur);
+        // Public : aucun mot de passe (client sans getter). Le corps part en
+        // text/plain, pas de preflight CORS (0001).
+        await client.poster(Object.fromEntries(new FormData(etats.formulaire)));
         etats.formulaire.reset();
         montrerEtat('succes');
         document.getElementById('titre-succes').focus();
