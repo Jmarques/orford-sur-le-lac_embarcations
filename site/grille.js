@@ -513,6 +513,133 @@ function filesATraiter(lignesEmplacements, evenements) {
   return { attribueLibre: attribueLibre, aIdentifier: aIdentifier };
 }
 
+// --- Section « Hors quota » (décision 0019) : file par adresse, jamais stockée ---
+
+var QUOTA_PAR_DEFAUT = 2;
+
+// Normalise un texte d'adresse en clé d'appariement : trim + minuscules +
+// espaces réduits. La Sheet est éditée à la main (0002) — « Rue du Lac » et
+// « rue du  lac » doivent compter pour la même adresse, sinon un vrai cas
+// hors quota devient invisible. Rien de plus flou : fusionner deux adresses
+// distinctes serait pire que d'en éclater une.
+function cleTexte_(texte) {
+  return String(texte === undefined || texte === null ? '' : texte)
+    .trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+// La clé d'adresse d'une ligne (Emplacements ou Membres). '' quand l'adresse
+// est incomplète — même règle qu'estAttribue_. L'affichage garde toujours le
+// texte de la ligne : seule la clé est normalisée.
+function cleAdresse(objet) {
+  if (!objet || !String(objet.numeroAdresse || '').trim() || !String(objet.rue || '').trim()) return '';
+  return cleTexte_(String(objet.numeroAdresse).trim() + ' ' + String(objet.rue).trim());
+}
+
+// Le quota d'une adresse : son quota accordé (entier ≥ 1, décision durable du
+// comité inscrite dans Membres) ou 2 par défaut. Une valeur illisible (Sheet
+// éditée à la main — 0002) retombe au défaut, jamais un plantage.
+function quotaLisible_(membre) {
+  var brut = membre ? String(membre.quotaAccorde === undefined || membre.quotaAccorde === null ? '' : membre.quotaAccorde).trim() : '';
+  if (brut === '') return QUOTA_PAR_DEFAUT;
+  var valeur = Number(brut);
+  return Number.isInteger(valeur) && valeur >= 1 ? valeur : QUOTA_PAR_DEFAUT;
+}
+
+function chercherMembreParCle_(membres, cle) {
+  var trouve;
+  (membres || []).forEach(function (membre) {
+    if (!trouve && cle !== '' && cleAdresse(membre) === cle) trouve = membre;
+  });
+  return trouve;
+}
+
+// La file « Hors quota » (0019) : les attributions regroupées par clé
+// d'adresse ; cas = attributions > quota accordé. Le compte porte sur les
+// attributions, jamais sur l'occupation observée — rien n'est stocké, un cas
+// sort par libération et re-rentre s'il dépasse son exception. Tri : pire
+// dépassement d'abord, puis nombre d'emplacements, puis adresse (stable).
+function fileHorsQuota(lignesEmplacements, membres) {
+  var parCle = {};
+  var ordre = [];
+  (lignesEmplacements || []).forEach(function (ligne) {
+    if (!ligne || !Number.isInteger(Number(ligne.numero)) || Number(ligne.numero) <= 0) return;
+    var cle = cleAdresse(ligne);
+    if (cle === '') return;
+    if (!parCle[cle]) {
+      parCle[cle] = {
+        cle: cle,
+        adresse: String(ligne.numeroAdresse).trim() + ' ' + String(ligne.rue).trim(),
+        emplacements: [],
+      };
+      ordre.push(cle);
+    }
+    parCle[cle].emplacements.push(ligne);
+  });
+
+  var cas = [];
+  ordre.forEach(function (cle) {
+    var groupe = parCle[cle];
+    var membre = chercherMembreParCle_(membres, cle);
+    var quota = quotaLisible_(membre);
+    if (groupe.emplacements.length <= quota) return;
+    groupe.emplacements.sort(function (a, b) { return Number(a.numero) - Number(b.numero); });
+    cas.push({
+      cle: cle,
+      adresse: groupe.adresse,
+      membre: membre,
+      quota: quota,
+      nombre: groupe.emplacements.length,
+      depassement: groupe.emplacements.length - quota,
+      emplacements: groupe.emplacements,
+    });
+  });
+
+  cas.sort(function (a, b) {
+    if (b.depassement !== a.depassement) return b.depassement - a.depassement;
+    if (b.nombre !== a.nombre) return b.nombre - a.nombre;
+    return a.adresse < b.adresse ? -1 : a.adresse > b.adresse ? 1 : 0;
+  });
+  return cas;
+}
+
+// Le journal d'un cas hors quota (0019) : les événements portés par l'adresse
+// (colonne `adresse` du Journal — les notes d'adresse) + les libérations des
+// emplacements du cas, chronologique. Une libération d'avant la colonne
+// `adresse` reste racontée par son numéro tant que l'emplacement est au cas.
+// Un événement illisible est ignoré (0002).
+function journalDeCas(evenements, cle, numeros) {
+  var nums = (numeros || []).map(Number);
+  return (evenements || [])
+    .map(function (e) {
+      if (!e) return null;
+      var surAdresse = cle !== '' && cleTexte_(e.adresse) === cle;
+      var surNumero = String(e.action || '') === 'libération' && nums.indexOf(Number(e.numero)) !== -1;
+      if (!surAdresse && !surNumero) return null;
+      var numero = Number(e.numero);
+      return {
+        date: dateLisible_(e.date),
+        action: String(e.action || ''),
+        details: String(e.details || ''),
+        numero: Number.isInteger(numero) && numero > 0 ? numero : null,
+      };
+    })
+    .filter(function (e) { return e !== null && e.date !== null && e.action !== ''; })
+    .sort(function (a, b) { return a.date - b.date; });
+}
+
+// La pastille quota de la fiche d'emplacement (0019) : le nombre
+// d'emplacements de l'adresse attribuée et son quota, SEULEMENT quand
+// l'adresse dépasse — silence quand elle est dans les règles (0016).
+function depassementQuota(ligne, lignesEmplacements, membres) {
+  var cle = cleAdresse(ligne);
+  if (cle === '') return null;
+  var trouve = null;
+  fileHorsQuota(lignesEmplacements, membres).forEach(function (cas) {
+    if (!trouve && cas.cle === cle) trouve = cas;
+  });
+  return trouve ? { nombre: trouve.nombre, quota: trouve.quota } : null;
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, cleAdresse, fileHorsQuota, journalDeCas, depassementQuota, ETATS_OCCUPATION };
 }

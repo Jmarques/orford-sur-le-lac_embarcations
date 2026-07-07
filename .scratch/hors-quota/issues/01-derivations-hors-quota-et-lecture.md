@@ -1,6 +1,6 @@
 # 01 — Dérivations « Hors quota » et lecture (`quotaAccorde`, notes d'adresse)
 
-Status: ready-for-agent
+Status: ready-for-human — implémenté (tranche T1), à valider sur le vrai site après `npm run deploy`
 
 ## Parent
 
@@ -23,12 +23,12 @@ Vocabulaire : CONTEXT.md ([[Quota]], [[Hors quota]], [[Note (au journal)]], [[Ad
 
 ## Acceptance criteria
 
-- [ ] Dérivations pures testées en node (prior art `tests/grille.test.mjs`, `tests/a-traiter.test.mjs`) : entrée (emplacements + membres + journal) → sortie, sans DOM ni API.
-- [ ] Cas couverts : adresse à 3 attributions sans quota accordé ; exception à 3 respectée (hors file) puis dépassée (en file) ; `quotaAccorde` illisible → défaut 2 ; adresse éclatée par la casse ou les espaces → regroupée ; adresse sans ligne Membres ; Journal vide ; événements illisibles tolérés (0002) ; tri par dépassement stable.
-- [ ] Le journal du cas fusionne notes d'adresse et libérations des emplacements de l'adresse en ordre chronologique.
-- [ ] Le quota d'une adresse pour la pastille ne signale rien quand l'adresse respecte son quota.
-- [ ] Le contrat de lecture transporte `quotaAccorde` ; le setup des en-têtes crée `quotaAccorde` (Membres) et `adresse` (Journal) ; les données mockées en profitent.
-- [ ] `npm run verify` vert ; aucune capture existante ne change (aucun écran dans cette tranche).
+- [x] Dérivations pures testées en node (prior art `tests/grille.test.mjs`, `tests/a-traiter.test.mjs`) : entrée (emplacements + membres + journal) → sortie, sans DOM ni API.
+- [x] Cas couverts : adresse à 3 attributions sans quota accordé ; exception à 3 respectée (hors file) puis dépassée (en file) ; `quotaAccorde` illisible → défaut 2 ; adresse éclatée par la casse ou les espaces → regroupée ; adresse sans ligne Membres ; Journal vide ; événements illisibles tolérés (0002) ; tri par dépassement stable.
+- [x] Le journal du cas fusionne notes d'adresse et libérations des emplacements de l'adresse en ordre chronologique.
+- [x] Le quota d'une adresse pour la pastille ne signale rien quand l'adresse respecte son quota.
+- [x] Le contrat de lecture transporte `quotaAccorde` ; le setup des en-têtes crée `quotaAccorde` (Membres) et `adresse` (Journal) ; les données mockées en profitent.
+- [x] `npm run verify` vert ; aucune capture existante ne change (aucun écran dans cette tranche).
 
 ## Blocked by
 

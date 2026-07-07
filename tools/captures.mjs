@@ -106,11 +106,13 @@ export const REPONSES_MOCK = {
       { numero: 999, numeroAdresse: '', rue: '', note: '', occupationObservee: 'libre', dateObservation: '2026-06-20T12:00:00.000Z' },
     ],
     // Contact courant par adresse (0010) : la carte-cas d'« À traiter » y
-    // trouve nom, courriel et téléphone du membre attribué.
+    // trouve nom, courriel et téléphone du membre attribué. `quotaAccorde`
+    // (0019) : Louise Bédard porte une exception à 3 — respectée (1 seul
+    // emplacement), donc invisible tant qu'aucune vue quota ne la dépasse.
     membres: [
-      { numeroAdresse: 12, rue: 'Rue des Érables', nom: 'Louise Bédard', courriel: 'louise.bedard@exemple.ca', telephone: '819 555-8765' },
-      { numeroAdresse: 234, rue: 'Rue du Pré', nom: 'Marie Gagnon', courriel: 'marie.gagnon@exemple.ca', telephone: '819 555-2345' },
-      { numeroAdresse: 87, rue: 'Chemin du Lac', nom: 'John Tremblay', courriel: 'john.tremblay@exemple.ca', telephone: '' },
+      { numeroAdresse: 12, rue: 'Rue des Érables', nom: 'Louise Bédard', courriel: 'louise.bedard@exemple.ca', telephone: '819 555-8765', quotaAccorde: 3 },
+      { numeroAdresse: 234, rue: 'Rue du Pré', nom: 'Marie Gagnon', courriel: 'marie.gagnon@exemple.ca', telephone: '819 555-2345', quotaAccorde: '' },
+      { numeroAdresse: 87, rue: 'Chemin du Lac', nom: 'John Tremblay', courriel: 'john.tremblay@exemple.ca', telephone: '', quotaAccorde: '' },
     ],
     // Le Journal voyage avec l'inventaire (0011) : « libre depuis » (série de
     // 75), fenêtre d'apparition d'un « À identifier » (76 : libre le 3 mai,

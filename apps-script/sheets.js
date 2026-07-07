@@ -27,14 +27,18 @@ var ENTETES_EMPLACEMENTS = ['numero', 'numeroAdresse', 'rue', 'note', 'occupatio
 
 // Contact courant d'une adresse (décision 0010) : 1 ligne par adresse, clé
 // (numeroAdresse + rue), saisi à la main par le comité. Source de vérité du
-// contact, distincte du contact figé dans le journal Demandes.
+// contact, distincte du contact figé dans le journal Demandes. `quotaAccorde`
+// (décision 0019) : exception durable au quota de 2, entier saisi à la main —
+// vide = quota par défaut, valeur illisible tolérée côté client (0002).
 var ONGLET_MEMBRES = 'Membres';
-var ENTETES_MEMBRES = ['numeroAdresse', 'rue', 'nom', 'courriel', 'telephone'];
+var ENTETES_MEMBRES = ['numeroAdresse', 'rue', 'nom', 'courriel', 'telephone', 'quotaAccorde'];
 
 // Historique append-only des actions faites via l'app (décision 0002) ; porte
 // aussi les observations et l'historique par emplacement (décision 0011).
+// `adresse` (décision 0019) : les notes d'un cas hors quota parlent d'une
+// adresse (« numeroAdresse rue »), pas d'un emplacement — numero reste vide.
 var ONGLET_JOURNAL = 'Journal';
-var ENTETES_JOURNAL = ['date', 'action', 'numero', 'demandeId', 'details'];
+var ENTETES_JOURNAL = ['date', 'action', 'numero', 'adresse', 'demandeId', 'details'];
 
 function ongletRequis_(nom) {
   var feuille = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nom);
@@ -207,7 +211,7 @@ function libererEmplacement(corps) {
 // Un événement dans le Journal append-only (décisions 0002, 0011). `date` par
 // défaut = maintenant ; les champs absents restent vides.
 function journaliser_(evenement) {
-  var objet = { date: new Date(), action: '', numero: '', demandeId: '', details: '' };
+  var objet = { date: new Date(), action: '', numero: '', adresse: '', demandeId: '', details: '' };
   Object.keys(evenement).forEach(function (cle) { objet[cle] = evenement[cle]; });
   appendObjet_(ongletRequis_(ONGLET_JOURNAL), objet);
 }
