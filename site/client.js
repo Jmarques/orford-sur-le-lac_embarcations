@@ -1,7 +1,6 @@
-// Le module qui sait parler au backend Apps Script (décisions 0001, 0008) :
+// Le seul module qui sait parler au backend Apps Script (décisions 0001, 0008) :
 // « comment poster une action et lire un refus » est un invariant du système,
-// à porter ici plutôt que recopié dans chaque page et chaque fiche (les autres
-// appelants convergent au fil des tranches 02-04).
+// porté ici une fois plutôt que recopié dans chaque page et chaque fiche.
 //
 // Chargé en <script> global comme grille.js ; le guard dual-export le rend
 // require()-able par les tests node (fetch injecté = seul seam). Frontend-only

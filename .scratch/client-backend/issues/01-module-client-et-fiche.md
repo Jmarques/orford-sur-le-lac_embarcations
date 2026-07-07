@@ -1,6 +1,6 @@
 # 01 — Le module client + tests + fiche.js migrée
 
-Status: ready-for-agent
+Status: done
 
 ## Parent
 
@@ -37,13 +37,13 @@ Le module est chargé en `<script src="client.js">` sur les pages qui hébergent
 
 ## Acceptance criteria
 
-- [ ] `site/client.js` créé : `creerClient`, `interpreterReponse`, `ErreurApi`, guard dual-export node.
-- [ ] `tests/client.test.mjs` couvre `interpreterReponse` (ok → payload ; accesRefuse → sentinelle ; refus métier → `ErreurApi` au bon message ; réponse vide/malformée → `ErreurApi` de repli).
-- [ ] `tests/client.test.mjs` couvre `poster`/`obtenir` avec un faux `fetch` : URL et méthode correctes, corps JSON contenant `action` + champs + `motDePasse` du getter ; corps public sans getter → pas de `motDePasse` ; `obtenir('config')` → GET `apiUrl?action=config` sans mot de passe.
-- [ ] `site/fiche.js` n'a plus de `fetch`, ni `envoyerAction`, ni `reponseAcceptee`, ni `class ErreurApi` locale — elle passe par le client.
-- [ ] Les gestes de la fiche (libérer, observer, note, décision) fonctionnent à l'identique ; refus métier et session expirée se comportent comme avant.
-- [ ] `tools/screenshots.mjs` sert le nouveau `site/client.js` ; la route mock Playwright et les captures restent inchangées (même URL tapée).
-- [ ] `npm run verify` passe (copie-grille + tests + captures : delta attendu = nul, sauf régénération éventuelle).
+- [x] `site/client.js` créé : `creerClient`, `interpreterReponse`, `ErreurApi`, guard dual-export node.
+- [x] `tests/client.test.mjs` couvre `interpreterReponse` (ok → payload ; accesRefuse → sentinelle ; refus métier → `ErreurApi` au bon message ; réponse vide/malformée → `ErreurApi` de repli).
+- [x] `tests/client.test.mjs` couvre `poster`/`obtenir` avec un faux `fetch` : URL et méthode correctes, corps JSON contenant `action` + champs + `motDePasse` du getter ; corps public sans getter → pas de `motDePasse` ; `obtenir('config')` → GET `apiUrl?action=config` sans mot de passe.
+- [x] `site/fiche.js` n'a plus de `fetch`, ni `envoyerAction`, ni `class ErreurApi` locale — elle passe par le client. (`reponseAcceptee` renommée `sessionEncoreValide` : ne teste plus l'enveloppe, seulement la sentinelle — l'interprétation vit dans le client.)
+- [x] Les gestes de la fiche (libérer, observer, note, décision) fonctionnent à l'identique ; refus métier et session expirée se comportent comme avant.
+- [x] `tools/screenshots.mjs` sert le nouveau `site/client.js` (dossier `site/` servi statiquement) ; la route mock Playwright et les captures restent inchangées (même URL tapée).
+- [x] `npm run verify` passe (copie-grille + tests + captures : delta nul).
 
 ## Blocked by
 

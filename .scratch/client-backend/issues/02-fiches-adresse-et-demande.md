@@ -1,6 +1,6 @@
 # 02 — Migrer fiche-adresse.js et fiche-demande.js
 
-Status: ready-for-agent
+Status: done
 
 ## Parent
 
@@ -14,10 +14,10 @@ Propager le client aux deux autres fiches, sur le patron établi en tranche 01. 
 
 ## Acceptance criteria
 
-- [ ] `site/fiche-adresse.js` : plus de `fetch`/`envoyerAction`/`reponseAcceptee`/`ErreurApi` locale — passe par le client.
-- [ ] `site/fiche-demande.js` : idem, y compris les gestes `deciderDemande` et `majContactDemande`.
-- [ ] Accepter / refuser une demande, mettre à jour le contact, et les gestes de la fiche d'adresse fonctionnent à l'identique ; refus métier (p. ex. quota bloquant) et session expirée se comportent comme avant.
-- [ ] Aucune régression visuelle : `npm run verify` passe (delta captures nul).
+- [x] `site/fiche-adresse.js` : plus de `fetch`/`envoyerAction`/`ErreurApi` locale — passe par le client (`reponseAcceptee` → `sessionEncoreValide`, teste la sentinelle).
+- [x] `site/fiche-demande.js` : idem, y compris les gestes `deciderDemande` et `majContactDemande`.
+- [x] Accepter / refuser une demande, mettre à jour le contact, et les gestes de la fiche d'adresse fonctionnent à l'identique ; refus métier (p. ex. quota bloquant) et session expirée se comportent comme avant.
+- [x] Aucune régression visuelle : `npm run verify` passe (delta captures nul).
 
 ## Blocked by
 

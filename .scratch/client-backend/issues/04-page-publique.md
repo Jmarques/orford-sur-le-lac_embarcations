@@ -1,6 +1,6 @@
 # 04 — Migrer la page publique (index.html)
 
-Status: ready-for-agent
+Status: done
 
 ## Parent
 
@@ -19,11 +19,11 @@ Attention : `index.html` doit charger `<script src="client.js">`.
 
 ## Acceptance criteria
 
-- [ ] `index.html` charge `site/client.js`.
-- [ ] `chargerConfig` passe par `client.obtenir('config')` ; les rues et types se remplissent à l'identique ; l'échec bascule sur l'écran « indisponible ».
-- [ ] L'envoi d'une demande passe par `client.poster` **sans `motDePasse`** dans le corps ; succès, refus métier (message montré) et erreur réseau (message générique) se comportent comme avant.
-- [ ] Plus de `fetch` ni `class ErreurApi` inline dans `index.html`.
-- [ ] Les hooks de captures `?etat=chargement|indisponible|succes|erreur-envoi` fonctionnent toujours ; `npm run verify` passe (delta captures nul).
+- [x] `index.html` charge `site/client.js`.
+- [x] `chargerConfig` passe par `client.obtenir('config')` ; les rues et types se remplissent à l'identique ; l'échec bascule sur l'écran « indisponible ».
+- [x] L'envoi d'une demande passe par `client.poster` **sans `motDePasse`** dans le corps ; succès, refus métier (message montré) et erreur réseau (message générique) se comportent comme avant.
+- [x] Plus de `fetch` ni `class ErreurApi` inline dans `index.html`.
+- [x] Les hooks de captures `?etat=chargement|indisponible|succes|erreur-envoi` fonctionnent toujours ; `npm run verify` passe (delta captures nul).
 
 ## Blocked by
 
