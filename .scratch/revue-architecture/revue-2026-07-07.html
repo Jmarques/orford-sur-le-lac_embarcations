@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Revue d'architecture — osl_embarcations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose", flowchart: { curve: "basis" } });
+    </script>
+    <style>
+      .font-serif { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; }
+      .seam { stroke-dasharray: 5 5; }
+      .schematic { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .card-mod { border: 1.5px solid #cbd5e1; border-radius: 0.5rem; background: #fff; }
+      .card-dup { border: 1.5px solid #fca5a5; border-radius: 0.5rem; background: #fef2f2; }
+      .card-deep { border-radius: 0.6rem; background: linear-gradient(135deg,#0f172a,#1e293b); color:#e2e8f0; }
+      .faded { opacity: 0.38; }
+      .arrow { stroke:#94a3b8; stroke-width:1.5; marker-end:url(#ah); }
+      .arrow-leak { stroke:#dc2626; stroke-width:1.75; marker-end:url(#ahr); }
+      .bar { height: 0.9rem; border-radius: 3px; }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900">
+    <svg width="0" height="0" class="absolute">
+      <defs>
+        <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#94a3b8" stroke-width="1.4"/></marker>
+        <marker id="ahr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#dc2626" stroke-width="1.6"/></marker>
+      </defs>
+    </svg>
+
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-14">
+      <!-- ── HEADER ────────────────────────────────────────────── -->
+      <header class="space-y-5">
+        <p class="mono text-xs text-slate-500">osl_embarcations · revue d'architecture · 2026-07-07</p>
+        <h1 class="font-serif text-4xl leading-tight">Où la <span class="text-emerald-700">dérivation</span> est profonde,<br>mais la <span class="text-red-600">présentation et les I/O</span> n'ont pas de foyer</h1>
+        <div class="card-mod p-4 text-sm">
+          <p class="mb-3 text-slate-600">Le fil rouge de toute la revue en une phrase : <strong>la dérivation métier est centralisée exactement comme le domaine l'exige</strong> (statut, état de demande, hors-quota — dérivés, jamais stockés, une seule fois dans <span class="mono">grille.js</span>) — <strong>mais la couche qui met ces dérivations en mots, en couleurs et en requêtes réseau existe en 3 à 6 copies</strong> qui chevauchent les seams des modules.</p>
+          <div class="flex flex-wrap gap-x-6 gap-y-2 mono text-xs text-slate-500">
+            <span><span class="inline-block w-4 h-3 card-mod align-middle"></span> module</span>
+            <span><span class="inline-block w-4 h-3 card-dup align-middle"></span> logique dupliquée</span>
+            <span><span class="inline-block w-6 align-middle border-t-2 border-dashed border-slate-400"></span> seam (interface)</span>
+            <span><span class="inline-block w-6 align-middle border-t-2 border-red-500"></span> fuite à travers le seam</span>
+            <span><span class="inline-block w-4 h-3 card-deep align-middle"></span> module profond</span>
+          </div>
+        </div>
+        <p class="text-sm text-slate-500">Six candidats, classés. Chacun est un <em>deepening</em> : plus de comportement derrière une interface plus petite, un seul foyer à tester. Vocabulaire : <span class="mono">module · interface · profond/superficiel · seam · adapter · leverage · locality</span>.</p>
+      </header>
+
+      <section id="candidates" class="space-y-16">
+
+      <!-- ══ CANDIDAT 1 ══════════════════════════════════════════ -->
+      <article class="space-y-5">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-xs mono px-2 py-1 rounded bg-emerald-600 text-white">Strong</span>
+          <span class="text-xs mono px-2 py-1 rounded bg-slate-200 text-slate-700">in-process · nouveau seam</span>
+          <span class="mono text-sm text-slate-400">01</span>
+        </div>
+        <h2 class="font-serif text-2xl">Un module <span class="mono text-xl">client backend</span> qui n'existe pas</h2>
+        <p class="mono text-sm text-slate-500">site/fiche.js · fiche-adresse.js · fiche-demande.js · a-traiter.html · structures.html · index.html</p>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <!-- BEFORE -->
+          <div class="card-mod p-4">
+            <p class="schematic text-red-600 mb-3">Avant — la complexité est déjà étalée</p>
+            <svg viewBox="0 0 320 300" class="w-full" style="max-height:290px">
+              <!-- 6 caller boxes each carrying dup -->
+              <g class="schematic" fill="#475569">
+                <rect x="6"  y="10" width="92" height="34" class="card-dup" rx="4"/><text x="52" y="24" text-anchor="middle" font-size="8">fiche.js</text><text x="52" y="35" text-anchor="middle" font-size="6.5" fill="#dc2626">fetch · ErreurApi · envelope</text>
+                <rect x="6"  y="52" width="92" height="34" class="card-dup" rx="4"/><text x="52" y="66" text-anchor="middle" font-size="8">fiche-adresse.js</text><text x="52" y="77" text-anchor="middle" font-size="6.5" fill="#dc2626">fetch · ErreurApi · envelope</text>
+                <rect x="6"  y="94" width="92" height="34" class="card-dup" rx="4"/><text x="52" y="108" text-anchor="middle" font-size="8">fiche-demande.js</text><text x="52" y="119" text-anchor="middle" font-size="6.5" fill="#dc2626">fetch · ErreurApi · envelope</text>
+                <rect x="6"  y="136" width="92" height="34" class="card-dup" rx="4"/><text x="52" y="150" text-anchor="middle" font-size="8">a-traiter.html</text><text x="52" y="161" text-anchor="middle" font-size="6.5" fill="#dc2626">fetch · ErreurApi · envelope</text>
+                <rect x="6"  y="178" width="92" height="34" class="card-dup" rx="4"/><text x="52" y="192" text-anchor="middle" font-size="8">structures.html</text><text x="52" y="203" text-anchor="middle" font-size="6.5" fill="#dc2626">4× fetch · envelope</text>
+                <rect x="6"  y="220" width="92" height="34" class="card-dup" rx="4"/><text x="52" y="234" text-anchor="middle" font-size="8">index.html</text><text x="52" y="245" text-anchor="middle" font-size="6.5" fill="#dc2626">fetch · ErreurApi</text>
+              </g>
+              <!-- arrows to backend -->
+              <g class="arrow-leak" fill="none">
+                <line x1="98" y1="27" x2="230" y2="120"/><line x1="98" y1="69" x2="230" y2="128"/>
+                <line x1="98" y1="111" x2="230" y2="136"/><line x1="98" y1="153" x2="230" y2="144"/>
+                <line x1="98" y1="195" x2="230" y2="152"/><line x1="98" y1="237" x2="230" y2="160"/>
+              </g>
+              <rect x="230" y="112" width="84" height="60" rx="6" fill="#1e293b"/>
+              <text x="272" y="138" text-anchor="middle" font-size="8" fill="#e2e8f0" class="schematic">Apps Script</text>
+              <text x="272" y="152" text-anchor="middle" font-size="7" fill="#94a3b8">?action=…</text>
+            </svg>
+            <p class="text-xs text-slate-500 mt-2"><span class="mono">envoyerAction</span> copié 3× · <span class="mono">class ErreurApi</span> déclarée <strong>6×</strong> · <span class="mono">reponseAcceptee</span> (l'enveloppe <span class="mono">ok / erreur / accesRefuse</span>) ré-écrite 5× · 11 sites <span class="mono">fetch</span>.</p>
+          </div>
+          <!-- AFTER -->
+          <div class="card-mod p-4">
+            <p class="schematic text-emerald-700 mb-3">Après — un module profond concentre tout</p>
+            <svg viewBox="0 0 320 300" class="w-full" style="max-height:290px">
+              <g class="schematic" fill="#475569">
+                <rect x="6"  y="18" width="80" height="24" class="card-mod" rx="4"/><text x="46" y="33" text-anchor="middle" font-size="7.5">fiche.js</text>
+                <rect x="6"  y="50" width="80" height="24" class="card-mod" rx="4"/><text x="46" y="65" text-anchor="middle" font-size="7.5">fiche-adresse.js</text>
+                <rect x="6"  y="82" width="80" height="24" class="card-mod" rx="4"/><text x="46" y="97" text-anchor="middle" font-size="7.5">fiche-demande.js</text>
+                <rect x="6"  y="114" width="80" height="24" class="card-mod" rx="4"/><text x="46" y="129" text-anchor="middle" font-size="7.5">a-traiter.html</text>
+                <rect x="6"  y="146" width="80" height="24" class="card-mod" rx="4"/><text x="46" y="161" text-anchor="middle" font-size="7.5">structures.html</text>
+                <rect x="6"  y="178" width="80" height="24" class="card-mod" rx="4"/><text x="46" y="193" text-anchor="middle" font-size="7.5">index.html</text>
+              </g>
+              <g class="arrow" fill="none">
+                <line x1="86" y1="30" x2="150" y2="140"/><line x1="86" y1="62" x2="150" y2="145"/>
+                <line x1="86" y1="94" x2="150" y2="150"/><line x1="86" y1="126" x2="150" y2="152"/>
+                <line x1="86" y1="158" x2="150" y2="156"/><line x1="86" y1="190" x2="150" y2="162"/>
+              </g>
+              <rect x="150" y="120" width="96" height="72" rx="7" fill="#0f172a"/>
+              <text x="198" y="140" text-anchor="middle" font-size="8" fill="#e2e8f0" class="schematic">client.poster</text>
+              <text x="198" y="154" text-anchor="middle" font-size="6.5" fill="#94a3b8">(action, corps)</text>
+              <text x="198" y="169" text-anchor="middle" font-size="6" fill="#64748b">url · text/plain · mdp</text>
+              <text x="198" y="181" text-anchor="middle" font-size="6" fill="#64748b">enveloppe · accesRefuse</text>
+              <line x1="246" y1="156" x2="290" y2="156" class="arrow"/>
+              <rect x="278" y="140" width="40" height="34" rx="5" fill="#1e293b"/>
+              <text x="298" y="160" text-anchor="middle" font-size="7" fill="#e2e8f0" class="schematic">API</text>
+            </svg>
+            <p class="text-xs text-slate-500 mt-2">Une seule interface : <span class="mono">poster(action, corps) → résultat | ErreurApi</span>. L'astuce text/plain (pas de preflight), le mot de passe dans le corps (déc. 0008) et l'enveloppe vivent une fois.</p>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4 text-sm">
+          <div><p class="schematic text-slate-400 mb-1">Problème</p><p>« Comment parler au backend et lire un refus » est un invariant du système, recopié dans chaque appelant.</p></div>
+          <div><p class="schematic text-slate-400 mb-1">Solution</p><p>Un module client — <span class="mono">poster(action, corps)</span> — porte l'URL, l'enveloppe et <span class="mono">ErreurApi</span> ; les appelants passent action + corps.</p></div>
+        </div>
+        <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-slate-700 list-disc list-inside">
+          <li><strong>locality</strong> : un nouveau code de refus = 1 édition, pas 6</li>
+          <li><strong>leverage</strong> : 1 interface, 11 sites d'appel</li>
+          <li>supprime 6× <span class="mono">ErreurApi</span> + 3× <span class="mono">envoyerAction</span></li>
+          <li><strong>premier module frontend testable</strong> en node (fetch injecté)</li>
+        </ul>
+      </article>
+
+      <!-- ══ CANDIDAT 2 ══════════════════════════════════════════ -->
+      <article class="space-y-5">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-xs mono px-2 py-1 rounded bg-emerald-600 text-white">Strong</span>
+          <span class="text-xs mono px-2 py-1 rounded bg-slate-200 text-slate-700">approfondir un module existant</span>
+          <span class="mono text-sm text-slate-400">02</span>
+        </div>
+        <h2 class="font-serif text-2xl"><span class="mono text-xl">statutEmplacement</span> s'arrête un champ trop tôt</h2>
+        <p class="mono text-sm text-slate-500">grille.js:295 · fiche.js:192 · fiche-adresse.js:101 · fiche-demande.js:160 · structures.html:414 + theme.css</p>
+
+        <!-- Mass diagram: interface returns 4 fields; callers need a 5th -->
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="card-mod p-4">
+            <p class="schematic text-red-600 mb-3">Avant — le seam est superficiel : 4 cartes externes</p>
+            <div class="flex items-start gap-3">
+              <div class="w-1/2">
+                <div class="card-deep p-2 text-center"><p class="schematic">statutEmplacement</p><p class="text-[10px] text-slate-300 mt-1 mono">→ code · libelle<br>probleme · explication</p><p class="text-[10px] text-red-300 mt-1">✗ variant · icon</p></div>
+              </div>
+              <div class="w-1/2 space-y-1">
+                <div class="card-dup px-2 py-1 text-[10px] mono">fiche.js<br>APPARENCE_STATUTS</div>
+                <div class="card-dup px-2 py-1 text-[10px] mono">fiche-adresse.js<br>VARIANTES_STATUTS</div>
+                <div class="card-dup px-2 py-1 text-[10px] mono">fiche-demande.js<br>VARIANTES_STATUTS</div>
+                <div class="card-dup px-2 py-1 text-[10px] mono">structures.html + theme.css<br>.statut-{code}</div>
+              </div>
+            </div>
+            <p class="text-xs text-slate-500 mt-3">5 codes de statut × 4 tables maintenues à la main. Un 6ᵉ statut → 4 fichiers + <span class="mono">theme.css</span>. Idem pour la <strong>prose</strong> des signaux (« libre depuis le… », « apparue entre… ») : <span class="mono">serieLibreObservee</span>/<span class="mono">fenetreApparition</span> dérivent le fait une fois, la phrase française est écrite 2× (fiche.js:204, a-traiter.html:354).</p>
+          </div>
+          <div class="card-mod p-4">
+            <p class="schematic text-emerald-700 mb-3">Après — le module rend le view-model complet</p>
+            <div class="flex justify-center pt-4">
+              <div class="card-deep p-3 text-center w-3/4">
+                <p class="schematic">statutEmplacement</p>
+                <p class="text-[10px] text-slate-300 mt-1 mono">→ code · libelle · probleme<br>explication · <span class="text-emerald-300">variant · icon</span> · <span class="text-emerald-300">signal()</span></p>
+                <div class="mt-3 pt-2 border-t border-slate-600 space-y-1 faded">
+                  <p class="text-[9px] mono text-slate-400">APPARENCE_STATUTS · VARIANTES · .statut-{code}</p>
+                  <p class="text-[9px] mono text-slate-400">prose des signaux</p>
+                  <p class="text-[9px] text-slate-500">absorbés à l'intérieur</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-slate-500 mt-3">Le dernier champ de présentation (variant/icône WA) et la mise en mots des signaux rejoignent le module qui dérive déjà le fait. L'interface reste petite ; l'implémentation absorbe les 4 tables.</p>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4 text-sm">
+          <div><p class="schematic text-slate-400 mb-1">Problème</p><p>Le module profond livre le fait mais retient la dernière touche de présentation, forçant 4 tables code→apparence.</p></div>
+          <div><p class="schematic text-slate-400 mb-1">Solution</p><p>Le view-model porte <span class="mono">variant</span>, <span class="mono">icon</span> et la prose du signal ; les CSS de <span class="mono">theme.css</span> se dérivent du même <span class="mono">code</span>.</p></div>
+        </div>
+        <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-slate-700 list-disc list-inside">
+          <li><strong>locality</strong> : ajouter un statut = 1 foyer</li>
+          <li>l'interface grandit d'un champ, l'implémentation absorbe 4 tables</li>
+          <li>la prose des signaux cesse de dériver</li>
+          <li>déjà testé en node (grille.js) — le champ ajouté l'est aussi</li>
+        </ul>
+      </article>
+
+      <!-- ══ CANDIDAT 3 ══════════════════════════════════════════ -->
+      <article class="space-y-5">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-xs mono px-2 py-1 rounded bg-emerald-600 text-white">Strong</span>
+          <span class="text-xs mono px-2 py-1 rounded bg-slate-200 text-slate-700">exposer des helpers privés</span>
+          <span class="mono text-sm text-slate-400">03</span>
+        </div>
+        <h2 class="font-serif text-2xl">Les helpers profonds sont déjà écrits — mais <span class="text-red-600">privés</span></h2>
+        <p class="mono text-sm text-slate-500">grille.js (dateLisible_, chercherMembreParCle_) · fiche.js · fiche-adresse.js · fiche-demande.js · a-traiter.html</p>
+
+        <!-- Duplication tally — bars collapsing -->
+        <div class="card-mod p-4">
+          <p class="schematic text-slate-500 mb-4">Chaque règle vit une fois dans grille.js (souvent en privé) <span class="text-red-600">et</span> en N copies au-dessus du seam</p>
+          <div class="space-y-3 text-sm">
+            <div class="grid grid-cols-12 items-center gap-2">
+              <span class="col-span-4 mono text-xs">adresse « numeroAdresse rue »</span>
+              <div class="col-span-6 flex gap-1"><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span></div>
+              <span class="col-span-2 text-xs text-slate-500">4 copies → <strong class="text-emerald-700">formatAdresse</strong></span>
+            </div>
+            <div class="grid grid-cols-12 items-center gap-2">
+              <span class="col-span-4 mono text-xs">membre par clé normalisée</span>
+              <div class="col-span-6 flex gap-1"><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span></div>
+              <span class="col-span-2 text-xs text-slate-500">3 + <span class="mono">chercherMembreParCle_</span> privé</span>
+            </div>
+            <div class="grid grid-cols-12 items-center gap-2">
+              <span class="col-span-4 mono text-xs">date lisible ou repli</span>
+              <div class="col-span-6 flex gap-1"><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span></div>
+              <span class="col-span-2 text-xs text-slate-500">4 + <span class="mono">dateLisible_</span> privé</span>
+            </div>
+            <div class="grid grid-cols-12 items-center gap-2">
+              <span class="col-span-4 mono text-xs">position d'un numéro (structure · niveau)</span>
+              <div class="col-span-6 flex gap-1"><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span></div>
+              <span class="col-span-2 text-xs text-slate-500">5 copies → <strong class="text-emerald-700">positionParNumero</strong></span>
+            </div>
+            <div class="grid grid-cols-12 items-center gap-2">
+              <span class="col-span-4 mono text-xs">mailto (sujet · corps · signature)</span>
+              <div class="col-span-6 flex gap-1"><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span><span class="bar bg-red-300" style="width:16%"></span></div>
+              <span class="col-span-2 text-xs text-slate-500">3 copies → <strong class="text-emerald-700">hrefEcrire</strong></span>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-200 flex items-center gap-3">
+            <span class="bar bg-emerald-500" style="width:60px"></span>
+            <span class="text-xs text-slate-500">Après : chaque règle = une barre exportée. L'invariant « première position gagne pour un numéro en double » et l'encodage mailto (XSS) cessent de pouvoir diverger silencieusement.</span>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4 text-sm">
+          <div><p class="schematic text-slate-400 mb-1">Problème</p><p>La version canonique existe mais reste privée (<span class="mono">_</span>), donc chaque renderer la ré-écrit — et les copies peuvent diverger.</p></div>
+          <div><p class="schematic text-slate-400 mb-1">Solution</p><p>Exposer <span class="mono">dateLisible</span> / <span class="mono">chercherMembre</span>, ajouter <span class="mono">formatAdresse</span>, <span class="mono">positionParNumero</span>, <span class="mono">hrefEcrire</span> au module partagé.</p></div>
+        </div>
+        <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-slate-700 list-disc list-inside">
+          <li>faible risque : additif, une passe</li>
+          <li><strong>locality</strong> : 19 copies → 5 foyers</li>
+          <li>l'invariant « 1ʳᵉ position gagne » cesse d'être re-décidé</li>
+          <li>l'encodage mailto (XSS) vit une fois</li>
+        </ul>
+      </article>
+
+      <!-- ══ CANDIDAT 4 ══════════════════════════════════════════ -->
+      <article class="space-y-5">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-xs mono px-2 py-1 rounded bg-amber-500 text-white">Worth exploring</span>
+          <span class="text-xs mono px-2 py-1 rounded bg-slate-200 text-slate-700">navigabilité IA</span>
+          <span class="mono text-sm text-slate-400">04</span>
+        </div>
+        <h2 class="font-serif text-2xl"><span class="mono text-xl">grille.js</span> — sept modules sous un même trench-coat</h2>
+        <p class="mono text-sm text-slate-500">apps-script/grille.js (849 lignes · 31 exports) → copié verbatim vers site/grille.js</p>
+
+        <div class="rounded-lg border border-slate-200 bg-white p-4">
+          <pre class="mermaid">
+flowchart LR
+  subgraph G["grille.js — 31 exports, un seul namespace"]
+    direction TB
+    P["1 · parsing de grille"]
+    S["2 · analyse structures + conflits"]
+    T["3 · statut d'emplacement"]
+    U["4 · cycle de tournée"]
+    F["5 · files À traiter + libre-depuis"]
+    Q["6 · hors-quota par adresse"]
+    D["7 · état demande + suggestions"]
+  end
+  G --> COPY["copie-grille.mjs · copyFile()"]
+  COPY --> B["site/grille.js"]
+  classDef fat fill:#1e293b,stroke:#0f172a,color:#e2e8f0;
+  class G fat
+          </pre>
+          <p class="text-xs text-slate-500 mt-2">Les 7 concerns ne sont soudés que par la contrainte « copier un seul fichier » (déc. 0004/0009, pas de bundler) — <strong>pas par la cohésion</strong>. Comprendre « état d'une demande » impose de défiler devant le lexer de tokens de grille.</p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4 mt-2">
+          <div class="card-mod p-3">
+            <p class="schematic text-emerald-700 mb-2">Après — modules nommés + une étape de concat</p>
+            <pre class="mermaid">
+flowchart TB
+  a["grille-geometrie.js"] --> cat["copie-grille.mjs · concat"]
+  b["statut.js"] --> cat
+  c["files-cas.js"] --> cat
+  d["demandes.js"] --> cat
+  cat --> out["site/grille.js"]
+  classDef ok fill:#ecfdf5,stroke:#10b981;
+  class a,b,c,d ok
+            </pre>
+          </div>
+          <div class="space-y-3">
+            <div class="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <p class="font-semibold mb-1">⚠ Touche les décisions 0004 / 0009</p>
+              <p class="text-xs">Le module unique copié tel quel est un choix délibéré (pas de build). Rouvrir <strong>seulement</strong> si la navigabilité (31 exports, 7 concerns) pèse assez : le copieur apprend à concaténer plusieurs fichiers au lieu d'un <span class="mono">copyFile</span>. Le seam de copie et son test d'égalité survivent.</p>
+            </div>
+            <p class="text-xs text-slate-500">La navigabilité IA est le but explicite de cette revue — d'où « worth exploring » malgré l'ADR. Ce n'est pas urgent : rien n'est cassé, c'est du confort de lecture et de <em>locality</em>.</p>
+          </div>
+        </div>
+        <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-slate-700 list-disc list-inside">
+          <li><strong>locality</strong> : 1 concern = 1 fichier</li>
+          <li>un import ciblé au lieu de 31 globales</li>
+          <li>coût : le copieur devient un concat + garde-fou</li>
+          <li>déplace la complexité, ne la concentre pas — d'où le rang</li>
+        </ul>
+      </article>
+
+      <!-- ══ CANDIDAT 5 ══════════════════════════════════════════ -->
+      <article class="space-y-5">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-xs mono px-2 py-1 rounded bg-amber-500 text-white">Worth exploring</span>
+          <span class="text-xs mono px-2 py-1 rounded bg-slate-200 text-slate-700">resserrer une interface</span>
+          <span class="mono text-sm text-slate-400">05</span>
+        </div>
+        <h2 class="font-serif text-2xl">La fiche fuit par son <span class="mono text-xl">options</span> et par un id DOM</h2>
+        <p class="mono text-sm text-slate-500">site/fiche.js · fiche-adresse.js · a-traiter.html · structures.html</p>
+
+        <div class="rounded-lg border border-slate-200 bg-white p-4">
+          <pre class="mermaid">
+flowchart LR
+  PAGE["page (a-traiter.html)"] -. "donnees() — closure sur l'état mutable" .-> FICHE["creerFiche*"]
+  FICHE -. "re-render après geste — ordre partagé" .-> PAGE
+  PAGE == "getElementById('fiche-emplacement') + wa-after-hide" ==> FICHE
+  PAGE == "3 drapeaux nav : navigationVersEmplacement · ficheAdresseOrigine · retourCourant" ==> FICHE2["fiche-adresse.js"]
+  classDef leak stroke:#dc2626,stroke-width:2px,fill:#fef2f2;
+  class PAGE,FICHE,FICHE2 leak
+          </pre>
+          <p class="text-xs text-slate-500 mt-2">Pour tracer <em>un</em> geste utilisateur on rebondit entre 3 fichiers : contrat <span class="mono">donnees()</span> implicite et non-uniforme (fiche-demande veut aussi <span class="mono">demandes</span>), page qui atteint la fiche <strong>par id DOM en dur</strong>, chorégraphie de navigation à 3 drapeaux répartie sur page + fiche.js + fiche-adresse.js.</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4 text-sm">
+          <div><p class="schematic text-slate-400 mb-1">Problème</p><p>Tout ce qu'un appelant doit savoir (clés de <span class="mono">donnees</span>, ordre du re-render, id du drawer, retour de navigation) est presque aussi gros que ce que la fiche fait — interface superficielle.</p></div>
+          <div><p class="schematic text-slate-400 mb-1">Solution</p><p>Interface explicite : la fiche reçoit ses données (pas une closure sur l'état de page), émet des événements (<span class="mono">geste</span>, <span class="mono">retour</span>) ; la page ne connaît plus son id DOM.</p></div>
+        </div>
+        <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-slate-700 list-disc list-inside">
+          <li>la chorégraphie de navigation vit en un lieu</li>
+          <li>le focus du drawer cesse d'être écrit en double</li>
+          <li>plus gros chantier → « worth exploring », pas « strong »</li>
+          <li>dépend en partie du candidat 03 (helpers partagés)</li>
+        </ul>
+      </article>
+
+      <!-- ══ CANDIDAT 6 ══════════════════════════════════════════ -->
+      <article class="space-y-5">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-xs mono px-2 py-1 rounded bg-slate-400 text-white">Speculative</span>
+          <span class="text-xs mono px-2 py-1 rounded bg-slate-200 text-slate-700">locality dans la coquille impure</span>
+          <span class="mono text-sm text-slate-400">06</span>
+        </div>
+        <h2 class="font-serif text-2xl">Backend : <span class="mono text-xl">majLigneParCle_</span> écrit deux fois la même boucle</h2>
+        <p class="mono text-sm text-slate-500">apps-script/sheets.js:69 (majLigneParCle_) · sheets.js:251 (upsertMembre_) · Code.js:31</p>
+
+        <!-- cross-section: two near-identical bands -> one -->
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="card-mod p-4">
+            <p class="schematic text-red-600 mb-3">Avant — même find-merge-write, deux fois</p>
+            <div class="space-y-2">
+              <div class="card-dup p-2"><p class="mono text-[11px]">majLigneParCle_(cle, valeur)</p><p class="text-[10px] text-slate-500">getDataRange → boucle → fusionnerLigne → setValues · match = cellule exacte</p></div>
+              <div class="card-dup p-2"><p class="mono text-[11px]">upsertMembre_(membre)</p><p class="text-[10px] text-slate-500">getDataRange → boucle → fusionnerLigne → setValues · match = <span class="mono">cleAdresse</span> (normalisé)</p></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-3">La seule différence est le <strong>prédicat de correspondance</strong>. La contrainte « n'écrire que les colonnes fournies » (déc. 0012) est donc codée deux fois.</p>
+          </div>
+          <div class="card-mod p-4">
+            <p class="schematic text-emerald-700 mb-3">Après — prédicat paramétré</p>
+            <div class="card-deep p-3">
+              <p class="mono text-[11px]">majLigne(feuille, correspond, objet)</p>
+              <p class="text-[10px] text-slate-300 mt-1">une boucle find-merge-write ; le prédicat <span class="mono">correspond(ligne)</span> varie</p>
+              <div class="mt-2 pt-2 border-t border-slate-600 text-[10px] text-slate-400 faded">
+                <p>upsert membre = majLigne(…, ligne ⇒ cleAdresse(ligne)===cle, …)</p>
+              </div>
+            </div>
+            <p class="text-xs text-slate-500 mt-3">Bonus voisin : <span class="mono">Code.js:31-40</span> ré-liste les 5 clés de <span class="mono">lireInventaire()</span> alors que les 8 autres handlers transmettent la valeur opaquement — pure redondance à retirer.</p>
+          </div>
+        </div>
+        <ul class="grid sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-slate-700 list-disc list-inside">
+          <li>petit gain de <strong>locality</strong> dans la glue impure</li>
+          <li>la règle « écrire par nom de colonne » = un foyer</li>
+          <li>reste non-testable en node (SpreadsheetApp) — d'où « speculative »</li>
+          <li>gain modeste : ~15 lignes, à faire en passant</li>
+        </ul>
+      </article>
+
+      </section>
+
+      <!-- ── TOP RECOMMENDATION ─────────────────────────────────── -->
+      <section id="top-recommendation" class="space-y-4">
+        <h2 class="font-serif text-2xl">Par où commencer</h2>
+        <div class="card-deep p-6 space-y-3">
+          <p class="schematic text-emerald-300">Recommandation</p>
+          <p class="font-serif text-2xl">01 — Le module <span class="mono">client backend</span></p>
+          <p class="text-slate-300 text-sm max-w-3xl">Le seam manquant le plus net : 11 sites <span class="mono">fetch</span>, <span class="mono">ErreurApi</span> déclarée 6×, <span class="mono">envoyerAction</span> copié 3×, l'enveloppe ré-écrite 5×. Purement <strong>additif</strong> — aucun ADR touché, aucun build à changer. Et il ouvre le premier module frontend <strong>testable en node</strong> (fetch injecté) : aujourd'hui toute la couche fetch/enveloppe a zéro couverture unitaire. Meilleur leverage pour le moindre risque.</p>
+          <p class="text-slate-400 text-xs">Ensuite 02 puis 03 — même thème (« la dérivation existe, la présentation n'a pas de foyer »), même faible risque. 04 et 05 sont des chantiers de fond à décider séparément ; 06 se fait en passant.</p>
+        </div>
+        <p class="text-sm text-slate-500">Dites-moi lequel vous voulez explorer — j'enchaîne alors sur <span class="mono">/grilling</span> pour dérouler l'arbre de conception (contraintes, forme du module approfondi, ce qui vit derrière le seam, quels tests survivent).</p>
+      </section>
+    </main>
+  </body>
+</html>
