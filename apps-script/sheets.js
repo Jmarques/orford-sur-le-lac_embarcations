@@ -1,9 +1,12 @@
 // Seul module connaissant le schéma des onglets de la Sheet (voir docs/decisions/0002).
 // La Sheet reste éditable à la main : toujours relire l'état frais, valider à la lecture.
 
+// L'état d'une demande est DÉRIVÉ, jamais stocké (décision 0020) : plus de
+// colonne `statut` — deux faits de décision portés par la ligne. numeroAttribue
+// rempli → acceptée ; dateDecision seule → refusée ; ni l'un ni l'autre →
+// nouvelle. Une demande naît donc sans ces deux colonnes remplies.
 var ONGLET_DEMANDES = 'Demandes';
-var ENTETES_DEMANDES = ['id', 'date', 'rue', 'numero', 'nom', 'courriel', 'telephone', 'type', 'mobiliteReduite', 'note', 'statut'];
-var STATUT_NOUVELLE = 'nouvelle';
+var ENTETES_DEMANDES = ['id', 'date', 'rue', 'numero', 'nom', 'courriel', 'telephone', 'type', 'mobiliteReduite', 'note', 'numeroAttribue', 'dateDecision'];
 
 var ONGLET_CONFIG = 'Config';
 var ENTETES_CONFIG = ['clé', 'valeur'];
@@ -115,12 +118,16 @@ function lireDemandes() {
 // Le Journal voyage avec l'inventaire (0011, volume négligeable à ~180 places) et
 // les Membres aussi (0010) : les dérivations « À traiter » (files, « libre
 // depuis », historique) et le contact des cartes-cas se font côté client (0004).
+// Les Demandes voyagent avec l'inventaire (décision 0020) : la section
+// « Demandes » de la page À traiter dérive leur état côté client (0004), comme
+// les files et le hors quota — plus d'action `demandes` séparée.
 function lireInventaire() {
   return {
     structures: objetsDepuisLignes(ongletRequis_(ONGLET_STRUCTURES).getDataRange().getValues()),
     emplacements: objetsDepuisLignes(ongletRequis_(ONGLET_EMPLACEMENTS).getDataRange().getValues()),
     membres: objetsDepuisLignes(ongletRequis_(ONGLET_MEMBRES).getDataRange().getValues()),
     journal: objetsDepuisLignes(ongletRequis_(ONGLET_JOURNAL).getDataRange().getValues()),
+    demandes: lireDemandes(),
   };
 }
 
@@ -216,6 +223,9 @@ function journaliser_(evenement) {
   appendObjet_(ongletRequis_(ONGLET_JOURNAL), objet);
 }
 
+// Une demande naît « nouvelle » : ni numeroAttribue ni dateDecision (colonnes
+// laissées vides par l'append piloté par en-têtes — décision 0012), donc l'état
+// dérivé (0020) est « nouvelle » jusqu'à une décision du comité.
 function ajouterDemande(demande) {
   var id = Utilities.getUuid();
   appendObjet_(ongletRequis_(ONGLET_DEMANDES), {
@@ -229,7 +239,6 @@ function ajouterDemande(demande) {
     type: demande.type,
     mobiliteReduite: demande.mobiliteReduite,
     note: demande.note,
-    statut: STATUT_NOUVELLE,
   });
   return id;
 }

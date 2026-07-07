@@ -19,24 +19,10 @@ function verifierAcces(corps, motDePasseAttendu) {
   }
 }
 
-// Ordre de traitement du comité : les nouvelles d'abord (la plus ancienne en
-// tête — premier arrivé, premier servi), puis les décidées (la plus récente en tête).
-function trierDemandes(demandes) {
-  // Ne présume pas du type de `date` (chaîne ISO attendue, mais la Sheet est
-  // éditée à la main — 0002) : tri par timestamp ; une date illisible est
-  // traitée comme la plus ancienne.
-  function cleDate(demande) {
-    var temps = new Date(demande.date).getTime();
-    return isNaN(temps) ? 0 : temps;
-  }
-  return demandes.slice().sort(function (a, b) {
-    var aNouvelle = a.statut === 'nouvelle';
-    var bNouvelle = b.statut === 'nouvelle';
-    if (aNouvelle !== bNouvelle) return aNouvelle ? -1 : 1;
-    return aNouvelle ? cleDate(a) - cleDate(b) : cleDate(b) - cleDate(a);
-  });
-}
+// Le tri des demandes vit désormais dans grille.js (sectionDemandes) : l'état
+// est dérivé, jamais stocké, et partagé par la section « Demandes » de la page
+// À traiter (décision 0020).
 
 if (typeof module !== 'undefined') {
-  module.exports = { verifierAcces, trierDemandes };
+  module.exports = { verifierAcces };
 }

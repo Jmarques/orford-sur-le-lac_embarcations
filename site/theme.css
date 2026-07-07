@@ -766,6 +766,61 @@ wa-callout::part(icon) {
   block-size: var(--wa-space-5xl);
 }
 
+/* Une demande nouvelle (décision 0020) : carte INFORMATIVE, lecture seule cette
+   tranche. Volontairement PLUS PLATE que les rangées-galets cliquables (pas de
+   liseré d'accent en tête, pas d'ombre portée) : elle ne doit pas se faire
+   passer pour un bouton tant qu'elle ne s'ouvre pas. La fiche de traitement la
+   promeut en galet interactif à la tranche suivante. */
+.rangee-demande {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: var(--wa-space-m);
+  padding: var(--wa-space-s) var(--wa-space-l);
+  background: var(--wa-color-surface-raised);
+  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+  border-radius: var(--wa-border-radius-m);
+}
+/* La pastille « mobilité réduite » d'une rangée de demande ne se comprime
+   jamais : sur mobile, elle passe sous le texte plutôt que de l'écraser. */
+.rangee-demande .badge-mobilite {
+  justify-self: end;
+}
+@media (max-width: 30rem) {
+  .rangee-demande {
+    grid-template-columns: 1fr;
+    row-gap: var(--wa-space-xs);
+  }
+  .rangee-demande .badge-mobilite {
+    justify-self: start;
+  }
+}
+
+/* Les demandes déjà décidées : lignes dépliables discrètes (l'état est dérivé,
+   pas un statut stocké — 0020). Le résumé reste scannable ; le détail (raison
+   d'un refus, demande figée) vit dans le repli. */
+.liste-decidees {
+  list-style: none;
+  margin: 0;
+  padding-inline-start: 0;
+}
+.demande-resume {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--wa-space-2xs) var(--wa-space-s);
+}
+.demande-resume-adresse {
+  font-family: var(--wa-font-family-heading);
+  font-weight: var(--wa-font-weight-semibold);
+  color: var(--wa-color-brand-on-quiet);
+}
+/* Étiquette d'une citation du repli (« Raison du refus », « Note du membre ») :
+   dit qui parle avant le bloc en retrait, jamais deux voix confondues. */
+.demande-etiquette {
+  font-weight: var(--wa-font-weight-semibold);
+}
+
 /* Journal de la fiche : une ligne datée par événement, icône du type en tête
    (l'observation reprend l'icône de la tournée). Pas de puces. */
 .liste-evenements {

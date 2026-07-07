@@ -27,9 +27,6 @@ function doPost(e) {
       return reponseJson_({ ok: true, id: ajouterDemande(demande) });
     }
     verifierAcces(corps, lireMotDePasseComite());
-    if (corps.action === 'demandes') {
-      return reponseJson_({ ok: true, demandes: trierDemandes(lireDemandes()) });
-    }
     if (corps.action === 'inventaire') {
       var inventaire = lireInventaire();
       return reponseJson_({
@@ -38,6 +35,7 @@ function doPost(e) {
         emplacements: inventaire.emplacements,
         membres: inventaire.membres,
         journal: inventaire.journal,
+        demandes: inventaire.demandes,
       });
     }
     if (corps.action === 'sauverStructure') {

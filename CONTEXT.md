@@ -23,8 +23,8 @@
 **Membre** — La personne-contact enregistrée pour une adresse : nom, courriel, téléphone. Vit dans l'onglet `Membres`, keyé par l'adresse (numeroAdresse + rue) : une seule ligne (un contact) par adresse, même si plusieurs personnes du foyer ont fait des demandes. C'est la **source de vérité du contact courant**, distincte du contact figé au moment d'une demande (qui reste dans le journal Demandes ; une demande acceptée peut servir à mettre le Membre à jour, avec validation du comité). Ne pas confondre avec un **membre du comité**.
   _Avoid_: contact, propriétaire (comme terme UI) ; « membre » pour désigner l'adresse-identité (le Membre est la personne, pas la clé)
 
-**Demande** — Une requête d'un membre pour obtenir un emplacement, soumise via le formulaire public (ou saisie par un admin). Conserve sa trace même après décision.
-  _Avoid_: requête, application
+**Demande** — Une requête d'un membre pour obtenir **un** emplacement (une embarcation = une demande), soumise via le formulaire public (ou saisie par un admin). Son état est **dérivé, jamais stocké** (même doctrine que le [[Statut d'un emplacement]]), depuis deux faits portés par la demande : l'emplacement attribué et la date de décision. Emplacement attribué → **acceptée** ; date de décision seule → **refusée** (la raison, en texte libre, est journalisée — « hors quota », « désistement », « doublon » sont des raisons, pas des statuts) ; ni l'un ni l'autre → **nouvelle**. Conserve sa trace même après décision, y compris si l'emplacement est libéré plus tard (l'attribution de la demande est un fait historique).
+  _Avoid_: requête, application ; statut (comme colonne stockée) ; en attente (il n'y a pas d'état intermédiaire entre nouvelle et décidée)
 
 **Attribution** — Le lien entre un emplacement et une adresse, résultat de l'acceptation d'une demande par le comité. Permanente jusqu'à libération (pas de saison, pas de renouvellement annuel).
   _Avoid_: réservation, location
@@ -50,11 +50,14 @@
 **Mobilité réduite** — Indicateur optionnel sur une demande : le membre a besoin d'un emplacement facile d'accès, ce qui oriente l'attribution vers les niveaux bas des structures horizontales. Terme retenu car standard (« personne à mobilité réduite », PMR).
   _Avoid_: handicap, accessibilité (trop large), problème de mobilité
 
-**Quota** — Le nombre d'emplacements permis à une [[Adresse]] : 2 par défaut, ou son **quota accordé** quand le comité a entériné une exception durable (les exceptions historiques à 3–4 emplacements existent ; le quota accordé est un fait par adresse, pas un état de traitement). Non bloquant : une demande au-delà du quota est acceptée par le formulaire mais signalée ; la décision reste humaine.
+**Quota** — Le nombre d'emplacements permis à une [[Adresse]] : 2 par défaut, ou son **quota accordé** quand le comité a entériné une exception durable (les exceptions historiques à 3–4 emplacements existent ; le quota accordé est un fait par adresse, pas un état de traitement). Le formulaire ne bloque jamais la **soumission** d'une demande au-delà du quota ; l'**attribution** via l'app, elle, est bloquée au-delà du quota accordé — la porte de sortie est d'augmenter le quota accordé dans Membres (geste du comité), puis d'accepter.
   _Avoid_: limite, plafond
 
 **Hors quota** — L'état **dérivé** d'une adresse dont les attributions dépassent son [[Quota]] — jamais stocké, toujours calculé. Une adresse en sort quand une libération la ramène à son quota, et y re-rentre si elle le dépasse à nouveau. C'est un dossier de gestion (à traiter au bureau), pas un fait de terrain : ses emplacements gardent leur statut propre et la grille ne le marque pas.
   _Avoid_: en infraction, fautif, dépassement (comme nom d'état)
+
+**Fiche de demande** — La vue détaillée d'une [[Demande]] à traiter : le contact demandé face au [[Membre]] courant (différences visibles, mise à jour en un geste — la validation du comité, c'est ce geste), les emplacements déjà attribués à l'adresse et son [[Quota]], et les emplacements **Disponibles** des structures compatibles avec le type d'embarcation (triés par niveau : hauts d'abord, bas d'abord si [[Mobilité réduite]] ; une structure verticale compte comme au sol). Accepter = choisir un emplacement et l'attribuer, en un seul geste ; refuser = donner une raison. Écrire au membre reste un mailto préparé, jamais un envoi automatique.
+  _Avoid_: fiche d'une demande traitée (les traitées se consultent en ligne compacte dépliable), panneau de demande
 
 **Fiche d'adresse** — La vue détaillée d'un cas [[Hors quota]] : l'adresse, son [[Membre]], le fait qui justifie le cas, ses emplacements avec leur statut (chacun ouvrant sa [[Fiche d'emplacement]]), le journal du cas (notes d'adresse et libérations de ses emplacements), une [[Note (au journal)]] et l'écriture au membre. Les gestes d'emplacement (observer, libérer) restent dans la fiche d'emplacement.
   _Avoid_: fiche de membre, fiche du cas, dossier (comme terme UI)

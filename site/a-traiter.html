@@ -25,10 +25,9 @@
       <h1 class="wa-heading-xl wa-text-balance titre-lac">À traiter</h1>
       <!-- Le détail des deux familles vit dans les intitulés de section
            (une info = un seul foyer, décision 0016). -->
-      <p class="wa-text-pretty sous-titre-lac">Les emplacements qui attendent
-        une décision du comité.</p>
+      <p class="wa-text-pretty sous-titre-lac">Les demandes et les emplacements
+        qui attendent une décision du comité.</p>
       <nav class="wa-cluster wa-gap-l nav-comite" aria-label="Pages du comité">
-        <a href="admin.html"><wa-icon name="inbox"></wa-icon> Demandes</a>
         <a href="structures.html"><wa-icon name="table-cells"></wa-icon> Structures</a>
         <a href="a-traiter.html" aria-current="page"><wa-icon name="clipboard-list"></wa-icon> À traiter</a>
       </nav>
@@ -111,10 +110,36 @@
         dès qu'une tournée observe qu'un cas est réglé, il disparaît de la liste —
         il n'y a rien à fermer ici. Touchez un cas pour ouvrir sa fiche.</p>
 
-      <!-- « Hors quota » en PREMIÈRE position (décision 0019) : le dossier
-           prioritaire — une question d'équité envers les membres qui
-           attendent. Pastille neutre : une règle de gestion, ni urgence ni
-           anomalie de terrain. -->
+      <!-- « Demandes » en PREMIÈRE position (décision 0020) : les membres qui
+           attendent une place — la même équité qui met Hors quota avant les
+           files de terrain (0019). Lecture seule cette tranche ; la fiche de
+           traitement (accepter, refuser) vient à la tranche suivante. -->
+      <section class="wa-stack wa-gap-m" aria-labelledby="titre-demandes">
+        <div class="wa-stack wa-gap-2xs">
+          <div class="wa-split wa-align-items-baseline">
+            <!-- tabindex : cible de focus après la connexion (première section). -->
+            <h3 id="titre-demandes" class="wa-heading-m" tabindex="-1">Demandes</h3>
+            <wa-badge id="compte-demandes" class="badge-compte" variant="brand"
+                      appearance="filled-outlined" pill hidden></wa-badge>
+          </div>
+          <p class="wa-color-text-quiet wa-text-pretty">Les demandes d'emplacement
+            envoyées par les membres, la plus ancienne d'abord.</p>
+        </div>
+        <p id="vide-demandes" class="section-vide" hidden>
+          <wa-icon name="circle-check"></wa-icon> Aucune demande à traiter.
+        </p>
+        <ul id="liste-demandes" class="liste-cas wa-stack wa-gap-s"></ul>
+        <!-- Les demandes déjà décidées : repli discret, une ligne dépliable
+             chacune (l'état est dérivé — 0020 — pas un statut stocké). -->
+        <div id="demandes-decidees" class="wa-stack wa-gap-s" hidden>
+          <h4 class="wa-heading-s wa-color-text-quiet">Déjà décidées</h4>
+          <ul id="liste-demandes-decidees" class="liste-decidees wa-stack wa-gap-2xs"></ul>
+        </div>
+      </section>
+
+      <!-- « Hors quota » (décision 0019) : dossier prioritaire, une question
+           d'équité — après les demandes, avant les files de terrain. Pastille
+           neutre : une règle de gestion, ni urgence ni anomalie de terrain. -->
       <section class="wa-stack wa-gap-m" aria-labelledby="titre-hors-quota">
         <div class="wa-stack wa-gap-2xs">
           <div class="wa-split wa-align-items-baseline">
@@ -191,6 +216,59 @@
     </li>
   </template>
 
+  <!-- Modèle d'une demande nouvelle (rempli par textContent : jamais de HTML
+       du membre — anti-XSS). Lecture seule cette tranche : une carte-galet
+       informative, pas encore un bouton (la fiche de traitement vient en 02). -->
+  <template id="modele-rangee-demande">
+    <li class="cas">
+      <div class="rangee-demande">
+        <span class="rangee-texte">
+          <span class="rangee-titre"><span class="rangee-numero demande-adresse"></span></span>
+          <!-- Le type est écrit en toutes lettres : pas d'icône générique qui
+               n'ajouterait rien (le mot suffit, décision 0016). -->
+          <span class="rangee-signal demande-type"></span>
+          <span class="rangee-meta wa-caption-m wa-color-text-quiet demande-recue"></span>
+        </span>
+        <wa-badge class="badge-mobilite" variant="warning" appearance="filled-outlined" pill hidden>
+          <wa-icon name="person-cane"></wa-icon> Mobilité réduite
+        </wa-badge>
+      </div>
+    </li>
+  </template>
+
+  <!-- Modèle d'une demande déjà décidée : une ligne compacte dépliable. L'issue
+       (emplacement attribué ou refus) et la raison se dérivent de la ligne et
+       du Journal (via demandeId) — l'état n'est jamais stocké (décision 0020). -->
+  <template id="modele-demande-decidee">
+    <li>
+      <wa-details class="demande-decidee">
+        <div slot="summary" class="demande-resume">
+          <span class="demande-resume-adresse"></span>
+          <wa-badge class="demande-resume-badge" pill></wa-badge>
+          <span class="demande-resume-issue wa-color-text-quiet"></span>
+        </div>
+        <!-- Le repli ne répète pas le résumé (0016) : il ajoute la raison d'un
+             refus et la demande figée. Chaque citation porte son étiquette —
+             la voix du comité et celle du membre ne se confondent jamais. -->
+        <div class="wa-stack wa-gap-s demande-details">
+          <div class="wa-stack wa-gap-2xs demande-raison-bloc" hidden>
+            <span class="wa-caption-m wa-color-text-quiet demande-etiquette">Raison du refus</span>
+            <p class="demande-raison note-membre"></p>
+          </div>
+          <div class="wa-stack wa-gap-2xs wa-caption-m wa-color-text-quiet demande-figee">
+            <span class="demande-figee-recue"></span>
+            <span class="demande-figee-type"></span>
+            <span class="demande-figee-contact"></span>
+          </div>
+          <div class="wa-stack wa-gap-2xs demande-note-bloc" hidden>
+            <span class="wa-caption-m wa-color-text-quiet demande-etiquette">Note du membre</span>
+            <p class="demande-figee-note note-membre"></p>
+          </div>
+        </div>
+      </wa-details>
+    </li>
+  </template>
+
   <!-- La fiche d'emplacement (décision 0018) est le composant partagé de
        fiche.js : le registre reste scannable, tout le travail vit dans la
        fiche — la même que sur la page Structures. -->
@@ -253,7 +331,7 @@
     }
 
     // L'état courant renvoyé par l'API (0002 : toujours l'état frais de la Sheet).
-    let donnees = { structures: [], emplacements: [], membres: [], journal: [] };
+    let donnees = { structures: [], emplacements: [], membres: [], journal: [], demandes: [] };
 
     const formatDate = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
 
@@ -363,7 +441,105 @@
       return rangee;
     }
 
+    // --- La section « Demandes » (décision 0020) : lecture seule cette tranche ---
+
+    // L'adresse figée d'une demande (le contact du moment — 0010) : toujours
+    // « numero, rue », rempli par textContent (jamais du HTML du membre).
+    function adresseDemande(demande) {
+      return demande.numero + ', ' + demande.rue;
+    }
+
+    // « Reçue le … » ou une mention neutre si la date est illisible (Sheet
+    // éditée à la main — 0002) : jamais un « Invalid Date » affiché.
+    function dateRecue(demande) {
+      const date = new Date(demande.date);
+      return Number.isNaN(date.valueOf())
+        ? 'Reçue à une date inconnue'
+        : 'Reçue le ' + formatDate.format(date);
+    }
+
+    // Une demande nouvelle : carte-galet informative. Lecture seule cette
+    // tranche — la fiche de traitement (accepter, refuser) vient à la suivante,
+    // les rangées ne s'ouvrent donc pas encore.
+    function rangeeDemande(entree) {
+      const { demande } = entree;
+      const noeud = document.getElementById('modele-rangee-demande').content.cloneNode(true);
+      noeud.querySelector('.demande-adresse').textContent = adresseDemande(demande);
+      noeud.querySelector('.demande-type').textContent = demande.type;
+      noeud.querySelector('.demande-recue').textContent = dateRecue(demande);
+      noeud.querySelector('.badge-mobilite').hidden = !demande.mobiliteReduite;
+      return noeud;
+    }
+
+    // L'issue d'une demande décidée, en résumé : l'emplacement attribué ou la
+    // date du refus — la date de décision vient de l'état dérivé (0020). Même
+    // tournure de date des deux côtés (sans « le »), pour deux rangées jumelles.
+    function issueDemande(etat) {
+      const quand = etat.date ? formatDate.format(etat.date) : 'date inconnue';
+      return etat.code === 'acceptee'
+        ? 'Emplacement ' + etat.numero + ' · ' + quand
+        : quand;
+    }
+
+    // Une demande déjà décidée : ligne compacte dépliable (résumé scannable +
+    // détail). L'issue et la raison d'un refus se dérivent de la ligne et du
+    // Journal (via demandeId) — l'état n'est jamais stocké (0020).
+    function rangeeDemandeDecidee(entree) {
+      const { demande, etat } = entree;
+      const noeud = document.getElementById('modele-demande-decidee').content.cloneNode(true);
+      noeud.querySelector('.demande-decidee').dataset.id = demande.id;
+
+      noeud.querySelector('.demande-resume-adresse').textContent = adresseDemande(demande);
+      const badge = noeud.querySelector('.demande-resume-badge');
+      badge.textContent = etat.libelle;
+      badge.setAttribute('variant', etat.code === 'acceptee' ? 'success' : 'neutral');
+      badge.setAttribute('appearance', 'filled-outlined');
+      noeud.querySelector('.demande-resume-issue').textContent = issueDemande(etat);
+
+      // La raison d'un refus vit au Journal (0020), keyée par demandeId —
+      // étiquetée « Raison du refus » pour ne pas se confondre avec la note du
+      // membre. Le résumé porte déjà la décision et sa date : pas de répétition.
+      const refus = journalDemande(donnees.journal, demande.id)
+        .filter((e) => e.action === 'refus').pop();
+      if (refus && refus.details) {
+        noeud.querySelector('.demande-raison').textContent = refus.details;
+        noeud.querySelector('.demande-raison-bloc').hidden = false;
+      }
+
+      noeud.querySelector('.demande-figee-recue').textContent = dateRecue(demande);
+      const mobilite = demande.mobiliteReduite ? ' · priorité niveau bas (mobilité réduite)' : '';
+      noeud.querySelector('.demande-figee-type').textContent = demande.type + mobilite;
+      noeud.querySelector('.demande-figee-contact').textContent =
+        [demande.nom, demande.courriel, demande.telephone]
+          .map((c) => String(c || '').trim()).filter(Boolean).join(' · ');
+      if (String(demande.note || '').trim()) {
+        noeud.querySelector('.demande-figee-note').textContent = demande.note;
+        noeud.querySelector('.demande-note-bloc').hidden = false;
+      }
+      return noeud;
+    }
+
+    // Remplit la section « Demandes » : nouvelles en rangées scannables (pastille
+    // libellée, jamais un nombre nu — 0016), traitées empilées en dessous.
+    function afficherDemandes() {
+      const { nouvelles, traitees } = sectionDemandes(donnees.demandes);
+      const badge = document.getElementById('compte-demandes');
+      badge.hidden = nouvelles.length === 0;
+      badge.textContent = nouvelles.length === 1 ? '1 demande' : nouvelles.length + ' demandes';
+      document.getElementById('vide-demandes').hidden = nouvelles.length > 0;
+
+      const liste = document.getElementById('liste-demandes');
+      liste.replaceChildren();
+      for (const entree of nouvelles) liste.appendChild(rangeeDemande(entree));
+
+      document.getElementById('demandes-decidees').hidden = traitees.length === 0;
+      const listeDecidees = document.getElementById('liste-demandes-decidees');
+      listeDecidees.replaceChildren();
+      for (const entree of traitees) listeDecidees.appendChild(rangeeDemandeDecidee(entree));
+    }
+
     function afficherCas() {
+      afficherDemandes();
       structureParNumero = new Map();
       const { structures } = analyserStructures(donnees.structures, []);
       for (const analyse of structures) {
@@ -401,6 +577,7 @@
         emplacements: resultat.emplacements || [],
         membres: resultat.membres || [],
         journal: resultat.journal || [],
+        demandes: resultat.demandes || [],
       };
     }
 
@@ -532,7 +709,7 @@
       await chargerCas(champMotDePasse.value);
       // Après la connexion, le focus quitte le formulaire disparu : on le pose
       // sur le premier titre visible (clavier et lecteurs d'écran).
-      if (!etats.liste.hidden) document.getElementById('titre-hors-quota').focus();
+      if (!etats.liste.hidden) document.getElementById('titre-demandes').focus();
     });
     document.getElementById('reessayer').addEventListener('click', () => {
       chargerCas(sessionStorage.getItem(CLE_SESSION) || champMotDePasse.value);

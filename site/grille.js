@@ -656,6 +656,80 @@ function depassementQuota(ligne, lignesEmplacements, membres) {
   return cas && cas.depassement > 0 ? { nombre: cas.nombre, quota: cas.quota } : null;
 }
 
+// --- Section « Demandes » (décision 0020) : état dérivé, jamais stocké ---
+
+// Une cellule lue comme texte épuré, tolérante à l'édition manuelle (0002) :
+// undefined/null → '', jamais un plantage.
+function texteBrut_(valeur) {
+  return String(valeur === undefined || valeur === null ? '' : valeur).trim();
+}
+
+// L'état d'une demande, DÉRIVÉ de deux faits portés par sa ligne (décision
+// 0020) — jamais stocké, même doctrine que le statut d'un emplacement (0011).
+// Un emplacement attribué (numeroAttribue entier > 0) → acceptée ; une date de
+// décision lisible seule → refusée ; ni l'un ni l'autre → nouvelle. Tolérant à
+// l'édition manuelle (0002) : un numeroAttribue parasite ne vaut pas une
+// attribution ; l'attribution prime sur une date de décision illisible.
+function etatDemande(demande) {
+  var brutNumero = demande ? texteBrut_(demande.numeroAttribue) : '';
+  var numero = Number(brutNumero);
+  var date = dateLisible_(demande && demande.dateDecision);
+  if (brutNumero !== '' && Number.isInteger(numero) && numero > 0) {
+    return { code: 'acceptee', libelle: 'Acceptée', numero: numero, date: date };
+  }
+  if (date !== null) {
+    return { code: 'refusee', libelle: 'Refusée', date: date };
+  }
+  return { code: 'nouvelle', libelle: 'Nouvelle' };
+}
+
+// Le temps d'une date lisible (ou 0 si absente/illisible — 0002) : sert de clé
+// de tri sans jamais planter.
+function tempsLisible_(valeur) {
+  var date = dateLisible_(valeur);
+  return date === null ? 0 : date.getTime();
+}
+
+// La section « Demandes » de la page À traiter (décision 0020), dérivée de
+// l'état de chaque demande — rien n'est stocké. Les nouvelles d'abord, la plus
+// ancienne en tête (premier arrivé, premier servi) ; les traitées ensuite, la
+// décision la plus récente en tête. Chaque entrée porte sa demande et son état
+// dérivé. Une date illisible (Sheet éditée à la main — 0002) est traitée comme
+// la plus ancienne, jamais un plantage. Une ligne absente est ignorée.
+function sectionDemandes(demandes) {
+  var nouvelles = [];
+  var traitees = [];
+  (demandes || []).forEach(function (demande) {
+    if (!demande) return;
+    var etat = etatDemande(demande);
+    (etat.code === 'nouvelle' ? nouvelles : traitees).push({ demande: demande, etat: etat });
+  });
+  nouvelles.sort(function (a, b) {
+    return tempsLisible_(a.demande.date) - tempsLisible_(b.demande.date);
+  });
+  traitees.sort(function (a, b) {
+    return tempsLisible_(b.etat.date) - tempsLisible_(a.etat.date);
+  });
+  return { nouvelles: nouvelles, traitees: traitees };
+}
+
+// L'historique d'une demande (décision 0020) : les événements lisibles du
+// Journal portant son demandeId, en ordre chronologique — la décision
+// (attribution, refus) et la raison d'un refus s'y lisent. Même tolérance
+// qu'historiqueEmplacement : un événement sans date lisible ou sans action est
+// ignoré, un demandeId vide ne rapatrie rien (0002).
+function journalDemande(evenements, demandeId) {
+  var id = texteBrut_(demandeId);
+  if (id === '') return [];
+  return (evenements || [])
+    .filter(function (e) { return e && String(e.demandeId || '').trim() === id; })
+    .map(function (e) {
+      return { date: dateLisible_(e.date), action: String(e.action || ''), details: String(e.details || '') };
+    })
+    .filter(function (e) { return e.date !== null && e.action !== ''; })
+    .sort(function (a, b) { return a.date - b.date; });
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, cleAdresse, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, cleAdresse, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, ETATS_OCCUPATION };
 }

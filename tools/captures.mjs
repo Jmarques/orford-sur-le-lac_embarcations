@@ -6,6 +6,39 @@ export const VIEWPORTS = {
   mobile: { width: 390, height: 844 },
 };
 
+// Les demandes (décision 0020) : plus de colonne `statut` — l'état se dérive de
+// numeroAttribue + dateDecision (grille.js). Deux nouvelles (demo-1 plus
+// ancienne que demo-2 → en tête), une acceptée (emplacement 75 attribué à
+// Louise), une refusée (dateDecision seule ; sa raison vit au Journal, keyée
+// par demandeId). Elles voyagent maintenant dans l'inventaire.
+const DEMANDES_MOCK = [
+  {
+    id: 'demo-1', date: '2026-06-20T14:30:00.000Z', rue: 'Rue du Pré', numero: 234,
+    nom: 'Marie Gagnon', courriel: 'marie.gagnon@exemple.ca', telephone: '819 555-2345',
+    type: 'Kayak', mobiliteReduite: true,
+    note: 'Mon épaule ne me permet plus de soulever le kayak au-dessus de la taille.',
+    numeroAttribue: '', dateDecision: '',
+  },
+  {
+    id: 'demo-2', date: '2026-07-02T09:10:00.000Z', rue: 'Chemin du Lac', numero: 87,
+    nom: 'John Tremblay', courriel: 'john.tremblay@exemple.ca', telephone: '',
+    type: 'Planche (SUP)', mobiliteReduite: false, note: '',
+    numeroAttribue: '', dateDecision: '',
+  },
+  {
+    id: 'demo-3', date: '2026-06-05T16:00:00.000Z', rue: 'Rue des Érables', numero: 12,
+    nom: 'Louise Bédard', courriel: 'louise.bedard@exemple.ca', telephone: '819 555-8765',
+    type: 'Canoë', mobiliteReduite: false, note: '',
+    numeroAttribue: 75, dateDecision: '2026-06-06T10:00:00.000Z',
+  },
+  {
+    id: 'demo-4', date: '2026-05-14T11:45:00.000Z', rue: 'Rue du Pré', numero: 501,
+    nom: 'Robert Fortin', courriel: 'robert.fortin@exemple.ca', telephone: '',
+    type: 'Kayak', mobiliteReduite: false, note: 'Deuxième kayak pour ma conjointe.',
+    numeroAttribue: '', dateDecision: '2026-05-15T09:30:00.000Z',
+  },
+];
+
 // Réponses simulées de l'API (interception Playwright — aucune écriture réelle).
 // À faire évoluer avec le contrat de l'API (apps-script/Code.js).
 export const REPONSES_MOCK = {
@@ -17,65 +50,6 @@ export const REPONSES_MOCK = {
     },
   },
   creation: { ok: true, id: 'demo' },
-  // Réponse à l'action admin `demandes` : déjà triée comme l'API (nouvelles
-  // d'abord, la plus ancienne en tête ; décidées ensuite, la plus récente en tête).
-  demandes: {
-    ok: true,
-    demandes: [
-      {
-        id: 'demo-1',
-        date: '2026-06-20T14:30:00.000Z',
-        rue: 'Rue du Pré',
-        numero: 234,
-        nom: 'Marie Gagnon',
-        courriel: 'marie.gagnon@exemple.ca',
-        telephone: '819 555-2345',
-        type: 'Kayak',
-        mobiliteReduite: true,
-        note: 'Mon épaule ne me permet plus de soulever le kayak au-dessus de la taille.',
-        statut: 'nouvelle',
-      },
-      {
-        id: 'demo-2',
-        date: '2026-07-02T09:10:00.000Z',
-        rue: 'Chemin du Lac',
-        numero: 87,
-        nom: 'John Tremblay',
-        courriel: 'john.tremblay@exemple.ca',
-        telephone: '',
-        type: 'Planche (SUP)',
-        mobiliteReduite: false,
-        note: '',
-        statut: 'nouvelle',
-      },
-      {
-        id: 'demo-3',
-        date: '2026-06-05T16:00:00.000Z',
-        rue: 'Rue des Érables',
-        numero: 12,
-        nom: 'Louise Bédard',
-        courriel: 'louise.bedard@exemple.ca',
-        telephone: '819 555-8765',
-        type: 'Canoë',
-        mobiliteReduite: false,
-        note: '',
-        statut: 'acceptée',
-      },
-      {
-        id: 'demo-4',
-        date: '2026-05-14T11:45:00.000Z',
-        rue: 'Rue du Pré',
-        numero: 501,
-        nom: 'Robert Fortin',
-        courriel: 'robert.fortin@exemple.ca',
-        telephone: '',
-        type: 'Kayak',
-        mobiliteReduite: false,
-        note: 'Deuxième kayak pour ma conjointe.',
-        statut: 'refusée',
-      },
-    ],
-  },
   // Réponse à l'action admin `inventaire` : lignes brutes des onglets Structures
   // et Emplacements (le client parse et valide avec grille.js). Le jeu couvre
   // les cas réels : structure saine, saisie par colonnes, verticale, doublon
@@ -147,7 +121,12 @@ export const REPONSES_MOCK = {
       // Une note d'ADRESSE (0019) : keyée par la colonne adresse, numero vide —
       // le journal du cas hors quota de Marie la raconte.
       { date: '2026-06-15T09:00:00.000Z', action: 'note', numero: '', adresse: '234 Rue du Pré', demandeId: '', details: 'Convenu au téléphone : elle libère un des trois d\'ici la fin de l\'été. — Diane' },
+      // La raison du refus d'une demande (0020) : keyée par demandeId, numero et
+      // adresse vides — le dépliable de la demande refusée la raconte, sans
+      // polluer l'historique d'un emplacement.
+      { date: '2026-05-15T09:30:00.000Z', action: 'refus', numero: '', adresse: '', demandeId: 'demo-4', details: 'Un seul emplacement par embarcation, et l\'adresse a déjà atteint son quota de 2. — Diane' },
     ],
+    demandes: DEMANDES_MOCK,
   },
   // Réponses aux écritures admin (les captures n'écrivent rien de réel).
   sauverStructure: { ok: true, structure: {} },
@@ -202,6 +181,21 @@ INVENTAIRE_APRES_LIBERATION.journal.push({
   details: 'Adresse retirée : 12 Rue des Érables.',
 });
 
+// Section « Demandes » isolée (décision 0020) : registre vidé de tout le reste
+// (emplacements, membres, journal) pour capturer un seul état de la section.
+// Nouvelles seulement : la sous-section « Déjà décidées » reste masquée.
+export const INVENTAIRE_DEMANDES_NOUVELLES = {
+  ok: true, structures: [], emplacements: [], membres: [], journal: [],
+  demandes: DEMANDES_MOCK.filter((d) => d.id === 'demo-1' || d.id === 'demo-2'),
+};
+// Décidées seulement : la file des nouvelles montre son état vide positif, les
+// traitées s'empilent en dessous (une acceptée, une refusée).
+export const INVENTAIRE_DEMANDES_DECIDEES = {
+  ok: true, structures: [], emplacements: [], membres: [],
+  journal: REPONSES_MOCK.inventaire.journal.filter((e) => e.action === 'refus'),
+  demandes: DEMANDES_MOCK.filter((d) => d.id === 'demo-3' || d.id === 'demo-4'),
+};
+
 // config.js simulé : les captures ne dépendent pas du vrai site/config.js
 // (courriel de contact factice mais présent, pour rendre la .phrase-contact visible).
 export const CONFIG_JS_MOCK = `window.OSL_CONFIG = {
@@ -224,12 +218,6 @@ export const CAPTURES = [
   { nom: 'accueil-indisponible', page: 'index.html', etat: 'indisponible', attendre: '#etat-indisponible:not([hidden])' },
   { nom: 'accueil-succes', page: 'index.html', etat: 'succes', attendre: '#etat-succes:not([hidden])' },
   { nom: 'accueil-erreur-envoi', page: 'index.html', etat: 'erreur-envoi', attendre: '#erreur-envoi:not([hidden])' },
-  { nom: 'admin-connexion', page: 'admin.html', attendre: '#etat-connexion:not([hidden])' },
-  { nom: 'admin-mdp-refuse', page: 'admin.html', etat: 'mdp-refuse', attendre: '#erreur-connexion:not([hidden])' },
-  { nom: 'admin-chargement', page: 'admin.html', etat: 'chargement', attendre: '#etat-chargement:not([hidden])' },
-  { nom: 'admin-liste', page: 'admin.html', etat: 'liste', attendre: '.carte-demande' },
-  { nom: 'admin-liste-vide', page: 'admin.html', etat: 'liste-vide', attendre: '#etat-vide:not([hidden])' },
-  { nom: 'admin-erreur', page: 'admin.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
   { nom: 'structures-connexion', page: 'structures.html', attendre: '#etat-connexion:not([hidden])' },
   { nom: 'structures-mdp-refuse', page: 'structures.html', etat: 'mdp-refuse', attendre: '#erreur-connexion:not([hidden])' },
   { nom: 'structures-chargement', page: 'structures.html', etat: 'chargement', attendre: '#etat-chargement:not([hidden])' },
@@ -372,6 +360,22 @@ export const CAPTURES = [
   // Registre peuplé : 75 avant 84 (plus anciennement libre d'abord — tri visible).
   { nom: 'a-traiter-liste', page: 'a-traiter.html', etat: 'liste', attendre: '.rangee-cas' },
   { nom: 'a-traiter-liste-vide', page: 'a-traiter.html', etat: 'liste-vide', attendre: '#etat-liste:not([hidden])' },
+  // Section « Demandes » (décision 0020) : nouvelles seules (« Déjà décidées »
+  // masquée), décidées seules (nouvelles vides + traitées empilées), et une
+  // décidée dépliée (acceptée = emplacement attribué ; refusée = raison au
+  // Journal). L'état « mélange » est couvert par a-traiter-liste.
+  { nom: 'a-traiter-demandes-nouvelles', page: 'a-traiter.html', etat: 'liste',
+    attendre: '.rangee-demande', reponses: { inventaire: INVENTAIRE_DEMANDES_NOUVELLES } },
+  { nom: 'a-traiter-demandes-decidees', page: 'a-traiter.html', etat: 'liste',
+    attendre: '.demande-decidee', reponses: { inventaire: INVENTAIRE_DEMANDES_DECIDEES } },
+  { nom: 'a-traiter-demande-acceptee-depliee', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.demande-decidee[data-id="demo-3"] .demande-resume',
+    attendre: '.demande-decidee[data-id="demo-3"][open]', presenceSeule: true, pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_DEMANDES_DECIDEES } },
+  { nom: 'a-traiter-demande-refusee-depliee', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.demande-decidee[data-id="demo-4"] .demande-resume',
+    attendre: '.demande-decidee[data-id="demo-4"][open]', presenceSeule: true, pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_DEMANDES_DECIDEES } },
   // Section « Hors quota » (0019) : la fiche d'ADRESSE — fait, membre,
   // emplacements avec statut, journal du cas, note. Cas standard (Marie,
   // 3 emplacements, quota 2, une note d'adresse au journal).
