@@ -12,8 +12,9 @@
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
 
 /* global etatDemande, diffContact, suggestionsEmplacements, situationAttribution,
-   autresDemandesOuvertes, casAdresse, analyserStructures, cleAdresse,
-   statutEmplacement, estMobiliteReduite, apparenceStatut */
+   autresDemandesOuvertes, casAdresse, cleAdresse,
+   statutEmplacement, estMobiliteReduite, apparenceStatut, formatAdresse,
+   chercherMembreParCle */
 
 function creerFicheDemande(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -148,27 +149,13 @@ function creerFicheDemande(options) {
   // Toujours « numeroAdresse rue » (décision 0012), comme le Journal et les
   // autres fiches — jamais une virgule qui ferait diverger l'affichage.
   function adresseDemande(demande) {
-    return String(demande.numero).trim() + ' ' + String(demande.rue).trim();
+    return formatAdresse(demande.numero, demande.rue);
   }
   function cleDe(demande) {
     return cleAdresse({ numeroAdresse: demande.numero, rue: demande.rue });
   }
   function membreDe(demande) {
-    const cle = cleDe(demande);
-    return options.donnees().membres.find((m) => cle !== '' && cleAdresse(m) === cle);
-  }
-
-  // La position (structure · niveau) de chaque numéro, dérivée des grilles (0009).
-  function cartePositions() {
-    const { structures } = analyserStructures(options.donnees().structures, []);
-    const positions = new Map();
-    for (const analyse of structures) {
-      for (const e of analyse.emplacements) {
-        if (positions.has(Number(e.numero))) continue;
-        positions.set(Number(e.numero), { structure: e.structure, niveau: e.niveau });
-      }
-    }
-    return positions;
+    return chercherMembreParCle(options.donnees().membres, cleDe(demande));
   }
 
   // Une ligne de contact : le champ, la valeur de la demande, et — s'il diffère
@@ -306,7 +293,6 @@ function creerFicheDemande(options) {
     el('fiche-demande-situation').textContent = nombre === 0
       ? 'Aucun emplacement attribué à cette adresse pour l\'instant — ' + regle + '.'
       : nombre + (nombre > 1 ? ' emplacements attribués' : ' emplacement attribué') + ' — ' + regle + '.';
-    const positions = cartePositions();
     const attributions = el('fiche-demande-attributions');
     attributions.replaceChildren(...(cas ? cas.emplacements : []).map((ligne) => {
       const li = document.createElement('li');

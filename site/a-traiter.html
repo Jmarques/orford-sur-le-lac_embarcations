@@ -360,14 +360,13 @@
 
     // Adresse toujours affichée « numeroAdresse rue » (décision 0012).
     function adresseLisible(ligne) {
-      return String(ligne.numeroAdresse).trim() + ' ' + String(ligne.rue).trim();
+      return formatAdresse(ligne.numeroAdresse, ligne.rue);
     }
 
     // Par la clé d'adresse normalisée (0019) : « Rue du Lac » et « rue du
     // lac » (Sheet éditée à la main, 0002) désignent le même membre.
     function chercherMembre(ligne) {
-      const cle = cleAdresse(ligne);
-      return donnees.membres.find((membre) => cle !== '' && cleAdresse(membre) === cle);
+      return chercherMembreParCle(donnees.membres, cleAdresse(ligne));
     }
 
     // Le signal temporel d'une rangée (« Libre depuis… », « Embarcation apparue
@@ -383,7 +382,7 @@
 
     // La structure de chaque numéro, dérivée des grilles (0009) — présentation
     // seulement : les avertissements d'analyse appartiennent à la page Structures.
-    let structureParNumero = new Map();
+    let positionsParNumero = new Map();
 
     function rangeeCas(cas, avecAttribution) {
       const rangee = document.getElementById('modele-rangee').content.cloneNode(true);
@@ -391,7 +390,8 @@
       bouton.dataset.numero = String(cas.numero);
 
       rangee.querySelector('.rangee-numero').textContent = 'Emplacement ' + cas.numero;
-      const structure = structureParNumero.get(cas.numero);
+      const position = positionsParNumero.get(cas.numero);
+      const structure = position ? position.structure : '';
       // Espace insécable après le point médian : jamais de « · » orphelin en
       // fin de ligne quand la mention de structure se replie.
       rangee.querySelector('.rangee-structure').textContent =
@@ -444,7 +444,7 @@
     // L'adresse figée d'une demande : toujours « numeroAdresse rue » (décision
     // 0012), comme le Journal et les fiches ; rempli par textContent (anti-XSS).
     function adresseDemande(demande) {
-      return String(demande.numero).trim() + ' ' + String(demande.rue).trim();
+      return formatAdresse(demande.numero, demande.rue);
     }
 
     // « Reçue le … » ou une mention neutre si la date est illisible (Sheet
@@ -540,13 +540,7 @@
 
     function afficherCas() {
       afficherDemandes();
-      structureParNumero = new Map();
-      const { structures } = analyserStructures(donnees.structures, []);
-      for (const analyse of structures) {
-        for (const emplacement of analyse.emplacements) {
-          structureParNumero.set(Number(emplacement.numero), analyse.id);
-        }
-      }
+      positionsParNumero = cartePositions(donnees.structures);
 
       const files = filesATraiter(donnees.emplacements, donnees.journal);
       remplirSection('hors-quota', fileHorsQuota(donnees.emplacements, donnees.membres), rangeeAdresse);

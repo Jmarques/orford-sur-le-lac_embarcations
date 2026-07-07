@@ -35,7 +35,36 @@ var FAITS = (typeof require === 'function')
       serieLibreObservee: serieLibreObservee,
       fenetreApparition: fenetreApparition,
       dateLisible: dateLisible,
+      analyserStructures: analyserStructures,
     };
+
+// L'adresse « numeroAdresse rue » (décision 0012), toujours cette forme — que
+// la source soit une ligne d'emplacement (numeroAdresse) ou une demande (numero).
+function formatAdresse(numeroAdresse, rue) {
+  return String(numeroAdresse).trim() + ' ' + String(rue).trim();
+}
+
+// La position (structure · niveau) de chaque numéro, dérivée des grilles (0009).
+// Map numero → { structure, niveau } ; analyserStructures parcourt toutes les
+// structures, donc à calculer UNE fois par rendu, pas par rangée. Un numéro « en
+// double » (erreur de données) garde sa PREMIÈRE position — le marquage de
+// l'erreur appartient aux pages, pas ici.
+function cartePositions(structures) {
+  var analyse = FAITS.analyserStructures(structures || [], []);
+  var positions = new Map();
+  analyse.structures.forEach(function (s) {
+    s.emplacements.forEach(function (e) {
+      var numero = Number(e.numero);
+      if (!positions.has(numero)) positions.set(numero, { structure: e.structure, niveau: e.niveau });
+    });
+  });
+  return positions;
+}
+
+// La position d'un seul numéro → { structure, niveau } | null.
+function positionParNumero(numero, structures) {
+  return cartePositions(structures).get(Number(numero)) || null;
+}
 
 // Toutes les dates de signal : format long fr-CA (« 3 mai 2026 »), partout pareil.
 var FORMAT_DATE_SIGNAL = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
@@ -86,5 +115,11 @@ function proseSignal(ligne, evenements, contexte) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { apparenceStatut: apparenceStatut, proseSignal: proseSignal };
+  module.exports = {
+    apparenceStatut: apparenceStatut,
+    proseSignal: proseSignal,
+    formatAdresse: formatAdresse,
+    cartePositions: cartePositions,
+    positionParNumero: positionParNumero,
+  };
 }

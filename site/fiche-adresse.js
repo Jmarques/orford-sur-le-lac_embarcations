@@ -15,7 +15,7 @@
 //   surOuvrirEmplacement(numero, cle, adresse) — la page ferme cette fiche et
 //                      ouvre la fiche d'emplacement avec retour (0019).
 
-/* global statutEmplacement, analyserStructures, casAdresse, journalDeCas, apparenceStatut */
+/* global statutEmplacement, casAdresse, journalDeCas, apparenceStatut, cartePositions */
 
 function creerFicheAdresse(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -97,21 +97,6 @@ function creerFicheAdresse(options) {
     return casAdresse(cleCourante, options.donnees().emplacements, options.donnees().membres);
   }
 
-  // La position de chaque numéro, dérivée des grilles (0009) — calculée UNE
-  // fois par rendu, pas par rangée (l'analyse parcourt toutes les structures).
-  function cartePositions() {
-    const { structures } = analyserStructures(options.donnees().structures, []);
-    const positions = new Map();
-    for (const analyse of structures) {
-      for (const emplacement of analyse.emplacements) {
-        if (positions.has(Number(emplacement.numero))) continue;
-        positions.set(Number(emplacement.numero), 'Structure ' + emplacement.structure
-          + (emplacement.niveau !== '' ? ' · Niveau ' + emplacement.niveau : ''));
-      }
-    }
-    return positions;
-  }
-
   function rangeeEmplacement(ligne, positions) {
     const element = document.createElement('li');
     const bouton = document.createElement('button');
@@ -136,11 +121,12 @@ function creerFicheAdresse(options) {
     pastille.textContent = statut.libelle;
     enTete.append(titre, pastille);
     texte.appendChild(enTete);
-    const position = positions.get(Number(ligne.numero)) || '';
+    const position = positions.get(Number(ligne.numero));
     if (position) {
       const sousTitre = document.createElement('span');
       sousTitre.className = 'wa-caption-m wa-color-text-quiet';
-      sousTitre.textContent = position;
+      sousTitre.textContent = 'Structure ' + position.structure
+        + (position.niveau !== '' ? ' · Niveau ' + position.niveau : '');
       texte.appendChild(sousTitre);
     }
     const chevron = document.createElement('wa-icon');
@@ -266,7 +252,7 @@ function creerFicheAdresse(options) {
     // Les emplacements du dossier : le choix décisif — lequel libérer ? Le
     // statut de chacun se lit en toutes lettres, le tap ouvre sa fiche.
     const liste = el('fiche-adresse-emplacements');
-    const positions = cartePositions();
+    const positions = cartePositions(options.donnees().structures);
     liste.replaceChildren(...(cas ? cas.emplacements : [])
       .map((ligne) => rangeeEmplacement(ligne, positions)));
 

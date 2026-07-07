@@ -545,7 +545,7 @@ function quotaLisible_(membre) {
   return Number.isInteger(valeur) && valeur >= 1 ? valeur : QUOTA_PAR_DEFAUT;
 }
 
-function chercherMembreParCle_(membres, cle) {
+function chercherMembreParCle(membres, cle) {
   var trouve;
   (membres || []).forEach(function (membre) {
     if (!trouve && cle !== '' && cleAdresse(membre) === cle) trouve = membre;
@@ -581,7 +581,7 @@ function groupesParAdresse_(lignesEmplacements) {
 // Le dossier construit d'un groupe d'attributions : la forme commune de
 // casAdresse et fileHorsQuota.
 function construireCas_(groupe, membres) {
-  var membre = chercherMembreParCle_(membres, groupe.cle);
+  var membre = chercherMembreParCle(membres, groupe.cle);
   var quota = quotaLisible_(membre);
   return {
     cle: groupe.cle,
@@ -839,11 +839,11 @@ function autresDemandesOuvertes(demande, demandes) {
 // décision). `cle` = clé d'adresse normalisée.
 function situationAttribution(cle, lignesEmplacements, membres) {
   var cas = casAdresse(cle, lignesEmplacements, membres);
-  var quota = quotaLisible_(chercherMembreParCle_(membres, cle));
+  var quota = quotaLisible_(chercherMembreParCle(membres, cle));
   var nombre = cas ? cas.nombre : 0;
   return { nombre: nombre, quota: quota, bloque: nombre >= quota };
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, chercherMembreParCle, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, ETATS_OCCUPATION };
 }

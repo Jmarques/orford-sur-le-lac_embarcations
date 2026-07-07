@@ -15,8 +15,9 @@
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
 
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
-   serieLibreObservee, analyserStructures, depassementQuota,
-   cleAdresse, ETATS_OCCUPATION, apparenceStatut, proseSignal */
+   serieLibreObservee, depassementQuota,
+   cleAdresse, ETATS_OCCUPATION, apparenceStatut, proseSignal, formatAdresse,
+   chercherMembreParCle, positionParNumero */
 
 function creerFicheEmplacement(options) {
   // Markup constant (aucune donnée) : tout ce qui vient de la Sheet est posé
@@ -161,7 +162,7 @@ function creerFicheEmplacement(options) {
 
   // Adresse toujours affichée « numeroAdresse rue » (décision 0012).
   function adresseLisible(ligne) {
-    return String(ligne.numeroAdresse).trim() + ' ' + String(ligne.rue).trim();
+    return formatAdresse(ligne.numeroAdresse, ligne.rue);
   }
 
   function lignePourNumero(numero) {
@@ -171,21 +172,14 @@ function creerFicheEmplacement(options) {
   // Par la clé d'adresse normalisée (0019) : « Rue du Lac » et « rue du lac »
   // (Sheet éditée à la main, 0002) désignent le même membre.
   function chercherMembre(ligne) {
-    const cle = cleAdresse(ligne);
-    return options.donnees().membres.find((membre) => cle !== '' && cleAdresse(membre) === cle);
+    return chercherMembreParCle(options.donnees().membres, cleAdresse(ligne));
   }
 
   // La position d'un numéro, dérivée des grilles (0009). Un numéro « en
   // double » (erreur de données) a plusieurs positions : la première est
   // affichée — le marquage de l'erreur appartient aux pages, pas à la fiche.
   function positionPourNumero(numero) {
-    const { structures } = analyserStructures(options.donnees().structures, []);
-    for (const analyse of structures) {
-      const emplacement = analyse.emplacements
-        .find((e) => Number(e.numero) === Number(numero));
-      if (emplacement) return emplacement;
-    }
-    return null;
+    return positionParNumero(numero, options.donnees().structures);
   }
 
   // Le fait décisif du statut, en une ligne sous le libellé. Les deux statuts
