@@ -217,22 +217,23 @@
   </template>
 
   <!-- Modèle d'une demande nouvelle (rempli par textContent : jamais de HTML
-       du membre — anti-XSS). Lecture seule cette tranche : une carte-galet
-       informative, pas encore un bouton (la fiche de traitement vient en 02). -->
+       du membre — anti-XSS). Toute la rangée est le bouton qui ouvre la fiche
+       de traitement (décision 0020). -->
   <template id="modele-rangee-demande">
     <li class="cas">
-      <div class="rangee-demande">
+      <button type="button" class="rangee-cas rangee-demande">
         <span class="rangee-texte">
           <span class="rangee-titre"><span class="rangee-numero demande-adresse"></span></span>
           <!-- Le type est écrit en toutes lettres : pas d'icône générique qui
                n'ajouterait rien (le mot suffit, décision 0016). -->
           <span class="rangee-signal demande-type"></span>
           <span class="rangee-meta wa-caption-m wa-color-text-quiet demande-recue"></span>
+          <wa-badge class="badge-mobilite" variant="warning" appearance="filled-outlined" pill hidden>
+            <wa-icon name="person-cane"></wa-icon> Mobilité réduite
+          </wa-badge>
         </span>
-        <wa-badge class="badge-mobilite" variant="warning" appearance="filled-outlined" pill hidden>
-          <wa-icon name="person-cane"></wa-icon> Mobilité réduite
-        </wa-badge>
-      </div>
+        <wa-icon class="rangee-chevron" name="chevron-right" aria-hidden="true"></wa-icon>
+      </button>
     </li>
   </template>
 
@@ -278,6 +279,7 @@
   <script src="grille.js"></script>
   <script src="fiche.js"></script>
   <script src="fiche-adresse.js"></script>
+  <script src="fiche-demande.js"></script>
   <script type="module">
     // wa-textarea et wa-dialog ne sont plus dans le markup de la page : la
     // fiche partagée (fiche.js) injecte et attend les siens — les attendre ici
@@ -443,10 +445,10 @@
 
     // --- La section « Demandes » (décision 0020) : lecture seule cette tranche ---
 
-    // L'adresse figée d'une demande (le contact du moment — 0010) : toujours
-    // « numero, rue », rempli par textContent (jamais du HTML du membre).
+    // L'adresse figée d'une demande : toujours « numeroAdresse rue » (décision
+    // 0012), comme le Journal et les fiches ; rempli par textContent (anti-XSS).
     function adresseDemande(demande) {
-      return demande.numero + ', ' + demande.rue;
+      return String(demande.numero).trim() + ' ' + String(demande.rue).trim();
     }
 
     // « Reçue le … » ou une mention neutre si la date est illisible (Sheet
@@ -458,16 +460,18 @@
         : 'Reçue le ' + formatDate.format(date);
     }
 
-    // Une demande nouvelle : carte-galet informative. Lecture seule cette
-    // tranche — la fiche de traitement (accepter, refuser) vient à la suivante,
-    // les rangées ne s'ouvrent donc pas encore.
+    // Une demande nouvelle : une rangée-galet cliquable qui ouvre la fiche de
+    // traitement (décision 0020).
     function rangeeDemande(entree) {
       const { demande } = entree;
       const noeud = document.getElementById('modele-rangee-demande').content.cloneNode(true);
+      const bouton = noeud.querySelector('.rangee-demande');
+      bouton.dataset.id = demande.id;
       noeud.querySelector('.demande-adresse').textContent = adresseDemande(demande);
       noeud.querySelector('.demande-type').textContent = demande.type;
       noeud.querySelector('.demande-recue').textContent = dateRecue(demande);
-      noeud.querySelector('.badge-mobilite').hidden = !demande.mobiliteReduite;
+      noeud.querySelector('.badge-mobilite').hidden = !estMobiliteReduite(demande);
+      bouton.addEventListener('click', () => ouvrirDemande(demande));
       return noeud;
     }
 
@@ -620,6 +624,23 @@
       },
     });
 
+    // La fiche de demande (0020) : l'écran de décision. Tout geste (accepter,
+    // refuser, mettre à jour le contact) range l'état frais et re-rend le
+    // registre derrière la fiche restée ouverte — la demande décidée quitte les
+    // nouvelles et rejoint les traitées sous les yeux.
+    const ficheDemande = creerFicheDemande({
+      donnees: () => donnees,
+      motDePasse: () => sessionStorage.getItem(CLE_SESSION) || '',
+      surDonneesFraiches: (resultat) => {
+        rangerDonnees(resultat);
+        afficherCas();
+      },
+      surSessionExpiree: () => {
+        sessionStorage.removeItem(CLE_SESSION);
+        montrerConnexion(true);
+      },
+    });
+
     // L'origine de la fiche ouverte : tout geste re-rend le registre, donc la
     // rangée qui a ouvert la fiche est DÉTRUITE — le focus restauré par le
     // drawer viserait un nœud détaché. À la fermeture, on le pose nous-mêmes :
@@ -627,6 +648,7 @@
     // de la section d'où venait la rangée (cas libéré ou refermé).
     let ficheOrigine = null;
     let ficheAdresseOrigine = null;
+    let ficheDemandeOrigine = null;
     // Fermeture de la fiche d'adresse POUR ouvrir une fiche d'emplacement :
     // pas une sortie — le focus ne revient pas au registre à ce moment-là.
     let navigationVersEmplacement = false;
@@ -642,6 +664,11 @@
     function ouvrirCasAdresse(cas) {
       ficheAdresseOrigine = { cle: cas.cle };
       ficheAdresse.ouvrir(cas.cle);
+    }
+
+    function ouvrirDemande(demande) {
+      ficheDemandeOrigine = { id: demande.id };
+      ficheDemande.ouvrir(demande.id);
     }
 
     const elementFiche = document.getElementById('fiche-emplacement');
@@ -667,6 +694,19 @@
       ficheAdresseOrigine = null;
       const rangee = document.querySelector('.rangee-cas[data-cle="' + cle + '"]');
       (rangee || document.getElementById('titre-hors-quota')).focus();
+    });
+
+    // Fermeture de la fiche de demande : la rangée qui l'a ouverte a pu être
+    // détruite (geste → re-rendu ; une demande décidée quitte les nouvelles) —
+    // on repose le focus sur la rangée si elle existe encore, sinon sur le
+    // titre de la section « Demandes ».
+    const elementFicheDemande = document.getElementById('fiche-demande');
+    elementFicheDemande.addEventListener('wa-after-hide', (evenement) => {
+      if (evenement.target !== elementFicheDemande || !ficheDemandeOrigine) return;
+      const { id } = ficheDemandeOrigine;
+      ficheDemandeOrigine = null;
+      const rangee = document.querySelector('.rangee-demande[data-id="' + id + '"]');
+      (rangee || document.getElementById('titre-demandes')).focus();
     });
 
     async function chargerCas(motDePasse) {

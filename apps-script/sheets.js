@@ -215,6 +215,56 @@ function libererEmplacement(corps) {
   return prepare.miseAJour;
 }
 
+// Décision d'une demande (décision 0020) : accepter = attribuer, ou refuser.
+// Un seul geste écrit tout — la ligne Demandes (faits de décision), l'attribution
+// sur Emplacements le cas échéant, la ligne Membres si l'adresse était inconnue,
+// et l'événement Journal. Toutes les validations vivent dans preparerDecision
+// (traitement.js) ; ici, que l'application des écritures préparées.
+function deciderDemande(corps) {
+  var inventaire = lireInventaire();
+  var prepare = preparerDecision(corps, inventaire, new Date());
+  majLigneParCle_(ongletRequis_(ONGLET_DEMANDES), 'id', prepare.demandeId, prepare.demande);
+  if (prepare.attribution) {
+    majLigneParCle_(ongletRequis_(ONGLET_EMPLACEMENTS), 'numero', prepare.attribution.numero, {
+      numeroAdresse: prepare.attribution.numeroAdresse,
+      rue: prepare.attribution.rue,
+    });
+  }
+  if (prepare.membre) upsertMembre_(prepare.membre);
+  journaliser_(prepare.evenement);
+  return { demandeId: prepare.demandeId, action: prepare.evenement.action };
+}
+
+// Mise à jour du contact d'une adresse depuis une demande (décision 0020),
+// geste indépendant de la décision : écrit Membres (upsert) et journalise.
+function majContactDemande(corps) {
+  var inventaire = lireInventaire();
+  var prepare = preparerMajContact(corps, inventaire);
+  upsertMembre_(prepare.membre);
+  journaliser_(prepare.evenement);
+  return { demandeId: prepare.evenement.demandeId };
+}
+
+// Crée ou met à jour la ligne Membres d'une adresse, appariée par clé normalisée
+// (numeroAdresse + rue — 0019) : n'écrit que les champs fournis, préserve le
+// reste (0012) ; append si l'adresse n'a pas encore de ligne.
+function upsertMembre_(membre) {
+  var feuille = ongletRequis_(ONGLET_MEMBRES);
+  var donnees = feuille.getDataRange().getValues();
+  var entetes = donnees[0];
+  var cle = cleAdresse(membre);
+  for (var i = 1; i < donnees.length; i++) {
+    var objet = {};
+    entetes.forEach(function (entete, j) { objet[entete] = donnees[i][j]; });
+    if (cleAdresse(objet) === cle) {
+      feuille.getRange(i + 1, 1, 1, entetes.length)
+        .setValues([fusionnerLigne(entetes, donnees[i], membre)]);
+      return;
+    }
+  }
+  appendObjet_(feuille, membre);
+}
+
 // Un événement dans le Journal append-only (décisions 0002, 0011). `date` par
 // défaut = maintenant ; les champs absents restent vides.
 function journaliser_(evenement) {

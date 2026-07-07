@@ -730,6 +730,120 @@ function journalDemande(evenements, demandeId) {
     .sort(function (a, b) { return a.date - b.date; });
 }
 
+// --- Traitement d'une demande (décision 0020) : suggestions, contact, quota ---
+
+// La clé d'adresse normalisée d'une DEMANDE : son adresse civique est
+// (numero, rue) — même normalisation que cleAdresse d'un emplacement/membre.
+function cleAdresseDemande_(demande) {
+  return demande ? cleAdresse({ numeroAdresse: demande.numero, rue: demande.rue }) : '';
+}
+
+// Le rang de niveau pour le tri des suggestions : une structure verticale
+// (niveau '') est comptée au sol (0), le rang le plus bas.
+function rangNiveau_(niveau) {
+  return niveau === '' || niveau === undefined || niveau === null ? 0 : Number(niveau);
+}
+
+// Une demande est-elle « mobilité réduite » ? Tolérant aux formes qu'une case
+// cochée peut prendre dans la Sheet (booléen, 'on', 'oui', 'true', 'vrai' —
+// 0002) : un seul endroit de vérité, partagé par le tri des suggestions, la
+// pastille de la fiche et la rangée du registre.
+function estMobiliteReduite(demande) {
+  if (demande && demande.mobiliteReduite === true) return true;
+  var brut = texteBrut_(demande && demande.mobiliteReduite).toLowerCase();
+  return brut === 'true' || brut === 'on' || brut === 'oui' || brut === 'vrai';
+}
+
+// Les emplacements à proposer pour une demande (décision 0020) : les
+// « Disponible » seulement (observés libres, non attribués — jamais un « Non
+// observé » ni un « À identifier »), dans les structures dont la colonne
+// `embarcations` accepte le type demandé (vide = accepte tout, signalé par
+// `accepteTout`). Groupés par structure (ordre de la liste), triés DANS chaque
+// groupe par niveau : décroissant par défaut (garder les bas pour les personnes
+// à mobilité réduite), croissant si la demande est PMR ; une verticale compte
+// au sol. Numéro croissant à égalité de niveau.
+function suggestionsEmplacements(demande, structures, emplacements) {
+  var type = texteBrut_(demande && demande.type);
+  var pmr = estMobiliteReduite(demande);
+
+  var lignesParNumero = {};
+  (emplacements || []).forEach(function (ligne) {
+    if (ligne) lignesParNumero[Number(ligne.numero)] = ligne;
+  });
+  var embarcationsParId = {};
+  (structures || []).forEach(function (structure) {
+    if (structure) embarcationsParId[structure.id] = structure.embarcations;
+  });
+
+  return analyserStructures(structures || [], []).structures
+    .map(function (structure) {
+      var listeEmb = String(embarcationsParId[structure.id] || '').split(',')
+        .map(function (t) { return t.trim(); })
+        .filter(function (t) { return t !== ''; });
+      var accepteTout = listeEmb.length === 0;
+      if (!accepteTout && listeEmb.indexOf(type) === -1) return null;
+
+      var dispos = structure.emplacements
+        .filter(function (e) {
+          return statutEmplacement(lignesParNumero[Number(e.numero)]).code === 'disponible';
+        })
+        .map(function (e) { return { numero: Number(e.numero), niveau: e.niveau }; });
+      if (dispos.length === 0) return null;
+
+      dispos.sort(function (a, b) {
+        var ra = rangNiveau_(a.niveau), rb = rangNiveau_(b.niveau);
+        if (ra !== rb) return pmr ? ra - rb : rb - ra;
+        return a.numero - b.numero;
+      });
+      return { structure: structure.id, accepteTout: accepteTout, emplacements: dispos };
+    })
+    .filter(function (groupe) { return groupe !== null; });
+}
+
+// Les différences entre le contact d'une demande et le [[Membre]] courant de
+// l'adresse (décision 0020) : chaque champ garde ses deux valeurs et dit s'il
+// diffère. `membreAbsent` = l'adresse n'a pas encore de ligne Membres (elle
+// sera créée à l'acceptation) ; il n'y a alors rien à réconcilier.
+function diffContact(demande, membre) {
+  var champs = {};
+  ['nom', 'courriel', 'telephone'].forEach(function (cle) {
+    var d = texteBrut_(demande && demande[cle]);
+    var m = texteBrut_(membre && membre[cle]);
+    champs[cle] = { demande: d, membre: m, differe: !!membre && d !== m };
+  });
+  var membreAbsent = !membre;
+  var aDifference = !membreAbsent && ['nom', 'courriel', 'telephone'].some(function (cle) {
+    return champs[cle].differe;
+  });
+  return { membreAbsent: membreAbsent, aDifference: aDifference, champs: champs };
+}
+
+// Les autres demandes NOUVELLES de la même adresse (décision 0020) : le signal
+// « un autre membre du foyer attend aussi » — la demande courante et les
+// demandes déjà décidées sont exclues.
+function autresDemandesOuvertes(demande, demandes) {
+  var cle = cleAdresseDemande_(demande);
+  if (cle === '') return [];
+  var id = texteBrut_(demande.id);
+  return (demandes || []).filter(function (d) {
+    return d && texteBrut_(d.id) !== id
+      && cleAdresseDemande_(d) === cle
+      && etatDemande(d).code === 'nouvelle';
+  });
+}
+
+// La situation quota d'une adresse pour décider d'une attribution (0020) : le
+// nombre d'attributions actuelles et le quota applicable. Attribuer une place
+// de plus est bloqué quand nombre >= quota (l'attribution ferait dépasser).
+// Partagé client (le signal de la fiche) / serveur (le garde-fou de la
+// décision). `cle` = clé d'adresse normalisée.
+function situationAttribution(cle, lignesEmplacements, membres) {
+  var cas = casAdresse(cle, lignesEmplacements, membres);
+  var quota = quotaLisible_(chercherMembreParCle_(membres, cle));
+  var nombre = cas ? cas.nombre : 0;
+  return { nombre: nombre, quota: quota, bloque: nombre >= quota };
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, cleAdresse, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, cleAdresse, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, ETATS_OCCUPATION };
 }

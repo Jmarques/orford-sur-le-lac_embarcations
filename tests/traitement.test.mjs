@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { preparerNote, preparerLiberation } = require('../apps-script/traitement.js');
+const { preparerNote, preparerLiberation, preparerDecision, preparerMajContact } = require('../apps-script/traitement.js');
 const { fusionnerLigne } = require('../apps-script/tableur.js');
 
 const ATTRIBUE = { numero: 75, numeroAdresse: 12, rue: 'Rue des Érables', note: '', occupationObservee: 'libre', dateObservation: '2026-06-20T12:00:00.000Z' };
@@ -90,4 +90,105 @@ test('la mise à jour survit à des colonnes réordonnées à la main (0012) : f
     fusionnerLigne(entetesReordonnes, ligneExistante, miseAJour),
     ['Kayak rouge.', '', 75, 'libre', ''],
   );
+});
+
+// --- Décision d'une demande (0020) : accepter = attribuer, refuser, en un geste ---
+
+const MAINTENANT = new Date('2026-07-06T15:00:00.000Z');
+
+function dispo(numero) {
+  return { numero, numeroAdresse: '', rue: '', note: '', occupationObservee: 'libre', dateObservation: '2026-06-20T12:00:00.000Z' };
+}
+function demande(surcharges = {}) {
+  return {
+    id: 'd1', date: '2026-06-20T14:30:00.000Z', rue: 'Rue du Pré', numero: 234,
+    nom: 'Marie Gagnon', courriel: 'marie@exemple.ca', telephone: '819 555-2345',
+    type: 'Kayak', mobiliteReduite: false, note: '', numeroAttribue: '', dateDecision: '',
+    ...surcharges,
+  };
+}
+function inventaire(surcharges = {}) {
+  return {
+    structures: [{ id: 'S01', type: 'horizontal', embarcations: 'Kayak', saisie: 'niveaux', emplacements: '[ [10, 11], [12, 13] ]', notes: '' }],
+    emplacements: [dispo(10), dispo(11), dispo(12), dispo(13)],
+    membres: [{ numeroAdresse: 234, rue: 'Rue du Pré', nom: 'Marie Gagnon', courriel: 'marie@exemple.ca', telephone: '819 555-2345' }],
+    demandes: [demande()],
+    ...surcharges,
+  };
+}
+
+test('accepter un emplacement qui n\'est pas Disponible (ou incompatible) est refusé', () => {
+  const inv = inventaire({ emplacements: [{ ...dispo(10), occupationObservee: 'occupé' }, dispo(11)] });
+  assert.throws(() => preparerDecision({ decision: 'accepter', demandeId: 'd1', numero: 10 }, inv, MAINTENANT), /disponible|compatible/i);
+  // Un numéro qui n'existe dans aucune structure compatible non plus.
+  assert.throws(() => preparerDecision({ decision: 'accepter', demandeId: 'd1', numero: 999 }, inventaire(), MAINTENANT), /disponible|compatible/i);
+});
+
+test('accepter au-delà du quota accordé est refusé — le déblocage passe par la Sheet', () => {
+  const inv = inventaire({
+    emplacements: [
+      dispo(10),
+      { numero: 74, numeroAdresse: 234, rue: 'Rue du Pré', occupationObservee: 'occupé' },
+      { numero: 75, numeroAdresse: 234, rue: 'Rue du Pré', occupationObservee: 'libre' },
+    ],
+  });
+  assert.throws(() => preparerDecision({ decision: 'accepter', demandeId: 'd1', numero: 10 }, inv, MAINTENANT), /quota/i);
+});
+
+test('refuser sans raison est refusé — la raison est journalisée', () => {
+  assert.throws(() => preparerDecision({ decision: 'refuser', demandeId: 'd1', raison: '   ' }, inventaire(), MAINTENANT), /raison/i);
+  assert.throws(() => preparerDecision({ decision: 'refuser', demandeId: 'd1' }, inventaire(), MAINTENANT), /raison/i);
+});
+
+test('décider une demande déjà décidée, ou un id inconnu, est refusé', () => {
+  const decidee = inventaire({ demandes: [demande({ numeroAttribue: 12, dateDecision: '2026-06-01T10:00:00.000Z' })] });
+  assert.throws(() => preparerDecision({ decision: 'accepter', demandeId: 'd1', numero: 10 }, decidee, MAINTENANT), /déjà|nouvelle/i);
+  assert.throws(() => preparerDecision({ decision: 'refuser', demandeId: 'inconnu', raison: 'x' }, inventaire(), MAINTENANT), /introuvable|inconnu/i);
+});
+
+test('une acceptation prépare l\'attribution, la décision de la demande et l\'événement Journal', () => {
+  const prepare = preparerDecision({ decision: 'accepter', demandeId: 'd1', numero: 10 }, inventaire(), MAINTENANT);
+  assert.equal(prepare.demandeId, 'd1');
+  assert.equal(prepare.demande.numeroAttribue, 10);
+  assert.equal(prepare.demande.dateDecision, MAINTENANT);
+  assert.deepEqual(prepare.attribution, { numero: 10, numeroAdresse: 234, rue: 'Rue du Pré' });
+  assert.equal(prepare.membre, null); // le contact existe déjà — accepter ne l'écrase pas
+  assert.equal(prepare.evenement.action, 'attribution');
+  assert.equal(prepare.evenement.numero, 10);
+  assert.equal(prepare.evenement.demandeId, 'd1');
+  assert.match(prepare.evenement.details, /234 Rue du Pré/);
+});
+
+test('accepter crée la ligne Membres quand l\'adresse n\'y est pas encore', () => {
+  const prepare = preparerDecision({ decision: 'accepter', demandeId: 'd1', numero: 10 }, inventaire({ membres: [] }), MAINTENANT);
+  assert.deepEqual(prepare.membre, {
+    numeroAdresse: 234, rue: 'Rue du Pré', nom: 'Marie Gagnon', courriel: 'marie@exemple.ca', telephone: '819 555-2345',
+  });
+});
+
+test('un refus prépare la date de décision et l\'événement Journal portant la raison', () => {
+  const prepare = preparerDecision({ decision: 'refuser', demandeId: 'd1', raison: '  Hors quota — déjà 2 emplacements.  ' }, inventaire(), MAINTENANT);
+  assert.equal(prepare.demande.numeroAttribue, undefined); // un refus n'attribue rien
+  assert.equal(prepare.demande.dateDecision, MAINTENANT);
+  assert.equal(prepare.attribution, null);
+  assert.equal(prepare.membre, null);
+  assert.equal(prepare.evenement.action, 'refus');
+  assert.equal(prepare.evenement.demandeId, 'd1');
+  assert.equal(prepare.evenement.details, 'Hors quota — déjà 2 emplacements.');
+});
+
+// --- Mise à jour du contact depuis une demande (0020), geste indépendant ---
+
+test('la mise à jour du contact prépare l\'écriture Membres depuis la demande et journalise', () => {
+  const prepare = preparerMajContact({ demandeId: 'd1' }, inventaire({ demandes: [demande({ nom: 'Marie Gagnon-Roy', telephone: '819 555-9999' })] }));
+  assert.deepEqual(prepare.membre, {
+    numeroAdresse: 234, rue: 'Rue du Pré', nom: 'Marie Gagnon-Roy', courriel: 'marie@exemple.ca', telephone: '819 555-9999',
+  });
+  assert.equal(prepare.evenement.action, 'contact');
+  assert.equal(prepare.evenement.demandeId, 'd1');
+  assert.match(prepare.evenement.adresse, /234 Rue du Pré/);
+});
+
+test('mettre à jour le contact d\'un id inconnu est refusé', () => {
+  assert.throws(() => preparerMajContact({ demandeId: 'inconnu' }, inventaire()), /introuvable|inconnu/i);
 });

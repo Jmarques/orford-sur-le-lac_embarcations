@@ -134,6 +134,8 @@ export const REPONSES_MOCK = {
   observerLot: { ok: true, lot: { compte: 1 } },
   ajouterNote: { ok: true, note: {} },
   libererEmplacement: { ok: true, liberation: {} },
+  deciderDemande: { ok: true, decision: {} },
+  majContactDemande: { ok: true, contact: {} },
 };
 
 // Inventaire tel qu'il serait APRÈS l'observation « 76 libre » : la capture du
@@ -195,6 +197,93 @@ export const INVENTAIRE_DEMANDES_DECIDEES = {
   journal: REPONSES_MOCK.inventaire.journal.filter((e) => e.action === 'refus'),
   demandes: DEMANDES_MOCK.filter((d) => d.id === 'demo-3' || d.id === 'demo-4'),
 };
+
+// Inventaire dédié à la fiche de demande (décision 0020), isolé du jeu par
+// défaut pour ne pas perturber les autres captures. Trois structures nettes par
+// type (Kayak → S01, Planche → S06, Canoë → S07 tout occupé donc sans place),
+// et des demandes qui couvrent chaque état de la fiche.
+function dispoFiche(numero) {
+  return { numero, numeroAdresse: '', rue: '', note: '', occupationObservee: 'libre', dateObservation: '2026-06-20T12:00:00.000Z' };
+}
+function occupeFiche(numero) {
+  return { numero, numeroAdresse: '', rue: '', note: '', occupationObservee: 'occupé', dateObservation: '2026-06-20T12:00:00.000Z' };
+}
+function attribFiche(numero, numeroAdresse, rue) {
+  return { numero, numeroAdresse, rue, note: '', occupationObservee: 'occupé', dateObservation: '2026-06-20T12:00:00.000Z' };
+}
+function demandeFiche(surcharges) {
+  return {
+    date: '2026-07-01T10:00:00.000Z', telephone: '', mobiliteReduite: false, note: '',
+    numeroAttribue: '', dateDecision: '', ...surcharges,
+  };
+}
+
+export const INVENTAIRE_FICHE_DEMANDE = {
+  ok: true,
+  structures: [
+    { id: 'S01', type: 'horizontal', embarcations: 'Kayak', saisie: 'niveaux', emplacements: '[ [10, 11], [12, 13] ]', notes: '' },
+    { id: 'S06', type: 'vertical', embarcations: 'Planche (SUP)', saisie: 'colonnes', emplacements: '[ [40, 41] ]', notes: '' },
+    { id: 'S07', type: 'horizontal', embarcations: 'Canoë', saisie: 'niveaux', emplacements: '[ [50, 51] ]', notes: '' },
+  ],
+  emplacements: [
+    // S01 (Kayak) : tout Disponible — les suggestions d'une demande Kayak.
+    dispoFiche(10), dispoFiche(11), dispoFiche(12), dispoFiche(13),
+    // S06 (Planche) : Disponible aussi.
+    dispoFiche(40), dispoFiche(41),
+    // S07 (Canoë) : tout occupé sans attribution → aucune place à proposer.
+    occupeFiche(50), occupeFiche(51),
+    // 80 Rue du Pré : 2 attributions (hors grille) → au quota de 2.
+    attribFiche(90, 80, 'Rue du Pré'), attribFiche(91, 80, 'Rue du Pré'),
+  ],
+  membres: [
+    // 45 Rue du Pré : contact identique à la demande.
+    { numeroAdresse: 45, rue: 'Rue du Pré', nom: 'Claire Dubois', courriel: 'claire.dubois@exemple.ca', telephone: '819 555-3210' },
+    // 60 Rue du Pré : contact différent de la demande (nom et téléphone).
+    { numeroAdresse: 60, rue: 'Rue du Pré', nom: 'Paul Roy', courriel: 'paul.roy@exemple.ca', telephone: '' },
+    // 80 Rue du Pré : au quota, contact présent.
+    { numeroAdresse: 80, rue: 'Rue du Pré', nom: 'Hélène Caron', courriel: 'helene.caron@exemple.ca', telephone: '819 555-7788' },
+  ],
+  journal: [],
+  demandes: [
+    // Suggestions Kayak, contact identique, sous quota, avec une autre demande
+    // ouverte de la même adresse (fd-pmr) — plusieurs états d'un coup.
+    demandeFiche({ id: 'fd-suggestions', numero: 45, rue: 'Rue du Pré', nom: 'Claire Dubois', courriel: 'claire.dubois@exemple.ca', telephone: '819 555-3210', type: 'Kayak' }),
+    // Même adresse, mobilité réduite → tri des suggestions inversé.
+    demandeFiche({ id: 'fd-pmr', numero: 45, rue: 'Rue du Pré', nom: 'Claire Dubois', courriel: 'claire.dubois@exemple.ca', telephone: '819 555-3210', type: 'Kayak', mobiliteReduite: true }),
+    // Contact différent du membre courant → le diff et le bouton de mise à jour.
+    demandeFiche({ id: 'fd-contact-diff', numero: 60, rue: 'Rue du Pré', nom: 'Paul Roy-Tremblay', courriel: 'paul.roy@exemple.ca', telephone: '819 555-0001', type: 'Kayak', note: 'Je viens de changer de numéro.' }),
+    // Adresse inconnue de Membres → contact absent.
+    demandeFiche({ id: 'fd-contact-absent', numero: 70, rue: 'Rue du Pré', nom: 'Sophie Nadeau', courriel: 'sophie.nadeau@exemple.ca', telephone: '819 555-4455', type: 'Kayak' }),
+    // Adresse au quota → l'acceptation est bloquée.
+    demandeFiche({ id: 'fd-quota', numero: 80, rue: 'Rue du Pré', nom: 'Hélène Caron', courriel: 'helene.caron@exemple.ca', telephone: '819 555-7788', type: 'Kayak' }),
+    // Type Canoë : S07 est la seule structure compatible et n'a aucune place → vide.
+    demandeFiche({ id: 'fd-vide', numero: 71, rue: 'Rue du Pré', nom: 'Marc Bélanger', courriel: 'marc.belanger@exemple.ca', telephone: '', type: 'Canoë' }),
+  ],
+};
+
+// Après acceptation de fd-suggestions sur l'emplacement 10 : la demande est
+// acceptée, 10 attribué à 45 Rue du Pré — la fiche montre le résultat, ouverte.
+export const INVENTAIRE_FICHE_APRES_ACCEPT = structuredClone(INVENTAIRE_FICHE_DEMANDE);
+INVENTAIRE_FICHE_APRES_ACCEPT.demandes = INVENTAIRE_FICHE_APRES_ACCEPT.demandes.map(
+  (d) => (d.id === 'fd-suggestions' ? { ...d, numeroAttribue: 10, dateDecision: '2026-07-07T14:00:00.000Z' } : d));
+INVENTAIRE_FICHE_APRES_ACCEPT.emplacements = INVENTAIRE_FICHE_APRES_ACCEPT.emplacements.map(
+  (l) => (l.numero === 10 ? { ...l, numeroAdresse: 45, rue: 'Rue du Pré' } : l));
+
+// Après refus de fd-suggestions : date de décision posée, raison au Journal —
+// la fiche montre le résultat et le bouton « Écrire au membre ».
+export const INVENTAIRE_FICHE_APRES_REFUS = structuredClone(INVENTAIRE_FICHE_DEMANDE);
+INVENTAIRE_FICHE_APRES_REFUS.demandes = INVENTAIRE_FICHE_APRES_REFUS.demandes.map(
+  (d) => (d.id === 'fd-suggestions' ? { ...d, dateDecision: '2026-07-07T14:00:00.000Z' } : d));
+INVENTAIRE_FICHE_APRES_REFUS.journal.push({
+  date: '2026-07-07T14:00:00.000Z', action: 'refus', numero: '', adresse: '45 Rue du Pré',
+  demandeId: 'fd-suggestions', details: 'La liste d\'attente est pleine cette saison.',
+});
+
+// Après mise à jour du contact de fd-contact-diff : le membre porte désormais
+// les coordonnées de la demande — le diff disparaît, fiche ouverte.
+export const INVENTAIRE_FICHE_APRES_CONTACT = structuredClone(INVENTAIRE_FICHE_DEMANDE);
+INVENTAIRE_FICHE_APRES_CONTACT.membres = INVENTAIRE_FICHE_APRES_CONTACT.membres.map(
+  (m) => (Number(m.numeroAdresse) === 60 ? { ...m, nom: 'Paul Roy-Tremblay', telephone: '819 555-0001' } : m));
 
 // config.js simulé : les captures ne dépendent pas du vrai site/config.js
 // (courriel de contact factice mais présent, pour rendre la .phrase-contact visible).
@@ -467,6 +556,70 @@ export const CAPTURES = [
       '.bouton-occupation[data-occupation="libre"]'],
     attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
+  // Fiche de demande (décision 0020) : l'écran de décision. Inventaire dédié
+  // (INVENTAIRE_FICHE_DEMANDE) pour couvrir chaque état sans toucher au reste.
+  // Suggestions (tri normal), contact identique, sous quota, autre demande ouverte.
+  { nom: 'a-traiter-demande-fiche', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-demande[data-id="fd-suggestions"]',
+    attendre: '.suggestion-emplacement', voir: '#fiche-demande-attribuer', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // Mobilité réduite : tri des suggestions inversé (les niveaux bas d'abord).
+  { nom: 'a-traiter-demande-pmr', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-demande[data-id="fd-pmr"]',
+    attendre: '.suggestion-emplacement', voir: '#fiche-demande-attribuer', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // Contact différent du membre courant : le diff et le bouton de mise à jour.
+  { nom: 'a-traiter-demande-contact-diff', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-demande[data-id="fd-contact-diff"]',
+    attendre: '#fiche-demande-maj-zone:not([hidden])', voir: '#fiche-demande-maj-contact', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // Contact absent de Membres : la fiche le dit calmement.
+  { nom: 'a-traiter-demande-contact-absent', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-demande[data-id="fd-contact-absent"]',
+    attendre: '#fiche-demande-contact-absent:not([hidden])', voir: '#fiche-demande-maj-contact', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // Adresse au quota : l'acceptation est bloquée, la porte de sortie expliquée.
+  { nom: 'a-traiter-demande-quota-bloque', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-demande[data-id="fd-quota"]',
+    attendre: '#fiche-demande-quota-bloque:not([hidden])', voir: '#fiche-demande-quota-bloque', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // Aucune place compatible libre : l'invitation à faire une tournée.
+  { nom: 'a-traiter-demande-suggestions-vide', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-demande[data-id="fd-vide"]',
+    attendre: '#fiche-demande-suggestions-vide:not([hidden])', voir: '#fiche-demande-suggestions-vide', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // Un emplacement sélectionné : le bouton devient « Attribuer le n° X et accepter ».
+  { nom: 'a-traiter-demande-selection', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-demande[data-id="fd-suggestions"]', '.suggestion-emplacement[data-numero="10"]'],
+    attendre: '.suggestion-emplacement[aria-pressed="true"]', presenceSeule: true,
+    voir: '#fiche-demande-accepter-zone', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // Acceptation : la fiche RESTE ouverte, le résultat se lit (emplacement attribué).
+  { nom: 'a-traiter-demande-acceptee', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-demande[data-id="fd-suggestions"]', '.suggestion-emplacement[data-numero="10"]', '#fiche-demande-accepter'],
+    attendre: '#fiche-demande-resultat[variant="success"]', presenceSeule: true,
+    voir: '#fiche-demande-resultat', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE },
+    reponsesApres: { inventaire: INVENTAIRE_FICHE_APRES_ACCEPT } },
+  // Refus : résultat + « Écrire au membre » (mailto pré-rempli, jamais d'envoi auto).
+  { nom: 'a-traiter-demande-refus', page: 'a-traiter.html', etat: 'liste',
+    ouvrir: '.rangee-demande[data-id="fd-suggestions"]',
+    remplir: { selecteur: '#fiche-demande-raison textarea', valeur: 'La liste d\'attente est pleine cette saison.' },
+    cliquer: '#fiche-demande-refuser',
+    attendre: '#fiche-demande-ecrire-zone:not([hidden])', voir: '#fiche-demande-ecrire', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE },
+    reponsesApres: { inventaire: INVENTAIRE_FICHE_APRES_REFUS } },
+  // Mise à jour du contact : le diff disparaît, la fiche reste ouverte.
+  { nom: 'a-traiter-demande-contact-maj', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-demande[data-id="fd-contact-diff"]', '#fiche-demande-maj-contact'],
+    attendre: '#fiche-demande-maj-zone[hidden]', presenceSeule: true, voir: '#fiche-demande-contact', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE },
+    reponsesApres: { inventaire: INVENTAIRE_FICHE_APRES_CONTACT } },
+  // Échec serveur d'une acceptation : le texte reste, l'erreur vit dans la fiche.
+  { nom: 'a-traiter-demande-erreur', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-demande[data-id="fd-suggestions"]', '.suggestion-emplacement[data-numero="10"]', '#fiche-demande-accepter'],
+    attendre: '#fiche-demande-erreur:not([hidden])', voir: '#fiche-demande-erreur', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE, deciderDemande: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
   { nom: 'a-traiter-erreur', page: 'a-traiter.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
 ];
 
