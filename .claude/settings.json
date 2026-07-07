@@ -12,5 +12,20 @@
       "Bash(rm -f tmp/*)",
       "Bash(rm -f screenshots/*)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/verifie-commande.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Vérifie que la commande reste nue (CLAUDE.md)"
+          }
+        ]
+      }
+    ]
   }
 }

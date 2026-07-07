@@ -31,8 +31,13 @@ Break the plan into **tracer bullet** issues. Each issue is a thin vertical slic
 - Each slice delivers a narrow but COMPLETE path through every layer (schema, API, UI, tests)
 - A completed slice is demoable or verifiable on its own
 - Any prefactoring should be done first
+- Un écran visible par l'utilisateur embarque le contrat de données complet de son formulaire dès sa PREMIÈRE tranche (jamais la lecture d'abord, l'écriture plus tard)
+- Un besoin de données ≠ un écran : chaque tranche visible s'ancre dans une user story (acteur + mode d'accès)
+- La table « Exigence → tranche » du PRD est le contrat de couverture : chaque ligne se retrouve dans une issue, ou son report est nommé — jamais d'exigence silencieusement absente
 
 </vertical-slice-rules>
+
+Issue étalon de ce repo : `.scratch/hors-quota/issues/02-section-hors-quota-et-fiche-adresse.md` — viser cette densité : décisions cadres citées inline, acceptance criteria vérifiables un à un (jusqu'à `npm run verify` vert et la revue du delta), vocabulaire du glossaire.
 
 ### 4. Quiz the user
 

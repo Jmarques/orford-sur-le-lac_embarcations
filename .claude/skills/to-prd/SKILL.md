@@ -8,6 +8,8 @@ This skill takes the current conversation context and codebase understanding and
 
 The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.
 
+PRD étalon de ce repo : `.scratch/hors-quota/PRD.md` — viser cette densité : en-tête citant les décisions cadres et le vocabulaire du glossaire, user stories exhaustives, décisions ancrées dans les records, reports nommés (jamais silencieux).
+
 ## Process
 
 1. Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the PRD, and respect any ADRs in the area you're touching.
@@ -63,6 +65,15 @@ A list of testing decisions that were made. Include:
 - A description of what makes a good test (only test external behavior, not implementation details)
 - Which modules will be tested
 - Prior art for the tests (i.e. similar types of tests in the codebase)
+
+## Exigence → tranche
+
+A table mapping EVERY requirement to the slice (tranche) that delivers it — nothing may be "invisible because deferred". Deferred requirements get a named row (« Reportée nommée », with the decision record that owns the deferral), never a silent omission.
+
+| # | Exigence | Tranche |
+| --- | --- | --- |
+
+Rule: a user-visible screen ships the complete data contract of its form in its FIRST slice (never read-only first, writes later). Close the table with one sentence confirming nothing is invisible.
 
 ## Out of Scope
 

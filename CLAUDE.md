@@ -12,7 +12,7 @@ Gestion des emplacements d'embarcation — Orford sur le Lac. Site statique (`si
 - Pour zoomer une capture soi-même : `sips` nu (allowlisté), jamais précédé de `cd` ni suivi de `&&`.
 
 ## UX/UI (obligatoire pour toute page ou section)
-1. **Avant tout markup** : écrire un design brief (audience, ton, hiérarchie, états vide/chargement/erreur/succès) et lire `principles.md` + `composition.md` du skill webawesome-design.
+1. **Avant tout markup** : écrire un design brief (audience, ton, hiérarchie, états vide/chargement/erreur/succès) et lire `principles.md` + `composition.md` du skill webawesome-design, puis `docs/design.md` — les patterns décidés de CE site (imiter l'existant, pas inventer).
 2. Web Awesome partout ; variables visuelles uniquement dans `site/theme.css` (tokens `--wa-*`) — décision 0004.
 3. **Après** : passer la polish checklist de composition.md, puis revue critique par un subagent en lecture seule sur un rendu (`npm run screenshots` produit tous les états dans `screenshots/` et liste le delta vs baseline — donner au subagent les artefacts de `screenshots/.diff/` listés par le rapport : crops avant/après/différence, tuiles des captures neuves), pas seulement sur le code. Une page « conforme mais générique » est un échec.
 4. Public : majoritairement aîné — typographie généreuse, cibles larges, langage simple et rassurant.
