@@ -283,6 +283,13 @@
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
+  // Contrôle exposé : pendant la tournée en plein écran (décision 0021) la
+  // bande est masquée ; on suspend la boucle pour ne pas peindre une scène
+  // invisible (batterie sur le terrain — user story 22). En reduced-motion il
+  // n'y a pas de boucle : les deux méthodes sont alors inertes.
+  var oslEau = { pause: function () {}, reprendre: function () {} };
+  window.oslEau = oslEau;
+
   if (reduit) {
     // Une seule image, sur un temps choisi pour de beaux rayons. Repeinte —
     // même temps, donc mêmes pixels — à chaque changement de taille : une
@@ -297,12 +304,31 @@
     // Le temps s'accumule au rythme du token de vitesse.
     var temps = 0;
     var precedent = null;
-    requestAnimationFrame(function boucle(millisecondes) {
+    var enPause = false;
+    var frameDemandee = false;
+    function boucle(millisecondes) {
+      frameDemandee = false;
+      if (enPause) return;
       var dt = precedent === null ? 0.016 : Math.min(0.1, (millisecondes - precedent) * 0.001);
       precedent = millisecondes;
       temps += dt * reglages.vitesse;
       peindre(temps, dt);
-      requestAnimationFrame(boucle);
-    });
+      planifier();
+    }
+    function planifier() {
+      if (!frameDemandee) {
+        frameDemandee = true;
+        requestAnimationFrame(boucle);
+      }
+    }
+    oslEau.pause = function () { enPause = true; };
+    oslEau.reprendre = function () {
+      if (!enPause) return;
+      enPause = false;
+      // precedent remis à null : pas de saut de temps (dt géant) à la reprise.
+      precedent = null;
+      planifier();
+    };
+    planifier();
   }
 })();

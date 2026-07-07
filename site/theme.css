@@ -459,95 +459,182 @@ wa-skeleton {
   outline-offset: var(--wa-focus-ring-offset);
 }
 
-/* Cellule de l'écran de tournée (décision 0013) : encodage propre — fantôme
-   estompé / relevé affirmé — jamais les 5 statuts, hors sujet pendant un
-   relevé. Cible plus large que la grille de consultation : on travaille au
-   pouce, debout devant la structure. Le mot d'état est toujours écrit. */
+/* Cellule de l'écran de tournée (décisions 0013, 0021) : encodage « Élévation »
+   à EMPREINTE FIXE. L'axe dominant est fait / pas-fait (tout couvrir est le but
+   d'une tournée) : pas-fait = puits creux à bordure pointillée qui recule ;
+   fait = carte surélevée, coche + mot en gras. L'axe secondaire occupé / libre
+   reste affirmé quand relevé — occupé rempli (une embarcation), libre carte
+   claire bordée (place vide, glyphe en cercle contour). Le coin de coche est
+   toujours réservé et la taille ne bouge jamais au tap : zéro reflow. */
 .cellule-tournee {
   padding: 0;
   vertical-align: middle;
 }
 .bouton-cellule-tournee {
+  position: relative;
+  box-sizing: border-box;
+  /* Empreinte constante quel que soit l'état : le tap ne redimensionne jamais
+     la case ni sa rangée (défaut n°1 corrigé). */
+  inline-size: var(--wa-space-4xl);
+  block-size: var(--wa-space-4xl);
   display: grid;
+  place-content: center;
   justify-items: center;
-  align-content: center;
-  row-gap: var(--wa-space-3xs);
-  min-inline-size: var(--wa-space-4xl);
-  min-block-size: var(--wa-space-4xl);
-  inline-size: 100%;
-  /* Toute la hauteur de la rangée : quand une voisine gagne la puce
-     « a changé », les autres cellules de la rangée restent d'aplomb. */
-  block-size: 100%;
   padding: var(--wa-space-xs);
-  background: var(--wa-color-surface-default);
-  /* Épaisseur constante (relevé ou non) : aucun décalage de grille au tap. */
-  border: var(--wa-border-width-m) solid var(--wa-color-surface-border);
-  border-radius: var(--wa-border-radius-s);
+  border-radius: var(--wa-border-radius-m);
   font: inherit;
-  color: var(--wa-color-text-normal);
   cursor: pointer;
+  /* Défauts réécrits par chaque état ci-dessous (pas-fait par défaut). */
+  background: var(--wa-color-surface-lowered);
+  border: var(--wa-border-width-m) dashed var(--wa-color-surface-border);
+  color: var(--wa-color-text-normal);
 }
 .bouton-cellule-tournee:focus-visible {
   outline: var(--wa-focus-ring);
   outline-offset: var(--wa-focus-ring-offset);
 }
+/* Numéro : coin haut-gauche, discret, toujours présent. */
 .numero-cellule {
+  position: absolute;
+  inset-block-start: var(--wa-space-3xs);
+  inset-inline-start: var(--wa-space-2xs);
+  font-size: var(--wa-font-size-2xs);
   font-weight: var(--wa-font-weight-bold);
+  line-height: 1;
+  opacity: 0.75;
 }
+/* Coche : coin haut-droit, slot TOUJOURS réservé (seule la visibilité bascule)
+   — son apparition n'élargit jamais la case. */
+.coche-cellule {
+  position: absolute;
+  inset-block-start: var(--wa-space-3xs);
+  inset-inline-end: var(--wa-space-2xs);
+  font-size: var(--wa-font-size-s);
+  line-height: 1;
+  visibility: hidden;
+}
+.bouton-cellule-tournee.releve .coche-cellule {
+  visibility: visible;
+}
+/* Corps : le glyphe (embarcation / anneau) au-dessus du mot d'état, centrés —
+   la couleur ne porte jamais seule (décision 0016). */
 .etat-cellule {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: var(--wa-space-3xs);
   font-size: var(--wa-font-size-xs);
+  line-height: 1.1;
+  text-align: center;
 }
-/* Fantôme : le dernier état connu, estompé et en italique — un souvenir, pas
-   un fait. Sans fantôme (jamais observé), le tiret reste discret. */
-.bouton-cellule-tournee.fantome .etat-cellule {
+.glyphe-cellule {
+  font-size: var(--wa-font-size-l);
+  line-height: 1;
+}
+/* Anneau « libre » : un cercle CONTOUR (place vide) — dessiné en CSS pour ne
+   dépendre d'aucune variante d'icône. */
+.glyphe-anneau {
+  inline-size: 0.85em;
+  block-size: 0.85em;
+  border: var(--wa-border-width-l) solid currentcolor;
+  border-radius: var(--wa-border-radius-pill);
+}
+/* PAS-FAIT (non observé + fantôme) : puits creux, bordure pointillée, contenu
+   estompé — un souvenir, pas un fait. */
+.bouton-cellule-tournee.fantome,
+.bouton-cellule-tournee.sans-fantome {
+  background: var(--wa-color-surface-lowered);
+  border-style: dashed;
+  border-color: var(--wa-color-surface-border);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.06);
   color: var(--wa-color-text-quiet);
+}
+.bouton-cellule-tournee.fantome .etat-cellule,
+.bouton-cellule-tournee.sans-fantome .etat-cellule {
   font-style: italic;
 }
-.bouton-cellule-tournee.sans-fantome .etat-cellule {
-  color: var(--wa-color-text-quiet);
+.bouton-cellule-tournee.fantome .glyphe-cellule {
+  opacity: 0.55;
 }
-/* Relevé : confirmé d'un tap — coche + mot en gras, cellule affirmée.
-   Occupé = remplie (une embarcation est là), libre = claire, même cadre. */
+/* FAIT : carte pleine surélevée, coche + mot en gras. */
 .bouton-cellule-tournee.releve {
-  border-color: var(--wa-color-brand-border-loud);
+  border-style: solid;
+  box-shadow: var(--wa-shadow-m);
 }
 .bouton-cellule-tournee.releve .etat-cellule {
   font-weight: var(--wa-font-weight-bold);
+  font-style: normal;
 }
+/* Occupé : carte pleine (une embarcation est là). */
 .bouton-cellule-tournee.releve-occupe {
   background: var(--wa-color-brand-fill-loud);
+  border-color: var(--wa-color-brand-border-loud);
   color: var(--wa-color-brand-on-loud);
 }
+/* Libre : carte CLAIRE bordée — nettement distincte du « non observé » (défaut
+   n°2 corrigé : fini les deux crèmes quasi identiques). Fond vert d'eau pâle
+   (brand-fill-quiet) + bordure brand pleine + surélévation : franchement autre
+   chose que le puits crème pointillé du pas-fait, sans jamais peser comme le
+   vert plein de l'occupé. */
 .bouton-cellule-tournee.releve-libre {
-  background: var(--wa-color-surface-raised);
+  background: var(--wa-color-brand-fill-quiet);
+  border-color: var(--wa-color-brand-border-loud);
   color: var(--wa-color-brand-on-quiet);
 }
-/* « a changé » : l'information intéressante du comité — le mot porte le
-   signal (jamais la couleur seule), en puce warning lisible autant sur la
-   cellule occupée (fond brand loud) que sur la libre (fond clair) : la
-   bordure détache la puce du fond clair où le fill pâle ne suffirait pas. */
-.marqueur-change {
-  padding: 0 var(--wa-space-xs);
-  background: var(--wa-color-warning-fill-normal);
-  color: var(--wa-color-warning-on-normal);
-  border: var(--wa-border-width-s) solid var(--wa-color-warning-border-normal);
-  border-radius: var(--wa-border-radius-pill);
-  font-size: var(--wa-font-size-xs);
-  font-weight: var(--wa-font-weight-semibold);
-}
 
-/* Le compteur de tournée reste sous les yeux pendant tout le défilement de
-   la grille : pastille collante, toujours libellée (décision 0016). */
-.porte-compteur {
-  position: sticky;
-  inset-block-start: var(--wa-space-xs);
-  z-index: 5;
-  align-self: flex-start;
+/* --- Recouvrement plein écran de la tournée (décision 0021) --- */
+
+/* Tournée active : la bande animée et les chromes de page s'effacent, le
+   recouvrement occupe tout l'écran (pas d'API Fullscreen — indisponible sur
+   iPhone). La barre du navigateur reste. */
+body.tournee-active .liseret-marque,
+body.tournee-active .bande-lac,
+body.tournee-active .pied {
+  display: none;
 }
+.recouvrement-tournee {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  /* [hidden] { display: none !important } garde le recouvrement masqué hors
+     tournée : ce display:flex ne s'applique que visible. */
+  display: flex;
+  flex-direction: column;
+  gap: var(--wa-space-xs);
+  padding: var(--wa-space-s);
+  background: var(--wa-color-surface-default);
+}
+/* Cadre frugal en hauteur (paysage ~375 px) : deux barres fines encadrent la
+   grille défilable. */
+.barre-tournee {
+  display: flex;
+  align-items: center;
+  gap: var(--wa-space-xs);
+  flex: none;
+}
+.barre-haut-tournee .titre-tournee {
+  flex: 1;
+  min-inline-size: 0;
+  margin: 0;
+  font-size: var(--wa-font-size-m);
+  font-weight: var(--wa-font-weight-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Boutons-icônes de la barre (sortie, aide, rotation) : cible large, sans
+   remplissage — le chrome reste léger. */
+.bouton-icone-tournee::part(base) {
+  padding-inline: var(--wa-space-2xs);
+}
+/* L'icône de rotation est un indice, pas une action de premier plan : discrète
+   (couleur quiet), elle révèle son texte au tap comme l'aide. */
+.icone-rotation {
+  color: var(--wa-color-text-quiet);
+}
+/* Pastille compteur, toujours libellée (décision 0016). */
 .compteur-tournee {
+  flex: none;
   display: inline-block;
   padding: var(--wa-space-2xs) var(--wa-space-s);
   background: var(--wa-color-surface-raised);
@@ -555,17 +642,30 @@ wa-skeleton {
   border-radius: var(--wa-border-radius-pill);
   box-shadow: var(--wa-shadow-s);
   font-weight: var(--wa-font-weight-semibold);
+  white-space: nowrap;
+}
+/* L'ancre d'une ligne : le rassurant toujours visible (le détail du geste vit
+   dans le popover d'aide). */
+.ancre-aide-tournee {
+  flex: none;
+  margin: 0;
+  color: var(--wa-color-text-quiet);
+}
+/* La grille prend toute la place restante et défile (portrait comme paysage —
+   le paysage est un bonus récompensé, jamais forcé). */
+.grille-tournee-zone {
+  flex: 1;
+  min-block-size: 0;
+  overflow: auto;
+}
+.barre-bas-tournee {
+  padding-block-start: var(--wa-space-2xs);
 }
 
-/* Les changements du résumé de tournée : liste nue dans le callout succès —
-   le callout est le seul foyer du bilan. */
-.liste-changements {
-  margin: 0;
-  padding-inline-start: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--wa-space-2xs);
+/* Confirmation de tournée sur la carte de la structure relevée (décision 0021)
+   — remplace l'écran résumé : un seul foyer, libellé, dans le contexte. */
+.confirmation-tournee {
+  --wa-callout-border-width: 0;
 }
 
 /* Légende des statuts au-dessus des cartes : chaque entrée est un bouton
