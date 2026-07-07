@@ -71,6 +71,11 @@ function creerFicheAdresse(options) {
               Écrire au membre
             </wa-button>
           </div>
+          <!-- On ne s'attend pas à un brouillon préparé : le dire est du
+               procédural rassurant, pas du bruit (0016/0019). -->
+          <p id="fiche-adresse-aide-ecrire" class="wa-caption-m wa-color-text-quiet wa-text-pretty" hidden>Un courriel
+            déjà rédigé s'ouvrira dans votre messagerie — relisez-le et ajustez-le
+            avant de l'envoyer.</p>
         </div>
       </div>
     </wa-drawer>
@@ -280,6 +285,7 @@ function creerFicheAdresse(options) {
     const ecrire = el('fiche-adresse-ecrire');
     const peutEcrire = !!(cas && membre && String(membre.courriel || '').trim());
     ecrire.hidden = !peutEcrire;
+    el('fiche-adresse-aide-ecrire').hidden = !peutEcrire;
     if (peutEcrire) ecrire.setAttribute('href', hrefEcrire(cas));
   }
 

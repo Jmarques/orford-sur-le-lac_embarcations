@@ -15,7 +15,8 @@
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
 
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
-   serieLibreObservee, fenetreApparition, analyserStructures, ETATS_OCCUPATION */
+   serieLibreObservee, fenetreApparition, analyserStructures, depassementQuota,
+   ETATS_OCCUPATION */
 
 function creerFicheEmplacement(options) {
   // Markup constant (aucune donnée) : tout ce qui vient de la Sheet est posé
@@ -45,10 +46,13 @@ function creerFicheEmplacement(options) {
         </wa-callout>
         <div id="fiche-membre" class="wa-stack wa-gap-2xs" hidden>
           <!-- Nom et adresse sur la même ligne (repli naturel si étroite) :
-               la fiche reste courte sur téléphone. -->
+               la fiche reste courte sur téléphone. La pastille quota (0019)
+               n'apparaît QUE quand l'adresse dépasse son quota — silence
+               dans les règles (0016) ; le traitement vit dans À traiter. -->
           <p class="wa-cluster wa-gap-xs wa-align-items-baseline">
             <span id="fiche-membre-nom" class="champ-membre-nom"></span>
             <span id="fiche-membre-adresse" class="wa-color-text-quiet"></span>
+            <wa-badge id="fiche-membre-quota" variant="neutral" appearance="filled-outlined" hidden></wa-badge>
           </p>
           <div class="wa-cluster wa-gap-m liens-contact">
             <a id="fiche-telephone" hidden><wa-icon name="phone"></wa-icon> <span id="fiche-telephone-texte"></span></a>
@@ -103,11 +107,21 @@ function creerFicheEmplacement(options) {
                   </wa-button>
                 </div>
               </form>
+              <!-- L'aide colle au bouton qu'elle explique (revue UI) : on ne
+                   s'attend pas à un brouillon préparé — le dire est du
+                   procédural rassurant, pas du bruit (0016/0019). -->
+              <div class="wa-stack wa-gap-2xs">
+                <div class="wa-cluster wa-gap-s">
+                  <wa-button id="fiche-ecrire" appearance="outlined" hidden>
+                    <wa-icon slot="start" name="envelope"></wa-icon>
+                    Écrire au membre
+                  </wa-button>
+                </div>
+                <p id="fiche-aide-ecrire" class="wa-caption-m wa-color-text-quiet wa-text-pretty" hidden>Un courriel
+                  déjà rédigé s'ouvrira dans votre messagerie — relisez-le et ajustez-le
+                  avant de l'envoyer.</p>
+              </div>
               <div class="wa-cluster wa-gap-s">
-                <wa-button id="fiche-ecrire" appearance="outlined" hidden>
-                  <wa-icon slot="start" name="envelope"></wa-icon>
-                  Écrire au membre
-                </wa-button>
                 <wa-button id="fiche-liberer" appearance="outlined" hidden>
                   <wa-icon slot="start" name="unlock"></wa-icon>
                   Libérer l'emplacement
@@ -319,6 +333,15 @@ function creerFicheEmplacement(options) {
     if (!blocMembre.hidden) {
       el('fiche-membre-adresse').textContent = adresseLisible(ligne);
       el('fiche-membre-absent').hidden = !!membre;
+      // Pastille quota (0019) : seulement quand l'adresse dépasse — le membre
+      // du comité qui ouvre un emplacement depuis la grille découvre le
+      // contexte du dossier ; rien quand l'adresse est dans les règles. Le
+      // libellé nomme l'état (« Hors quota », la section qui le traite) —
+      // le nombre seul ne dirait pas que c'est un dossier (revue UI).
+      const quota = depassementQuota(ligne, options.donnees().emplacements, options.donnees().membres);
+      const pastilleQuota = el('fiche-membre-quota');
+      pastilleQuota.hidden = !quota;
+      if (quota) pastilleQuota.textContent = 'Hors quota — ' + quota.nombre + ' emplacements à cette adresse';
       if (membre) {
         nom.hidden = false;
         nom.textContent = String(membre.nom || '').trim();
@@ -382,6 +405,7 @@ function creerFicheEmplacement(options) {
     el('fiche-liberer').hidden = !gestes.liberer;
     const ecrire = el('fiche-ecrire');
     ecrire.hidden = !gestes.ecrire;
+    el('fiche-aide-ecrire').hidden = !gestes.ecrire;
     if (gestes.ecrire) ecrire.setAttribute('href', hrefEcrire(membre, ligne, statut));
   }
 

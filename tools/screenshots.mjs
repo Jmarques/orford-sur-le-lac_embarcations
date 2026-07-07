@@ -252,6 +252,12 @@ try {
           for (const zone of zones) zone.scrollLeft = zone.scrollWidth;
         });
       }
+      // `voir` : amène un élément sous le pli dans la vue (ex. la ligne d'aide
+      // en pied de drawer) — le conteneur défilant peut vivre dans un shadow
+      // DOM (part body de wa-drawer), scrollIntoView le trouve tout seul.
+      if (scenario.voir) {
+        await page.$eval(scenario.voir, (element) => element.scrollIntoView({ block: 'nearest' }));
+      }
       // `fonts.status` plutôt que `fonts.ready` : la promesse ready peut être
       // déjà résolue alors qu'une graisse (ex. la 600 du journal, vue pour la
       // première fois dans le drawer) commence seulement à charger — la

@@ -1,6 +1,6 @@
 # 03 — Pastille quota dans la fiche d'emplacement + copy explicite de « Écrire au membre »
 
-Status: ready-for-agent
+Status: ready-for-human — implémenté (tranche T3), à valider sur le vrai site après `npm run deploy`
 
 ## Parent
 
@@ -15,13 +15,17 @@ Deux retouches de la fiche d'emplacement partagée (0018), visibles partout où 
 
 ## Acceptance criteria
 
-- [ ] La pastille « N emplacements à cette adresse » apparaît dans la fiche d'emplacement quand l'adresse dépasse son quota, et jamais quand elle le respecte (y compris exception accordée respectée).
-- [ ] Elle apparaît partout où la fiche s'ouvre — vérifiée au moins depuis la grille des Structures et depuis la fiche d'adresse.
-- [ ] La ligne d'aide accompagne « Écrire au membre » sur la fiche d'emplacement et la fiche d'adresse.
-- [ ] Captures mockées : fiche d'un emplacement d'une adresse hors quota (pastille visible) et fiche d'un emplacement dans les règles (aucune pastille) ; console propre (0006/0017).
-- [ ] `npm run verify` vert ; captures du delta revues par un subagent lecture seule, PNG committés avec le code.
+- [x] La pastille « N emplacements à cette adresse » apparaît dans la fiche d'emplacement quand l'adresse dépasse son quota, et jamais quand elle le respecte (y compris exception accordée respectée).
+- [x] Elle apparaît partout où la fiche s'ouvre — vérifiée au moins depuis la grille des Structures et depuis la fiche d'adresse.
+- [x] La ligne d'aide accompagne « Écrire au membre » sur la fiche d'emplacement et la fiche d'adresse.
+- [x] Captures mockées : fiche d'un emplacement d'une adresse hors quota (pastille visible) et fiche d'un emplacement dans les règles (aucune pastille) ; console propre (0006/0017).
+- [x] `npm run verify` vert ; captures du delta revues par un subagent lecture seule, PNG committés avec le code.
 
 ## Blocked by
 
 - `.scratch/hors-quota/issues/01-derivations-hors-quota-et-lecture.md`
 - `.scratch/hors-quota/issues/02-section-hors-quota-et-fiche-adresse.md` (la ligne d'aide et la pastille touchent la fiche d'adresse créée en 02)
+
+## Comments
+
+- 2026-07-06 (implémentation) : revue ui-critic sur le delta — deux correctifs appliqués : le libellé de la pastille nomme l'état (« Hors quota — 3 emplacements à cette adresse »), pas un nombre nu dont seul un initié saurait qu'il dépasse ; la ligne d'aide colle désormais au bouton « Écrire au membre » (elle flottait sous « Libérer l'emplacement » quand les boutons s'empilent). Le runner de captures gagne l'option `voir` (défilement d'un élément sous le pli dans la vue) pour capturer la ligne d'aide en pied de drawer — scénario `a-traiter-fiche-aide-ecrire`. Silence vérifié : la fiche de 75 (exception respectée) n'a ni pastille ni trou.

@@ -416,6 +416,11 @@ export const CAPTURES = [
   { nom: 'a-traiter-fiche', page: 'a-traiter.html', etat: 'liste',
     cliquer: '.rangee-cas[data-numero="75"]',
     attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
+  // La ligne d'aide sous « Écrire au membre » (0019) vit en pied de drawer,
+  // sous le pli : `voir` la fait défiler dans la vue pour la capture.
+  { nom: 'a-traiter-fiche-aide-ecrire', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-cas[data-numero="75"]',
+    attendre: '#fiche-aide-ecrire:not([hidden])', voir: '#fiche-aide-ecrire', pleinVue: true },
   // La fiche d'un « À identifier » : pas de membre, journal + note seulement.
   { nom: 'a-traiter-fiche-a-identifier', page: 'a-traiter.html', etat: 'liste',
     cliquer: '.rangee-cas[data-numero="76"]',
