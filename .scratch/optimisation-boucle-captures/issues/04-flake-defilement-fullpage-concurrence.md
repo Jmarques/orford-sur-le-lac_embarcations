@@ -1,6 +1,6 @@
 # 04 — Flake de rasterisation : capture `defiler` en fullPage sous concurrence
 
-Status: ready-for-human
+Status: done
 
 ## What to build
 

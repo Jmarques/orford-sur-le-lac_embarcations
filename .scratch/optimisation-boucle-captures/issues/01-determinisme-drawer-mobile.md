@@ -1,6 +1,6 @@
 # 01 — Éliminer les faux positifs du diff visuel (drawer mobile)
 
-Status: ready-for-human
+Status: done
 
 ## What to build
 

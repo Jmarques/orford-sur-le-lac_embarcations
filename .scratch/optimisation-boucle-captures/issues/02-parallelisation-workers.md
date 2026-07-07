@@ -1,6 +1,6 @@
 # 02 — Paralléliser la génération des captures
 
-Status: ready-for-agent
+Status: done
 
 ## What to build
 

@@ -1,6 +1,6 @@
 # 03 — Revue visuelle sur crops bbox, plus jamais sur pleines pages illisibles
 
-Status: ready-for-agent
+Status: done
 
 ## What to build
 
