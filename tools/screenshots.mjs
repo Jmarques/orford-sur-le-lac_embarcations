@@ -7,7 +7,8 @@
 // les captures listées « modifiée/nouvelle » ont besoin d'une revue visuelle.
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -28,6 +29,42 @@ import {
 
 const SORTIE = fileURLToPath(new URL('../screenshots/', import.meta.url));
 const DOSSIER_DIFF = `${SORTIE}.diff/`;
+
+// Cache disque des réponses CDN (webawesome.css, loader, SVG d'icônes,
+// fontes) : la latence réseau était la racine des faux positifs — une graisse
+// arrivée tard = gras synthétique capturé, un SVG arrivé tard = icône
+// manquante, des métriques de repli = retours à la ligne décalés. Le premier
+// run remplit le cache (gitignoré), les suivants rejouent les mêmes octets
+// instantanément, quelle que soit la charge.
+const CACHE_CDN = fileURLToPath(new URL('./.cache-cdn/', import.meta.url));
+const MOTIF_CDN = /^https:\/\/(ka-f\.webawesome\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
+
+async function servirDepuisLeCache(route) {
+  const url = route.request().url();
+  const cle = createHash('sha256').update(url).digest('hex').slice(0, 32);
+  const cheminCorps = `${CACHE_CDN}${cle}`;
+  const cheminType = `${CACHE_CDN}${cle}.type`;
+  if (existsSync(cheminCorps) && existsSync(cheminType)) {
+    route.fulfill({
+      body: readFileSync(cheminCorps),
+      contentType: readFileSync(cheminType, 'utf8'),
+    });
+    return;
+  }
+  const reponse = await route.fetch();
+  const corps = await reponse.body();
+  const type = reponse.headers()['content-type'] || 'application/octet-stream';
+  // Écriture atomique (temp + rename) : une page concurrente qui lit pendant
+  // qu'une autre écrit ne voit jamais un fichier partiel.
+  const ecrire = (chemin, contenu) => {
+    const temporaire = `${chemin}.tmp-${process.pid}-${cle}`;
+    writeFileSync(temporaire, contenu);
+    renameSync(temporaire, chemin);
+  };
+  ecrire(cheminCorps, corps);
+  ecrire(cheminType, type);
+  route.fulfill({ body: corps, contentType: type });
+}
 const enDirect = process.argv.includes('--live');
 const indexArgPage = process.argv.indexOf('--page');
 const pageFiltree = indexArgPage === -1 ? null : process.argv[indexArgPage + 1].replace(/\.html$/, '');
@@ -77,6 +114,7 @@ let codeSortie = 0;
 try {
   await attendreServeur();
   mkdirSync(SORTIE, { recursive: true });
+  mkdirSync(CACHE_CDN, { recursive: true });
 
   let scenarios = enDirect ? CAPTURES.filter((c) => !c.etat) : CAPTURES;
   if (pageFiltree) {
@@ -93,15 +131,23 @@ try {
   const generees = [];
   preparerDossierDiff(DOSSIER_DIFF);
   const navigateur = await chromium.launch();
-  for (const scenario of scenarios) {
-    for (const [nomViewport, viewport] of Object.entries(VIEWPORTS)) {
-      if (serveurMort) {
-        throw new Error('http-server est mort en cours de run — captures interrompues.');
-      }
+
+  // Génération parallèle : une file de travaux (scénario × viewport) épuisée
+  // par un pool de pages concurrentes sur le même navigateur — ~3 min
+  // séquentielles ramenées sous la minute. Chaque page a son propre mock et
+  // sa propre attribution console : la concurrence ne mélange rien.
+  const PAGES_CONCURRENTES = 6;
+  const travaux = scenarios.flatMap((scenario) => Object.entries(VIEWPORTS)
+    .map(([nomViewport, viewport]) => ({ scenario, nomViewport, viewport })));
+
+  async function capturer({ scenario, nomViewport, viewport }) {
       // reducedMotion : les animations du thème (toutes sous
       // prefers-reduced-motion) ne polluent pas le diff pixel vs baseline.
       const page = await navigateur.newPage({ viewport, reducedMotion: 'reduce' });
       const contexte = `${scenario.nom} (${nomViewport})`;
+      // Dans les deux modes (mock et --live) : les assets CDN sont statiques,
+      // les servir du cache rend le rendu indépendant du réseau.
+      await page.route(MOTIF_CDN, servirDepuisLeCache);
       page.on('console', (message) => {
         if (estProblemeConsole(message.type(), message.text(), CONSOLE_IGNOREE)) {
           problemes.push(`${contexte} — console.${message.type()} : ${message.text()}`);
@@ -135,6 +181,14 @@ try {
         });
       }
       await page.goto(urlDeScenario(BASE, scenario));
+      // Toutes les faces déclarées chargées AVANT les interactions : une
+      // graisse vue pour la première fois dans un drawer (la 600 du journal)
+      // se chargerait pendant les attentes finales — gras synthétique capturé
+      // selon le timing. allSettled : une face inutilisée qui échoue ne doit
+      // pas faire échouer le run.
+      await page.evaluate(() => Promise.allSettled(
+        [...document.fonts].map((face) => face.load()),
+      ));
       // `ouvrir` : clics d'ouverture AVANT le remplissage (ex. la rangée qui
       // ouvre la fiche où vit le champ) — même mécanique que `cliquer`.
       for (const selecteur of [].concat(scenario.ouvrir || [])) {
@@ -175,12 +229,41 @@ try {
         timeout: 15000,
         state: scenario.presenceSeule ? 'attached' : 'visible',
       });
+      // Souris garée hors de la page : après un clic d'ouverture, Chromium
+      // applique (ou non, selon le timing) :hover à l'élément qui vient
+      // d'apparaître sous le curseur — le lien courriel de la fiche basculait
+      // entre soulignement pointillé (repos) et plein (survol) d'un run à
+      // l'autre. Garer le curseur rend l'état « au repos » systématique.
+      await page.mouse.move(0, 0);
+      // Aucune animation finie encore en cours : sous charge, la capture peut
+      // attraper la queue d'une transition d'ouverture (drawer) — un écart
+      // d'opacité global que le seuil pixelmatch ne filtre que sur les textes
+      // pâles. Les animations infinies (spinners) sont exclues : elles ne se
+      // terminent jamais et leur bruit sous le seuil est déjà géré au diff.
+      await page.waitForFunction(
+        () => document.getAnimations().every(
+          (animation) => animation.effect?.getTiming().iterations === Infinity
+            || animation.playState !== 'running',
+        ),
+        { timeout: 15000 },
+      );
       if (scenario.defiler) {
         await page.$$eval(scenario.defiler, (zones) => {
           for (const zone of zones) zone.scrollLeft = zone.scrollWidth;
         });
       }
-      await page.evaluate(() => document.fonts.ready);
+      // `fonts.status` plutôt que `fonts.ready` : la promesse ready peut être
+      // déjà résolue alors qu'une graisse (ex. la 600 du journal, vue pour la
+      // première fois dans le drawer) commence seulement à charger — la
+      // capture attrapait alors un gras synthétique au lieu de la vraie face.
+      await page.waitForFunction(() => document.fonts.status === 'loaded', { timeout: 15000 });
+      // Plus aucun custom element en attente d'upgrade au moment de capturer :
+      // la garde d'avant-clic ne couvre pas les composants montés APRÈS les
+      // interactions (contenu d'un drawer, d'un dialog).
+      await page.waitForFunction(
+        () => document.querySelectorAll(':not(:defined)').length === 0,
+        { timeout: 15000 },
+      );
       // Les wa-icon chargent leur SVG à la demande : une capture prise avant
       // la fin du fetch perd des glyphes (chevron absent au premier passage,
       // présent une fois le cache chaud). On attend chaque icône visible —
@@ -197,8 +280,18 @@ try {
       generees.push(nomFichier);
       console.log(`✓ ${scenario.nom} (${nomViewport})`);
       await page.close();
+  }
+
+  let prochainTravail = 0;
+  async function epuiserLaFile() {
+    while (prochainTravail < travaux.length) {
+      if (serveurMort) {
+        throw new Error('http-server est mort en cours de run — captures interrompues.');
+      }
+      await capturer(travaux[prochainTravail++]);
     }
   }
+  await Promise.all(Array.from({ length: PAGES_CONCURRENTES }, epuiserLaFile));
   await navigateur.close();
 
   // Comparaison à la baseline (HEAD) : la revue visuelle ne porte que sur ce
@@ -208,7 +301,7 @@ try {
   for (const nomFichier of generees) {
     const chemin = `${SORTIE}${nomFichier}`;
     const resultat = comparerCapture(nomFichier, readFileSync(chemin), chemin, DOSSIER_DIFF);
-    if (resultat.statut === 'nouvelle') nouvelles.push(nomFichier);
+    if (resultat.statut === 'nouvelle') nouvelles.push({ nom: nomFichier, ...resultat });
     if (resultat.statut === 'modifiee') modifiees.push({ nom: nomFichier, ...resultat });
   }
   const obsoletes = (enDirect || pageFiltree)
@@ -220,11 +313,18 @@ try {
     console.log('✓ Aucune différence visuelle avec la baseline committée — rien à revoir.');
   } else {
     console.log(`Δ vs baseline (HEAD) : ${modifiees.length} modifiée(s), ${nouvelles.length} nouvelle(s), ${obsoletes.length} obsolète(s).`);
+    // Chemins des artefacts de revue, relatifs au dépôt : le prompt du
+    // subagent de revue (sans shell) pointe directement dessus.
+    const cheminAffiche = (chemin) => chemin.slice(chemin.indexOf('screenshots/'));
     for (const capture of modifiees) {
       const detail = capture.pixels === null ? 'dimensions différentes' : `${capture.pixels} px`;
-      console.log(`  ~ ${capture.nom} (${detail}) — avant/différence dans screenshots/.diff/`);
+      console.log(`  ~ ${capture.nom} (${detail})`);
+      for (const artefact of capture.artefacts) console.log(`      ${cheminAffiche(artefact)}`);
     }
-    for (const nomFichier of nouvelles) console.log(`  + ${nomFichier}`);
+    for (const capture of nouvelles) {
+      console.log(`  + ${capture.nom}`);
+      for (const artefact of capture.artefacts) console.log(`      ${cheminAffiche(artefact)}`);
+    }
     for (const nomFichier of obsoletes) console.log(`  - ${nomFichier} (dans HEAD mais plus générée — à supprimer du dépôt)`);
     console.log('Revue visuelle : ces captures-là seulement ; intentionnel → committer les PNG avec le code.');
   }

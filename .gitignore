@@ -2,6 +2,9 @@ node_modules/
 # Les captures sont committées : c'est la baseline du diff visuel.
 # Seuls les artefacts de comparaison (avant/différence) restent hors dépôt.
 screenshots/.diff/
+# Cache local des réponses CDN (webawesome, fontes) : rempli au premier run
+# de captures, rejoué ensuite — déterminisme réseau, jamais committé.
+tools/.cache-cdn/
 .claude/settings.local.json
 .DS_Store
 *.log

@@ -284,8 +284,15 @@
   }
 
   if (reduit) {
-    // Une seule image, sur un temps choisi pour de beaux rayons.
-    requestAnimationFrame(function () { peindre(9.0, 0.016); });
+    // Une seule image, sur un temps choisi pour de beaux rayons. Repeinte —
+    // même temps, donc mêmes pixels — à chaque changement de taille : une
+    // frame peinte avant que la mise en page se stabilise (fontes, CSS
+    // tardifs) ou avant une rotation d'écran resterait étirée sinon.
+    var peindreImageFixe = function () {
+      requestAnimationFrame(function () { peindre(9.0, 0.016); });
+    };
+    peindreImageFixe();
+    if (window.ResizeObserver) new ResizeObserver(peindreImageFixe).observe(canvas);
   } else {
     // Le temps s'accumule au rythme du token de vitesse.
     var temps = 0;

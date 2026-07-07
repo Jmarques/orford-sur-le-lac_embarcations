@@ -274,12 +274,20 @@ function creerFicheEmplacement(options) {
     const apparence = APPARENCE_STATUTS[statut.code];
     const position = positionPourNumero(numeroCourant);
 
-    drawer.setAttribute('label', 'Emplacement ' + numeroCourant
+    const libelle = 'Emplacement ' + numeroCourant
       + (position ? ' · Structure ' + position.structure
-        + (position.niveau !== '' ? ' · Niveau ' + position.niveau : '') : ''));
+        + (position.niveau !== '' ? ' · Niveau ' + position.niveau : '') : '');
+    if (drawer.getAttribute('label') !== libelle) drawer.setAttribute('label', libelle);
 
-    el('fiche-statut').setAttribute('variant', apparence.variante);
-    el('fiche-statut-icone').setAttribute('name', apparence.icone);
+    // N'écrire l'attribut que s'il change : re-poser la même valeur fait
+    // re-rendre le shadow DOM du composant, et le contenu slotté disparaît
+    // le temps d'une frame (callout écrasé à l'écran pendant un re-rendu
+    // après un geste — visible sur API lente, flagrant en capture).
+    const poserAttribut = (element, nom, valeur) => {
+      if (element.getAttribute(nom) !== valeur) element.setAttribute(nom, valeur);
+    };
+    poserAttribut(el('fiche-statut'), 'variant', apparence.variante);
+    poserAttribut(el('fiche-statut-icone'), 'name', apparence.icone);
     el('fiche-statut-libelle').textContent = statut.libelle;
     el('fiche-statut-detail').textContent = detailStatut(statut, ligne);
 
