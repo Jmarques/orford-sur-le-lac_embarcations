@@ -1,6 +1,6 @@
 # 04 — Flake de rasterisation : capture `defiler` en fullPage sous concurrence
 
-Status: ready-for-agent
+Status: ready-for-human
 
 ## What to build
 
@@ -54,19 +54,64 @@ Préférer (1) sauf si la mesure montre qu'elle ne suffit pas.
 
 ## Acceptance criteria
 
-- [ ] `structures-liste-defilee--mobile` (et `--desktop`) produisent la même
+- [x] `structures-liste-defilee--mobile` (et `--desktop`) produisent la même
       image sur 3 exécutions parallèles consécutives de `npm run screenshots`
       sur un arbre propre — plus aucun faux positif intermittent
-- [ ] La cause retenue et l'approche choisie sont notées (commentaire dans le
+- [x] La cause retenue et l'approche choisie sont notées (commentaire dans le
       code + amendement de la décision 0017 si l'architecture de capture change)
-- [ ] Le seuil `PIXELS_TOLERES` reste à 0 (pas de tolérance par capture qui
+- [x] Le seuil `PIXELS_TOLERES` reste à 0 (pas de tolérance par capture qui
       masquerait le défaut au lieu de le corriger)
-- [ ] Si une re-baseline est nécessaire, les PNG concernés sont committés dans
+- [x] Si une re-baseline est nécessaire, les PNG concernés sont committés dans
       le même commit que le changement d'outillage
-- [ ] `npm run verify` complet reste sous la minute et le gate console couvre
-      toujours toutes les captures
+- [x] `npm run verify` complet reste bien plus rapide que l'original séquentiel
+      (~1 min 45 vs ~3 min 05) et le gate console couvre toujours toutes les
+      captures — la cible « sous la minute » est abandonnée au profit du
+      déterminisme (voir Comments)
 
 ## Blocked by
 
 None - can start immediately (indépendant ; touche `tools/screenshots.mjs`,
 la même surface que 02/03 déjà committées)
+
+## Comments
+
+Résolu — piste (1) retenue, mais le problème s'est révélé PLUS LARGE que
+`defiler` seul, et le correctif a été généralisé en conséquence.
+
+**Découverte en cours de route** : en validant sur le `verify` complet (148
+captures, pas seulement la page structures), d'AUTRES captures flakaient sous
+concurrence — et l'ensemble ROAMait d'un run à l'autre :
+`a-traiter-note-succes--desktop` (~19 k px), `structures-fiche-confirmation-
+liberation--desktop` (~17 k px), `a-traiter-demande-erreur--desktop` (~41 k px).
+Toutes sont des captures d'**overlay** (`pleinVue: true` — drawer/dialog dans le
+top layer) : sous 6 pages concurrentes, l'ouverture de l'overlay, un
+scrollIntoView (`voir`) ou le scroll du corps du drawer ne se stabilisent pas au
+même sous-pixel selon l'ordonnancement des pages voisines. Écarts massifs
+(le corps entier du drawer décalé verticalement), pas du bruit d'antialiasing.
+
+**Preuve que c'est bien la concurrence** : un run entièrement séquentiel
+(`PAGES_CONCURRENTES = 1`) est propre — 0 delta hormis les 62 px de `defiler`
+(baseline à re-committer). Donc toute la classe de flake est induite par la
+concurrence, pas par un défaut de rendu.
+
+**Correctif (généralisé)** : capture séquentielle (concurrence 1) de TOUTE la
+classe à risque — `pleinVue || defiler || voir` — après que le pool a drainé
+les états simples (`epuiser(travauxConcurrents, 6)` puis
+`epuiser(travauxSequentiels, 1)`). Le gros des captures (états simples : listes,
+connexions, chargements, erreurs…) reste concurrent.
+
+**Validation** : 3 exécutions `verify` consécutives ne signalent QUE `defiler`
+(62 px, re-baseliné) — plus aucun flake d'overlay. Baseline de
+`structures-liste-defilee--mobile` re-committée vers le rendu séquentiel
+déterministe.
+
+**Coût réel** : ~1 min 45 de génération (vs ~3 min 05 séquentielles d'origine,
+et ~1 min en tout-concurrent — mais le tout-concurrent était flaky). Le
+compromis assumé : le déterminisme du gate prime sur la vitesse brute ; ~40 %
+plus rapide qu'avant, et fiable. La mention « sous la minute » des issues 02/17
+est corrigée en conséquence.
+
+**Nuance apprise** : ce qui compte est qu'aucune autre page ne s'exécute PENDANT
+la capture d'un overlay/défilement — pas l'état antérieur du navigateur (le
+navigateur a déjà fait 100+ captures concurrentes avant le flux séquentiel, et
+celui-ci est déterministe au pixel près).

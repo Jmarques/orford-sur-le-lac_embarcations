@@ -140,6 +140,19 @@ try {
   const travaux = scenarios.flatMap((scenario) => Object.entries(VIEWPORTS)
     .map(([nomViewport, viewport]) => ({ scenario, nomViewport, viewport })));
 
+  // Overlays et défilements capturés HORS du pool (issue 04) : sous concurrence,
+  // ces captures flakent — le stitch fullPage re-clampe le scroll horizontal
+  // (`defiler`), et l'ouverture d'un drawer/dialog (`pleinVue`) ou un
+  // scrollIntoView (`voir`) ne se stabilisent pas au même sous-pixel selon
+  // l'ordonnancement des pages voisines (faux positifs bi-stables, de 62 px à
+  // des dizaines de milliers). Un run entièrement séquentiel est déterministe ;
+  // on ne séquentialise donc QUE cette classe, après que le pool a drainé les
+  // états simples. Le gros des captures reste concurrent — run toujours bien
+  // sous les 3 min séquentielles d'origine.
+  const estSequentiel = (s) => s.pleinVue || s.defiler || s.voir;
+  const travauxConcurrents = travaux.filter((t) => !estSequentiel(t.scenario));
+  const travauxSequentiels = travaux.filter((t) => estSequentiel(t.scenario));
+
   async function capturer({ scenario, nomViewport, viewport }) {
       // reducedMotion : les animations du thème (toutes sous
       // prefers-reduced-motion) ne polluent pas le diff pixel vs baseline.
@@ -288,16 +301,20 @@ try {
       await page.close();
   }
 
-  let prochainTravail = 0;
-  async function epuiserLaFile() {
-    while (prochainTravail < travaux.length) {
-      if (serveurMort) {
-        throw new Error('http-server est mort en cours de run — captures interrompues.');
+  async function epuiser(liste, concurrence) {
+    let prochain = 0;
+    async function ouvrier() {
+      while (prochain < liste.length) {
+        if (serveurMort) {
+          throw new Error('http-server est mort en cours de run — captures interrompues.');
+        }
+        await capturer(liste[prochain++]);
       }
-      await capturer(travaux[prochainTravail++]);
     }
+    await Promise.all(Array.from({ length: concurrence }, ouvrier));
   }
-  await Promise.all(Array.from({ length: PAGES_CONCURRENTES }, epuiserLaFile));
+  await epuiser(travauxConcurrents, PAGES_CONCURRENTES);
+  await epuiser(travauxSequentiels, 1);
   await navigateur.close();
 
   // Comparaison à la baseline (HEAD) : la revue visuelle ne porte que sur ce
