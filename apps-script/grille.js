@@ -412,7 +412,7 @@ function structureSuivante(ids, id) {
 
 // Date lisible ou null : une cellule éditée à la main (0002) peut porter
 // n'importe quoi — jamais un plantage, jamais un « Invalid Date » affiché.
-function dateLisible_(valeur) {
+function dateLisible(valeur) {
   if (valeur === undefined || valeur === null || valeur === '') return null;
   var date = new Date(valeur);
   return isNaN(date.valueOf()) ? null : date;
@@ -426,7 +426,7 @@ function historiqueEmplacement(evenements, numero) {
   return (evenements || [])
     .filter(function (e) { return e && Number(e.numero) === Number(numero); })
     .map(function (e) {
-      return { date: dateLisible_(e.date), action: String(e.action || ''), details: String(e.details || '') };
+      return { date: dateLisible(e.date), action: String(e.action || ''), details: String(e.details || '') };
     })
     .filter(function (e) { return e.date !== null && e.action !== ''; })
     .sort(function (a, b) { return a.date - b.date; });
@@ -458,7 +458,7 @@ function serieTerminale_(observations, etat) {
 function serieLibreObservee(ligne, evenements) {
   var serie = serieTerminale_(observationsLisibles_(evenements, ligne.numero), 'libre');
   if (serie.length === 0) {
-    var date = dateLisible_(ligne.dateObservation);
+    var date = dateLisible(ligne.dateObservation);
     return { nombre: 1, debut: date, derniere: date };
   }
   return { nombre: serie.length, debut: serie[0].date, derniere: serie[serie.length - 1].date };
@@ -638,7 +638,7 @@ function journalDeCas(evenements, cle, numeros) {
       if (!surAdresse && !surNumero) return null;
       var numero = Number(e.numero);
       return {
-        date: dateLisible_(e.date),
+        date: dateLisible(e.date),
         action: String(e.action || ''),
         details: String(e.details || ''),
         numero: Number.isInteger(numero) && numero > 0 ? numero : null,
@@ -673,7 +673,7 @@ function texteBrut_(valeur) {
 function etatDemande(demande) {
   var brutNumero = demande ? texteBrut_(demande.numeroAttribue) : '';
   var numero = Number(brutNumero);
-  var date = dateLisible_(demande && demande.dateDecision);
+  var date = dateLisible(demande && demande.dateDecision);
   if (brutNumero !== '' && Number.isInteger(numero) && numero > 0) {
     return { code: 'acceptee', libelle: 'Acceptée', numero: numero, date: date };
   }
@@ -686,7 +686,7 @@ function etatDemande(demande) {
 // Le temps d'une date lisible (ou 0 si absente/illisible — 0002) : sert de clé
 // de tri sans jamais planter.
 function tempsLisible_(valeur) {
-  var date = dateLisible_(valeur);
+  var date = dateLisible(valeur);
   return date === null ? 0 : date.getTime();
 }
 
@@ -724,7 +724,7 @@ function journalDemande(evenements, demandeId) {
   return (evenements || [])
     .filter(function (e) { return e && String(e.demandeId || '').trim() === id; })
     .map(function (e) {
-      return { date: dateLisible_(e.date), action: String(e.action || ''), details: String(e.details || '') };
+      return { date: dateLisible(e.date), action: String(e.action || ''), details: String(e.details || '') };
     })
     .filter(function (e) { return e.date !== null && e.action !== ''; })
     .sort(function (a, b) { return a.date - b.date; });
@@ -845,5 +845,5 @@ function situationAttribution(cle, lignesEmplacements, membres) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, historiqueEmplacement, cleAdresse, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, ETATS_OCCUPATION };
 }

@@ -26,6 +26,65 @@ function apparenceStatut(code) {
   return APPARENCE_STATUTS[code] || { variante: 'neutral', icone: 'circle-question' };
 }
 
+// Les faits viennent de grille.js : globales dans le navigateur (chargé avant),
+// require() en node (tests). Ce pont est le seul endroit qui connaît les deux.
+var FAITS = (typeof require === 'function')
+  ? require('./grille.js')
+  : {
+      statutEmplacement: statutEmplacement,
+      serieLibreObservee: serieLibreObservee,
+      fenetreApparition: fenetreApparition,
+      dateLisible: dateLisible,
+    };
+
+// Toutes les dates de signal : format long fr-CA (« 3 mai 2026 »), partout pareil.
+var FORMAT_DATE_SIGNAL = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
+function compteObservations_(nombre) {
+  return nombre === 1 ? '1 observation' : nombre + ' observations';
+}
+
+// La phrase d'un signal temporel, dérivée des faits grille (série « libre »,
+// fenêtre d'apparition), pour l'audience qui la demande :
+//   'fiche' — la ligne de détail sous le libellé (préfixée, ponctuée d'un point)
+//   'file'  — la rangée du registre À traiter (nue)
+// → string, ou null quand le statut n'a pas de dimension temporelle (l'appelant
+// retombe alors sur l'explication du statut). Les deux formulations vivent ici
+// côte à côte : elles partagent la date, le compte et la fenêtre, et ne peuvent
+// plus diverger sur ces parties.
+function proseSignal(ligne, evenements, contexte) {
+  var fin = contexte === 'fiche' ? '.' : '';
+  var code = FAITS.statutEmplacement(ligne).code;
+
+  if (code === 'peutEtreALiberer') {
+    var serie = FAITS.serieLibreObservee(ligne, evenements);
+    var depuis = serie.debut
+      ? 'depuis le ' + FORMAT_DATE_SIGNAL.format(serie.debut)
+      : 'depuis une date inconnue';
+    var prefixeLibre = contexte === 'fiche' ? 'Attribué, mais observé libre ' : 'Libre ';
+    return prefixeLibre + depuis + ' · ' + compteObservations_(serie.nombre) + fin;
+  }
+
+  if (code === 'orphelin') {
+    var prefixe = contexte === 'fiche' ? 'Non attribué — embarcation ' : 'Embarcation ';
+    var fenetre = FAITS.fenetreApparition(ligne, evenements);
+    if (!fenetre) {
+      var date = FAITS.dateLisible(ligne.dateObservation);
+      if (date) return prefixe + 'observée le ' + FORMAT_DATE_SIGNAL.format(date) + fin;
+      // Fiche : « … observée à une date inconnue. » ; file : « … observée, à une date inconnue »
+      var sansDate = contexte === 'fiche' ? ' à une date inconnue' : ', à une date inconnue';
+      return prefixe + 'observée' + sansDate + fin;
+    }
+    var coeur = fenetre.libreAvant
+      ? 'apparue entre le ' + FORMAT_DATE_SIGNAL.format(fenetre.libreAvant)
+        + ' et le ' + FORMAT_DATE_SIGNAL.format(fenetre.debut)
+      : 'observée depuis le ' + FORMAT_DATE_SIGNAL.format(fenetre.debut);
+    if (fenetre.nombre > 1) coeur += ' · vue ' + fenetre.nombre + ' fois';
+    return prefixe + coeur + fin;
+  }
+
+  return null;
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { apparenceStatut: apparenceStatut };
+  module.exports = { apparenceStatut: apparenceStatut, proseSignal: proseSignal };
 }

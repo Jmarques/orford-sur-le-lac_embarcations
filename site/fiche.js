@@ -15,8 +15,8 @@
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
 
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
-   serieLibreObservee, fenetreApparition, analyserStructures, depassementQuota,
-   cleAdresse, ETATS_OCCUPATION, apparenceStatut */
+   serieLibreObservee, analyserStructures, depassementQuota,
+   cleAdresse, ETATS_OCCUPATION, apparenceStatut, proseSignal */
 
 function creerFicheEmplacement(options) {
   // Markup constant (aucune donnée) : tout ce qui vient de la Sheet est posé
@@ -193,28 +193,9 @@ function creerFicheEmplacement(options) {
   // mois calendaires — 0014) ; les autres gardent l'explication dérivée.
   // L'adresse n'y figure jamais : elle vit dans la ligne membre (0016).
   function detailStatut(statut, ligne) {
-    const journal = options.donnees().journal;
-    if (statut.code === 'peutEtreALiberer') {
-      const serie = serieLibreObservee(ligne, journal);
-      return 'Attribué, mais observé libre '
-        + (serie.debut ? 'depuis le ' + formatDate.format(serie.debut) : 'depuis une date inconnue')
-        + ' · ' + (serie.nombre === 1 ? '1 observation' : serie.nombre + ' observations') + '.';
-    }
-    if (statut.code === 'orphelin') {
-      const fenetre = fenetreApparition(ligne, journal);
-      if (!fenetre) {
-        const date = new Date(ligne.dateObservation);
-        return 'Non attribué — embarcation observée'
-          + (Number.isNaN(date.valueOf()) ? ' à une date inconnue.' : ' le ' + formatDate.format(date) + '.');
-      }
-      let texte = fenetre.libreAvant
-        ? 'Non attribué — embarcation apparue entre le ' + formatDate.format(fenetre.libreAvant)
-          + ' et le ' + formatDate.format(fenetre.debut)
-        : 'Non attribué — embarcation observée depuis le ' + formatDate.format(fenetre.debut);
-      if (fenetre.nombre > 1) texte += ' · vue ' + fenetre.nombre + ' fois';
-      return texte + '.';
-    }
-    return statut.explication;
+    // proseSignal (presentation.js) porte la formulation « fiche » du signal ;
+    // les statuts sans dimension temporelle retombent sur l'explication dérivée.
+    return proseSignal(ligne, options.donnees().journal, 'fiche') || statut.explication;
   }
 
   // Icône et libellé de chaque type d'événement du journal. L'observation

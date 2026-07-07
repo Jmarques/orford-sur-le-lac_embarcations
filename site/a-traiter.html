@@ -370,32 +370,9 @@
       return donnees.membres.find((membre) => cle !== '' && cleAdresse(membre) === cle);
     }
 
-    // Le signal d'une rangée « Attribué, libre » : depuis quand, étayé par
-    // combien d'observations — des faits, jamais des mois calendaires (0014).
-    function signalLibre(serie) {
-      const depuis = serie.debut
-        ? 'Libre depuis le ' + formatDate.format(serie.debut)
-        : 'Libre depuis une date inconnue';
-      return depuis + ' · ' + (serie.nombre === 1 ? '1 observation' : serie.nombre + ' observations');
-    }
-
-    // Le signal d'une rangée « À identifier » : la fenêtre d'apparition
-    // dérivée par grille.js — la page ne fait que la mettre en mots.
-    function signalAIdentifier(ligne) {
-      const fenetre = fenetreApparition(ligne, donnees.journal);
-      if (!fenetre) {
-        const date = new Date(ligne.dateObservation);
-        return Number.isNaN(date.valueOf())
-          ? 'Embarcation observée, à une date inconnue'
-          : 'Embarcation observée le ' + formatDate.format(date);
-      }
-      let texte = fenetre.libreAvant
-        ? 'Embarcation apparue entre le ' + formatDate.format(fenetre.libreAvant)
-          + ' et le ' + formatDate.format(fenetre.debut)
-        : 'Embarcation observée depuis le ' + formatDate.format(fenetre.debut);
-      if (fenetre.nombre > 1) texte += ' · vue ' + fenetre.nombre + ' fois';
-      return texte;
-    }
+    // Le signal temporel d'une rangée (« Libre depuis… », « Embarcation apparue
+    // entre… ») vient de proseSignal (presentation.js), contexte « file » — la
+    // même formulation que la fiche partage ses faits, sans pouvoir diverger.
 
     function nombreDeNotes(historique) {
       const notes = historique.filter((e) => e.action === 'note').length;
@@ -420,9 +397,7 @@
       rangee.querySelector('.rangee-structure').textContent =
         structure ? '· Structure ' + structure : '';
 
-      rangee.querySelector('.rangee-signal').textContent = avecAttribution
-        ? signalLibre(cas.serie)
-        : signalAIdentifier(cas.ligne);
+      rangee.querySelector('.rangee-signal').textContent = proseSignal(cas.ligne, donnees.journal, 'file');
 
       const historique = historiqueEmplacement(donnees.journal, cas.numero);
       const morceauxMeta = [];
