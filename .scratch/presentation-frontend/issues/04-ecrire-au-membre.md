@@ -1,6 +1,6 @@
 # 04 — Écrire au membre (mailto)
 
-Status: ready-for-agent
+Status: done
 
 ## Parent
 
@@ -24,9 +24,13 @@ Rappel (décision 0003) : c'est un mailto pré-rempli, jamais un envoi automatiq
 
 ## Acceptance criteria
 
-- [ ] `presentation.js` : `hrefEcrire` couvert par `tests/presentation.test.mjs` (encodage des `?`/`&`/accents dans sujet et corps ; signature du comité présente).
-- [ ] Les 3 `hrefEcrire` inline (fiche.js, fiche-adresse.js, fiche-demande.js) sont supprimés et passent par la fonction partagée ; le mailto produit est inchangé.
-- [ ] `npm run verify` passe : delta captures **nul** (les captures « aide-ecrire » restent identiques).
+- [x] `presentation.js` : `hrefEcrire` couvert par `tests/presentation.test.mjs` (encodage des `?`/`&`/accents dans sujet et corps ; signature du comité présente).
+- [x] Les 3 `hrefEcrire` inline (fiche.js, fiche-adresse.js, fiche-demande.js) sont supprimés et passent par la fonction partagée ; le mailto produit est inchangé.
+- [x] `npm run verify` passe : delta captures **nul** (les captures « aide-ecrire » restent identiques).
+
+## Réalisé — écart
+
+La fonction partagée est nommée **`lienMailto({courriel, sujet, corps})`**, pas `hrefEcrire` : elle n'assemble/encode que le mailto (le vrai doublon), tandis que les `hrefEcrire` locaux — qui construisent le sujet et le corps propres à chaque fiche — sont conservés et délèguent l'assemblage. Nommer autrement évite la collision avec ces wrappers locaux.
 
 ## Blocked by
 

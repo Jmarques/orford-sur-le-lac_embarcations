@@ -1,6 +1,6 @@
 # 03 — Adresse · position · membre
 
-Status: ready-for-agent
+Status: done
 
 ## Parent
 
@@ -28,10 +28,16 @@ Migrer les copies :
 
 ## Acceptance criteria
 
-- [ ] `grille.js` exporte `chercherMembre` ; testé (appariement par clé insensible à la casse ; absent → undefined) ; `site/grille.js` régénéré.
-- [ ] `presentation.js` : `formatAdresse` et `positionParNumero` couverts par `tests/presentation.test.mjs` (adresse « 234 Rue du Pré » ; position d'un numéro, numéro en double → 1ʳᵉ position, absent → null).
-- [ ] Les copies de `formatAdresse` (4), `positionParNumero` (5) et de la recherche de membre (3) sont supprimées et passent par les fonctions partagées.
-- [ ] `npm run verify` passe : delta captures **nul**.
+- [x] `grille.js` exporte `chercherMembre` ; testé (appariement par clé insensible à la casse ; absent → undefined) ; `site/grille.js` régénéré.
+- [x] `presentation.js` : `formatAdresse` et `positionParNumero` couverts par `tests/presentation.test.mjs` (adresse « 234 Rue du Pré » ; position d'un numéro, numéro en double → 1ʳᵉ position, absent → null).
+- [x] Les copies de `formatAdresse` (4), `positionParNumero` (5) et de la recherche de membre (3) sont supprimées et passent par les fonctions partagées.
+- [x] `npm run verify` passe : delta captures **nul**.
+
+## Réalisé — écarts
+
+- **`chercherMembre` exposé sous le nom `chercherMembreParCle(membres, cle)`** (la primitive par clé de grille) : évite la collision avec les fonctions locales `chercherMembre(ligne)`, et gère la demande (clé calculée depuis `numero`/`rue`).
+- **`formatAdresse(numeroAdresse, rue)`** (deux primitives) sert les deux sources (ligne = `numeroAdresse`, demande = `numero`). 4 copies migrées.
+- **Position : 3 consommateurs réels**, pas 5. `structures.html` rend ses grilles directement (aucun lookup par numéro) ; le `cartePositions` de `fiche-demande.js` était du **code mort** (résultat jamais lu) — retiré. Restent fiche.js, fiche-adresse.js, a-traiter.html, via `cartePositions(structures)` (le lookup partagé) ; chaque page formate localement (les formats diffèrent).
 
 ## Blocked by
 

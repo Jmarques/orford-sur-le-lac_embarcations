@@ -1,6 +1,6 @@
 # 02 — Prose des signaux
 
-Status: ready-for-agent
+Status: done
 
 ## Parent
 
@@ -28,10 +28,14 @@ La sortie texte doit être identique caractère pour caractère.
 
 ## Acceptance criteria
 
-- [ ] `grille.js` exporte `dateLisible` ; `dateLisible` est testée (valide/invalide/vide → Date|null) ; `site/grille.js` régénéré.
-- [ ] `presentation.js` : `proseSignal` couvert par `tests/presentation.test.mjs` (série « libre » → phrase « libre depuis… · N observations » ; fenêtre → « apparue entre… » ; aucun signal → `null`).
-- [ ] fiche.js `detailStatut` et a-traiter.html `signalLibre`/`signalAIdentifier` passent par `proseSignal` ; les phrases inline sont supprimées.
-- [ ] `npm run verify` passe : delta captures **nul**.
+- [x] `grille.js` exporte `dateLisible` ; `dateLisible` est testée (valide/invalide/vide → Date|null) ; `site/grille.js` régénéré.
+- [x] `presentation.js` : `proseSignal` couvert par `tests/presentation.test.mjs` (série « libre » → phrase « libre depuis… · N observations » ; fenêtre → « apparue entre… » ; aucun signal → `null`).
+- [x] fiche.js `detailStatut` et a-traiter.html `signalLibre`/`signalAIdentifier` passent par `proseSignal` ; les phrases inline sont supprimées.
+- [x] `npm run verify` passe : delta captures **nul**.
+
+## Réalisé — écart
+
+Découverte à l'implémentation : les deux phrases ne sont **pas** identiques (la fiche préfixe « Attribué, mais observé libre… » et ponctue ; le registre dit « Libre depuis… » nu). `proseSignal(ligne, evenements, contexte)` prend donc un paramètre `contexte` (`'fiche'` / `'file'`) et centralise les **deux** formulations, qui partagent date/compte/fenêtre — texte inchangé au caractère (choix validé avec Jeremy, pas d'unification).
 
 ## Blocked by
 
