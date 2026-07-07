@@ -13,7 +13,7 @@
 
 /* global etatDemande, diffContact, suggestionsEmplacements, situationAttribution,
    autresDemandesOuvertes, casAdresse, analyserStructures, cleAdresse,
-   statutEmplacement, estMobiliteReduite */
+   statutEmplacement, estMobiliteReduite, apparenceStatut */
 
 function creerFicheDemande(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -157,11 +157,6 @@ function creerFicheDemande(options) {
     const cle = cleDe(demande);
     return options.donnees().membres.find((m) => cle !== '' && cleAdresse(m) === cle);
   }
-
-  const VARIANTES_STATUTS = {
-    conforme: 'success', peutEtreALiberer: 'warning', orphelin: 'danger',
-    disponible: 'brand', pasObserve: 'neutral',
-  };
 
   // La position (structure · niveau) de chaque numéro, dérivée des grilles (0009).
   function cartePositions() {
@@ -321,7 +316,8 @@ function creerFicheDemande(options) {
       titre.textContent = 'Emplacement ' + ligne.numero;
       const statut = statutEmplacement(ligne);
       const pastille = document.createElement('wa-badge');
-      pastille.setAttribute('variant', VARIANTES_STATUTS[statut.code]);
+      // La couleur ne porte jamais seule : le libellé accompagne (décision 0016).
+      pastille.setAttribute('variant', apparenceStatut(statut.code).variante);
       pastille.setAttribute('appearance', 'filled-outlined');
       pastille.textContent = statut.libelle;
       li.append(titre, pastille);

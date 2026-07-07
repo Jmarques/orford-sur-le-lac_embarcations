@@ -16,7 +16,7 @@
 
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
    serieLibreObservee, fenetreApparition, analyserStructures, depassementQuota,
-   cleAdresse, ETATS_OCCUPATION */
+   cleAdresse, ETATS_OCCUPATION, apparenceStatut */
 
 function creerFicheEmplacement(options) {
   // Markup constant (aucune donnée) : tout ce qui vient de la Sheet est posé
@@ -188,15 +188,6 @@ function creerFicheEmplacement(options) {
     return null;
   }
 
-  // Apparence du callout de statut, par code (libellé et explication : grille.js).
-  const APPARENCE_STATUTS = {
-    conforme: { variante: 'success', icone: 'circle-check' },
-    peutEtreALiberer: { variante: 'warning', icone: 'triangle-exclamation' },
-    orphelin: { variante: 'danger', icone: 'triangle-exclamation' },
-    disponible: { variante: 'brand', icone: 'circle-check' },
-    pasObserve: { variante: 'neutral', icone: 'circle-question' },
-  };
-
   // Le fait décisif du statut, en une ligne sous le libellé. Les deux statuts
   // problèmes portent leur signal temporel (des faits observés, jamais des
   // mois calendaires — 0014) ; les autres gardent l'explication dérivée.
@@ -300,7 +291,7 @@ function creerFicheEmplacement(options) {
   function rendre() {
     const ligne = lignePourNumero(numeroCourant);
     const statut = statutEmplacement(ligne);
-    const apparence = APPARENCE_STATUTS[statut.code];
+    const apparence = apparenceStatut(statut.code);
     const position = positionPourNumero(numeroCourant);
 
     const libelle = 'Emplacement ' + numeroCourant

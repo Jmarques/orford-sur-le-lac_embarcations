@@ -15,7 +15,7 @@
 //   surOuvrirEmplacement(numero, cle, adresse) — la page ferme cette fiche et
 //                      ouvre la fiche d'emplacement avec retour (0019).
 
-/* global statutEmplacement, analyserStructures, casAdresse, journalDeCas */
+/* global statutEmplacement, analyserStructures, casAdresse, journalDeCas, apparenceStatut */
 
 function creerFicheAdresse(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -97,16 +97,6 @@ function creerFicheAdresse(options) {
     return casAdresse(cleCourante, options.donnees().emplacements, options.donnees().membres);
   }
 
-  // Même pastille de statut que la grille : le libellé en toutes lettres,
-  // la couleur ne porte jamais seule.
-  const VARIANTES_STATUTS = {
-    conforme: 'success',
-    peutEtreALiberer: 'warning',
-    orphelin: 'danger',
-    disponible: 'brand',
-    pasObserve: 'neutral',
-  };
-
   // La position de chaque numéro, dérivée des grilles (0009) — calculée UNE
   // fois par rendu, pas par rangée (l'analyse parcourt toutes les structures).
   function cartePositions() {
@@ -140,7 +130,8 @@ function creerFicheAdresse(options) {
     titre.textContent = 'Emplacement ' + ligne.numero;
     const statut = statutEmplacement(ligne);
     const pastille = document.createElement('wa-badge');
-    pastille.setAttribute('variant', VARIANTES_STATUTS[statut.code]);
+    // La couleur ne porte jamais seule : le libellé accompagne (décision 0016).
+    pastille.setAttribute('variant', apparenceStatut(statut.code).variante);
     pastille.setAttribute('appearance', 'filled-outlined');
     pastille.textContent = statut.libelle;
     enTete.append(titre, pastille);
