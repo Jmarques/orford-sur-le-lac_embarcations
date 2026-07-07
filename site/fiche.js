@@ -148,8 +148,8 @@ function creerFicheEmplacement(options) {
   const drawer = el('fiche-emplacement');
   const formatDate = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
 
-  // Erreur « métier » renvoyée par l'API, par opposition aux erreurs techniques.
-  class ErreurApi extends Error {}
+  // ErreurApi (erreur métier montrable) et le transport vers le backend
+  // viennent du module client (client.js, chargé avant fiche.js).
 
   // Le numéro affiché dans la fiche ouverte.
   let numeroCourant = null;
@@ -441,13 +441,14 @@ function creerFicheEmplacement(options) {
 
   // --- Gestes : POST (mot de passe en corps, 0008), puis état frais (0002) ---
 
-  async function envoyerAction(corps) {
-    const reponse = await fetch(window.OSL_CONFIG.apiUrl, {
-      method: 'POST',
-      body: JSON.stringify({ ...corps, motDePasse: options.motDePasse() }),
-    });
-    return reponse.json();
-  }
+  // Le seul canal vers le backend (client.js) : URL, corps text/plain (0001),
+  // mot de passe en corps (0008), enveloppe normalisée. La réaction à une
+  // session morte reste ici (sessionEncoreValide) — pas dans le client.
+  const client = creerClient({
+    fetch: (url, params) => window.fetch(url, params),
+    apiUrl: window.OSL_CONFIG.apiUrl,
+    motDePasse: options.motDePasse,
+  });
 
   // Ferme la fiche et attend la fin de son animation : wa-drawer restaure le
   // focus à la fermeture — tout re-rendu de la page doit venir APRÈS.
@@ -470,16 +471,15 @@ function creerFicheEmplacement(options) {
     options.surSessionExpiree();
   }
 
-  // Contrôle commun des réponses API : vrai si le geste a été accepté ; une
-  // session expirée ferme la fiche et rend la main à la page (faux) ; toute
-  // autre réponse refusée remonte en ErreurApi.
-  async function reponseAcceptee(resultat) {
-    if (resultat.ok) return true;
-    if (resultat.code === 'accesRefuse') {
+  // Garde commune des gestes : vrai si la session tient ; une session expirée
+  // ferme la fiche et rend la main à la page (faux). Le client a déjà normalisé
+  // — un refus métier est remonté en ErreurApi avant d'arriver ici.
+  async function sessionEncoreValide(resultat) {
+    if (resultat.accesRefuse) {
       await expirerSession();
       return false;
     }
-    throw new ErreurApi(resultat.erreur);
+    return true;
   }
 
   // Recharge l'inventaire après un geste réussi : la page range l'état frais
@@ -488,8 +488,8 @@ function creerFicheEmplacement(options) {
   // sans accuser le geste.
   async function rafraichir(onglet) {
     try {
-      const resultat = await envoyerAction({ action: 'inventaire' });
-      if (!(await reponseAcceptee(resultat))) return;
+      const resultat = await client.poster({ action: 'inventaire' });
+      if (!(await sessionEncoreValide(resultat))) return;
       options.surDonneesFraiches(resultat);
       rendre();
     } catch (erreurRecharge) {
@@ -511,10 +511,10 @@ function creerFicheEmplacement(options) {
       bouton.loading = bouton.dataset.occupation === occupation;
     }
     try {
-      const resultat = await envoyerAction({
+      const resultat = await client.poster({
         action: 'observerEmplacement', numero: numeroCourant, occupation,
       });
-      if (!(await reponseAcceptee(resultat))) return;
+      if (!(await sessionEncoreValide(resultat))) return;
       await rafraichir('observer'); // rendre() rend leurs états aux boutons
     } catch (erreurEnvoi) {
       // Une erreur métier est affichée à l'utilisateur : info en console,
@@ -545,8 +545,8 @@ function creerFicheEmplacement(options) {
     }
     bouton.loading = true;
     try {
-      const resultat = await envoyerAction({ action: 'ajouterNote', numero: numeroCourant, texte });
-      if (!(await reponseAcceptee(resultat))) return;
+      const resultat = await client.poster({ action: 'ajouterNote', numero: numeroCourant, texte });
+      if (!(await sessionEncoreValide(resultat))) return;
       champ.value = ''; // vidé après succès seulement — l'échec le conserve
       await rafraichir('traiter'); // la note se relit dans le journal, fiche ouverte
     } catch (erreurEnvoi) {
@@ -566,8 +566,8 @@ function creerFicheEmplacement(options) {
     cacherErreurs();
     bouton.loading = true;
     try {
-      const resultat = await envoyerAction({ action: 'libererEmplacement', numero: numeroCourant });
-      if (!(await reponseAcceptee(resultat))) return;
+      const resultat = await client.poster({ action: 'libererEmplacement', numero: numeroCourant });
+      if (!(await sessionEncoreValide(resultat))) return;
       // La fiche reste ouverte (0018) : le statut bascule sous les yeux et la
       // libération se lit au journal — c'est le feedback (0016).
       await rafraichir('traiter');
