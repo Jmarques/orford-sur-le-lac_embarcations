@@ -766,34 +766,13 @@ wa-callout::part(icon) {
   block-size: var(--wa-space-5xl);
 }
 
-/* Une demande nouvelle (décision 0020) : carte INFORMATIVE, lecture seule cette
-   tranche. Volontairement PLUS PLATE que les rangées-galets cliquables (pas de
-   liseré d'accent en tête, pas d'ombre portée) : elle ne doit pas se faire
-   passer pour un bouton tant qu'elle ne s'ouvre pas. La fiche de traitement la
-   promeut en galet interactif à la tranche suivante. */
-.rangee-demande {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  column-gap: var(--wa-space-m);
-  padding: var(--wa-space-s) var(--wa-space-l);
-  background: var(--wa-color-surface-raised);
-  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
-  border-radius: var(--wa-border-radius-m);
-}
-/* La pastille « mobilité réduite » d'une rangée de demande ne se comprime
-   jamais : sur mobile, elle passe sous le texte plutôt que de l'écraser. */
+/* Une demande nouvelle est une rangée-galet cliquable (.rangee-cas) qui ouvre
+   la fiche de traitement (décision 0020) : la pastille « mobilité réduite »
+   vit dans la colonne de texte, alignée à gauche sous la date, jamais
+   comprimée entre le texte et le chevron. */
 .rangee-demande .badge-mobilite {
-  justify-self: end;
-}
-@media (max-width: 30rem) {
-  .rangee-demande {
-    grid-template-columns: 1fr;
-    row-gap: var(--wa-space-xs);
-  }
-  .rangee-demande .badge-mobilite {
-    justify-self: start;
-  }
+  align-self: start;
+  margin-block-start: var(--wa-space-2xs);
 }
 
 /* Les demandes déjà décidées : lignes dépliables discrètes (l'état est dérivé,
@@ -819,6 +798,129 @@ wa-callout::part(icon) {
    dit qui parle avant le bloc en retrait, jamais deux voix confondues. */
 .demande-etiquette {
   font-weight: var(--wa-font-weight-semibold);
+}
+
+/* --- Fiche de demande (décision 0020) : l'écran de décision d'une demande --- */
+
+/* La fiche de demande porte plus de contenu que les autres (contact, situation,
+   grille de suggestions, refus) : un peu plus large sur desktop (drawer latéral).
+   Sur mobile elle reste un drawer bas — `--size` y serait une hauteur, laissée
+   au défaut. */
+@media (min-width: 641px) {
+  #fiche-demande {
+    --size: 30rem;
+  }
+}
+/* Le bouton d'acceptation porte un libellé long (« Attribuer le n° 10 et
+   accepter ») : il se replie sur deux lignes plutôt que de déborder du drawer,
+   sa hauteur suit son contenu (native.css force sinon une ligne unique). */
+#fiche-demande-accepter::part(label) {
+  white-space: normal;
+}
+#fiche-demande-accepter::part(base) {
+  block-size: auto;
+  min-block-size: var(--wa-form-control-height-l);
+  padding-block: var(--wa-space-xs);
+}
+
+/* Contact : chaque champ garde sa valeur ; celle qui diffère du membre courant
+   est mise en avant, l'ancienne rappelée en légende barrée (deux voix nettes). */
+.liste-contact-demande {
+  list-style: none;
+  margin: 0;
+  padding-inline-start: 0;
+}
+.ligne-contact-demande {
+  display: flex;
+  flex-direction: column;
+}
+/* La nouvelle valeur est affirmée en gras (pas en vert : le vert dit « validé »
+   ailleurs) ; l'ancienne, barrée en légende, porte le signal du changement. */
+.valeur-changee {
+  font-weight: var(--wa-font-weight-semibold);
+}
+.valeur-ancienne {
+  text-decoration: line-through;
+}
+
+/* Une attribution de l'adresse (lecture seule dans la fiche de demande) :
+   numéro + pastille de statut, sans chevron (elle ne s'ouvre pas d'ici). */
+.rangee-emplacement-statique {
+  display: flex;
+  align-items: baseline;
+  gap: var(--wa-space-s);
+}
+
+/* Rappel doux (« une autre demande de cette adresse attend ») : une
+   information de contexte, jamais une alarme (0016). */
+.rappel-doux {
+  display: flex;
+  align-items: center;
+  gap: var(--wa-space-xs);
+  color: var(--wa-color-text-quiet);
+}
+
+/* État vide neutre (« aucune place — faites une tournée ») : ni succès (vert),
+   ni danger — une invitation calme à agir. */
+.section-vide-neutre {
+  display: flex;
+  align-items: center;
+  gap: var(--wa-space-xs);
+  color: var(--wa-color-text-quiet);
+}
+.section-vide-neutre wa-icon {
+  color: var(--wa-color-text-quiet);
+}
+
+/* Suggestions : des jetons-emplacements sélectionnables (numéro + niveau).
+   Un tap sélectionne (aria-pressed) ; le bouton d'acceptation confirme — deux
+   gestes, jamais d'attribution accidentelle. */
+.titre-structure-suggestion {
+  color: var(--wa-color-brand-on-quiet);
+}
+.suggestion-emplacement {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: start;
+  gap: var(--wa-space-3xs);
+  /* Marge à droite réservée d'avance pour la coche : sélectionner ne décale
+     jamais la grille. */
+  padding: var(--wa-space-xs) var(--wa-space-xl) var(--wa-space-xs) var(--wa-space-m);
+  min-block-size: var(--wa-space-3xl);
+  background: var(--wa-color-surface-raised);
+  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+  border-radius: var(--wa-border-radius-m);
+  font: inherit;
+  color: var(--wa-color-text-normal);
+  text-align: start;
+  cursor: pointer;
+}
+.suggestion-emplacement:hover {
+  background: var(--wa-color-surface-default);
+}
+.suggestion-emplacement:focus-visible {
+  outline: var(--wa-focus-ring);
+  outline-offset: var(--wa-focus-ring-offset);
+}
+/* Sélectionné : fond teinté d'eau + double anneau (bordure + ombre interne, sans
+   reflow) + coche franche — l'état choisi ne repose jamais sur la seule teinte. */
+.suggestion-emplacement[aria-pressed='true'] {
+  background: var(--wa-color-brand-fill-quiet);
+  border-color: var(--wa-color-brand-fill-loud);
+  box-shadow: inset 0 0 0 var(--wa-border-width-s) var(--wa-color-brand-fill-loud);
+}
+.suggestion-coche {
+  position: absolute;
+  inset-block-start: var(--wa-space-2xs);
+  inset-inline-end: var(--wa-space-2xs);
+  color: var(--wa-color-brand-fill-loud);
+  font-size: var(--wa-font-size-l);
+}
+.suggestion-numero {
+  font-family: var(--wa-font-family-heading);
+  font-weight: var(--wa-font-weight-semibold);
+  color: var(--wa-color-brand-on-quiet);
 }
 
 /* Journal de la fiche : une ligne datée par événement, icône du type en tête

@@ -53,6 +53,12 @@ function doPost(e) {
     if (corps.action === 'libererEmplacement') {
       return reponseJson_({ ok: true, liberation: libererEmplacement(corps) });
     }
+    if (corps.action === 'deciderDemande') {
+      return reponseJson_({ ok: true, decision: deciderDemande(corps) });
+    }
+    if (corps.action === 'majContactDemande') {
+      return reponseJson_({ ok: true, contact: majContactDemande(corps) });
+    }
     throw new Error('Action inconnue : "' + corps.action + '".');
   } catch (err) {
     var reponse = { ok: false, erreur: String((err && err.message) || err) };

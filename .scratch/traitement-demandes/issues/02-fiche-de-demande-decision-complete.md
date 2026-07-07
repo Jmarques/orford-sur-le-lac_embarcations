@@ -1,6 +1,6 @@
 # 02 — Fiche de demande : la décision complète (accepter = attribuer, refuser, contact, quota)
 
-Status: ready-for-agent
+Status: done
 
 ## Parent
 
@@ -21,13 +21,13 @@ Côté serveur, la préparation de décision suit le patron des préparations ex
 
 ## Acceptance criteria
 
-- [ ] Dérivations pures testées en node : suggestions (filtre Disponible + compatibilité, embarcations non renseignées = accepte tout, tri normal/PMR, verticales au sol, groupement), diff de contact (identique / différent / Membre absent), autres demandes ouvertes de la même adresse (clé normalisée)
-- [ ] Préparation de décision testée en node : accepter une place non disponible ou incompatible → refus ; accepter au quota → refus ; refuser sans raison → refus ; demande déjà décidée → refus ; acceptation → écritures Demandes + Emplacements + Journal (+ Membres si absente)
-- [ ] Actions API authentifiées (décision 0008) pour accepter, refuser, mettre à jour le Membre ; chaque geste journalisé avec `demandeId`
-- [ ] La fiche montre tout le contrat de données dès cette tranche : contact avec diff et geste de màj, situation de l'adresse (attributions + quota + autre demande ouverte + note du membre), suggestions, gestes accepter/refuser, mailto
-- [ ] Le geste laisse la fiche ouverte et l'état se rafraîchit (la demande passe dans les traitées, la rangée disparaît des nouvelles)
-- [ ] États couverts en captures mockées : contact identique / différent / absent de Membres, quota sous/au blocage, suggestions pleines (normal et PMR) / vides, suggestion sélectionnée, confirmation d'acceptation, refus, erreur serveur ; console propre
-- [ ] Revue ui-critic sur le delta ; typographie généreuse et cibles larges (public aîné) ; cohérence visuelle stricte avec les fiches 0018/0019
+- [x] Dérivations pures testées en node : suggestions (filtre Disponible + compatibilité, embarcations non renseignées = accepte tout, tri normal/PMR, verticales au sol, groupement), diff de contact (identique / différent / Membre absent), autres demandes ouvertes de la même adresse (clé normalisée)
+- [x] Préparation de décision testée en node : accepter une place non disponible ou incompatible → refus ; accepter au quota → refus ; refuser sans raison → refus ; demande déjà décidée → refus ; acceptation → écritures Demandes + Emplacements + Journal (+ Membres si absente)
+- [x] Actions API authentifiées (décision 0008) pour accepter, refuser, mettre à jour le Membre ; chaque geste journalisé avec `demandeId`
+- [x] La fiche montre tout le contrat de données dès cette tranche : contact avec diff et geste de màj, situation de l'adresse (attributions + quota + autre demande ouverte + note du membre), suggestions, gestes accepter/refuser, mailto
+- [x] Le geste laisse la fiche ouverte et l'état se rafraîchit (la demande passe dans les traitées, la rangée disparaît des nouvelles)
+- [x] États couverts en captures mockées : contact identique / différent / absent de Membres, quota sous/au blocage, suggestions pleines (normal et PMR) / vides, suggestion sélectionnée, confirmation d'acceptation, refus, erreur serveur ; console propre
+- [x] Revue ui-critic sur le delta ; typographie généreuse et cibles larges (public aîné) ; cohérence visuelle stricte avec les fiches 0018/0019
 
 ## Blocked by
 
