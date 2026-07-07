@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { apparenceStatut, proseSignal, formatAdresse, cartePositions, positionParNumero } = require('../site/presentation.js');
+const { apparenceStatut, proseSignal, formatAdresse, cartePositions, positionParNumero, lienMailto } = require('../site/presentation.js');
 const { chercherMembreParCle, cleAdresse } = require('../site/grille.js');
 
 // Même formateur que le module : l'attendu suit le fuseau de la machine, donc
@@ -106,4 +106,17 @@ test('chercherMembreParCle apparie malgré la casse ; clé vide ou absente → u
   assert.equal(chercherMembreParCle(membres, cle).nom, 'Marc');
   assert.equal(chercherMembreParCle(membres, ''), undefined);
   assert.equal(chercherMembreParCle(membres, cleAdresse({ numeroAdresse: '99', rue: 'Absente' })), undefined);
+});
+
+// --- lienMailto : assemblage encodé (l'invariant XSS/encodage, une fois) ---
+
+test('lienMailto encode destinataire, sujet et corps — les ?/& ne cassent rien', () => {
+  const href = lienMailto({ courriel: '  a@b.ca ', sujet: 'Emplacement 12 & suite', corps: 'Bonjour ?\nMerci' });
+  assert.equal(href, 'mailto:' + encodeURIComponent('a@b.ca')
+    + '?subject=' + encodeURIComponent('Emplacement 12 & suite')
+    + '&body=' + encodeURIComponent('Bonjour ?\nMerci'));
+});
+
+test('lienMailto tolère un courriel absent (destinataire vide)', () => {
+  assert.equal(lienMailto({ courriel: undefined, sujet: 'S', corps: 'C' }), 'mailto:?subject=S&body=C');
 });

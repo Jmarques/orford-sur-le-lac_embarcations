@@ -15,7 +15,7 @@
 //   surOuvrirEmplacement(numero, cle, adresse) — la page ferme cette fiche et
 //                      ouvre la fiche d'emplacement avec retour (0019).
 
-/* global statutEmplacement, casAdresse, journalDeCas, apparenceStatut, cartePositions */
+/* global statutEmplacement, casAdresse, journalDeCas, apparenceStatut, cartePositions, lienMailto */
 
 function creerFicheAdresse(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -184,9 +184,7 @@ function creerFicheAdresse(options) {
       'Merci,',
       'Le comité administratif — Orford sur le Lac',
     ].join('\n');
-    return 'mailto:' + encodeURIComponent(String(cas.membre.courriel).trim())
-      + '?subject=' + encodeURIComponent(sujet)
-      + '&body=' + encodeURIComponent(corps);
+    return lienMailto({ courriel: cas.membre.courriel, sujet, corps });
   }
 
   // --- Rendu : tout se recalcule depuis donnees(), la fiche se remplit en place ---

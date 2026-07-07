@@ -14,7 +14,7 @@
 /* global etatDemande, diffContact, suggestionsEmplacements, situationAttribution,
    autresDemandesOuvertes, casAdresse, cleAdresse,
    statutEmplacement, estMobiliteReduite, apparenceStatut, formatAdresse,
-   chercherMembreParCle */
+   chercherMembreParCle, lienMailto */
 
 function creerFicheDemande(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -226,9 +226,7 @@ function creerFicheDemande(options) {
       '',
       'Le comité administratif — Orford sur le Lac',
     ].join('\n');
-    return 'mailto:' + encodeURIComponent(String(demande.courriel || '').trim())
-      + '?subject=' + encodeURIComponent(sujet)
-      + '&body=' + encodeURIComponent(corps);
+    return lienMailto({ courriel: demande.courriel, sujet, corps });
   }
 
   // --- Rendu : tout se recalcule depuis donnees(), la fiche se remplit en place ---

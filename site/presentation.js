@@ -66,6 +66,16 @@ function positionParNumero(numero, structures) {
   return cartePositions(structures).get(Number(numero)) || null;
 }
 
+// Le lien mailto préparé (jamais un envoi — décision 0003) : destinataire,
+// sujet et corps, TOUS encodés. Un « ? » ou « & » dans une cellule éditée à la
+// main (0002) ne casse jamais les paramètres. Le sujet et le corps, propres à
+// chaque fiche, sont construits par l'appelant.
+function lienMailto(options) {
+  return 'mailto:' + encodeURIComponent(String(options.courriel || '').trim())
+    + '?subject=' + encodeURIComponent(options.sujet)
+    + '&body=' + encodeURIComponent(options.corps);
+}
+
 // Toutes les dates de signal : format long fr-CA (« 3 mai 2026 »), partout pareil.
 var FORMAT_DATE_SIGNAL = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
 function compteObservations_(nombre) {
@@ -121,5 +131,6 @@ if (typeof module !== 'undefined') {
     formatAdresse: formatAdresse,
     cartePositions: cartePositions,
     positionParNumero: positionParNumero,
+    lienMailto: lienMailto,
   };
 }

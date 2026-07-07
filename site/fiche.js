@@ -17,7 +17,7 @@
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
    serieLibreObservee, depassementQuota,
    cleAdresse, ETATS_OCCUPATION, apparenceStatut, proseSignal, formatAdresse,
-   chercherMembreParCle, positionParNumero */
+   chercherMembreParCle, positionParNumero, lienMailto */
 
 function creerFicheEmplacement(options) {
   // Markup constant (aucune donnée) : tout ce qui vient de la Sheet est posé
@@ -254,11 +254,7 @@ function creerFicheEmplacement(options) {
     } else {
       corps = ['Bonjour ' + membre.nom + ',', '', '', ''].concat(signature).join('\n');
     }
-    // Le courriel aussi est encodé : un « ? » ou « & » dans la cellule (Sheet
-    // éditée à la main, 0002) casserait les paramètres du mailto.
-    return 'mailto:' + encodeURIComponent(String(membre.courriel).trim())
-      + '?subject=' + encodeURIComponent(sujet)
-      + '&body=' + encodeURIComponent(corps);
+    return lienMailto({ courriel: membre.courriel, sujet, corps });
   }
 
   // --- Rendu : tout se recalcule depuis donnees(), la fiche se remplit en place ---
