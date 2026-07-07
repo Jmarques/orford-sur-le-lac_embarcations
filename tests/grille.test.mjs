@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante } = require('../apps-script/grille.js');
+const { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee } = require('../apps-script/grille.js');
 
 // Une ligne de l'onglet Structures, telle que renvoyée par l'API.
 function structureSheet(surcharges = {}) {
@@ -348,14 +348,4 @@ test('le résumé d\'une tournée : total relevé et changements (numéro + nouv
   assert.deepEqual(resumeDeTournee({ 74: 'occupé' }, fantomes), { compte: 1, changements: [] });
   // Cellule revenue à « non relevé » (troisième tap) : ni comptée ni changée.
   assert.deepEqual(resumeDeTournee({ 74: '' }, fantomes), { compte: 0, changements: [] });
-});
-
-test('la structure suivante suit l\'ordre de la liste ; la dernière n\'en a pas', () => {
-  assert.equal(structureSuivante(['S01', 'S02', 'S03'], 'S01'), 'S02');
-  assert.equal(structureSuivante(['S01', 'S02', 'S03'], 'S02'), 'S03');
-  assert.equal(structureSuivante(['S01', 'S02', 'S03'], 'S03'), '');
-  // Une seule structure à relever : on ferme simplement après le résumé.
-  assert.equal(structureSuivante(['S01'], 'S01'), '');
-  // Structure disparue de la liste (Sheet éditée à la main — 0002) : pas de suivante.
-  assert.equal(structureSuivante(['S01', 'S02'], 'S09'), '');
 });

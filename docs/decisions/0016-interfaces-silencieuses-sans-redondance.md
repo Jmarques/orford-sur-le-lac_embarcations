@@ -17,7 +17,7 @@ Toute interface du site est « silencieuse » : une information n'est montrée q
 ## Trade-offs accepted
 - Pour les structures verticales, « debout » n'est plus visible nulle part dans la grille (pas d'étiquettes de niveau) : la pastille le porte (« 13 emplacements debout ») — un fait déplacé, pas supprimé.
 - L'aperçu d'édition garde volontairement le format détaillé « 8 par niveau · 24 au total » (il valide la saisie par crochets) : deux formulations coexistent, affichage vs édition.
-- Ce qui est procédural ou rassurant n'est PAS du bruit : instructions de tournée, « rien n'est enregistré tant que… », indices de défilement conditionnels, mot d'état dans chaque cellule (la couleur ne porte jamais seule) restent verbatim.
+- Ce qui est procédural ou rassurant n'est PAS du bruit : « rien n'est enregistré tant que… », indices de défilement conditionnels, mot d'état dans chaque cellule (la couleur ne porte jamais seule) restent verbatim. Nuance apportée par 0021 pour la tournée en plein écran épuré : l'instruction se réduit à une **ancre d'une ligne** toujours visible (l'essentiel rassurant — « ce qu'on ne touche pas ne change pas ») + le **détail mécanique replié en popover** ; le rassurant reste visible, seule la mécanique fine se cache.
 
 ## Revisit when
 - Le nombre de structures dépasse ce qu'un écran montre (un compte redevient une information de navigation).

@@ -1,7 +1,7 @@
 # 0013 — Tournée : écran dédié par structure, observation explicite (fantôme + un tap), jamais par inaction
 
 Date: 2026-07-05
-Status: Accepted
+Status: Accepted (partiellement amendé par 0021 : écran en plein écran épuré, paysage ; résumé et « Structure suivante → » retirés au profit d'un retour direct à la liste avec confirmation sur la carte ; encodage de cellule « Élévation »). Le cœur reste : observation explicite, fantôme + un tap, jamais d'observation par inaction, envoi par lot.
 
 ## Context
 Les tournées n'existent pas aujourd'hui faute d'outil : relever une structure via le flux unitaire (tap → panneau → envoi → rechargement complet) est inutilisable en série, et un tableur séquentiel ne ressemble pas à ce qu'on a devant les yeux. Trois scénarios réels la justifient : saisie initiale, relevés de début/fin de saison, et confirmation périodique des « Attribué, libre » (une embarcation peut n'être absente que temporairement). Dans ~80 % des cas l'occupation n'a pas changé depuis le dernier relevé — le dernier état observé est donc un contexte précieux pour la vitesse. Le Journal append-only (0002, 0011) alimente « libre depuis » et les futures décisions de réattribution : une fausse observation ici devient une relance injustifiée à un membre plus tard.

@@ -400,14 +400,6 @@ function resumeDeTournee(releves, fantomes) {
   };
 }
 
-// La structure à relever après `id` dans l'ordre de la liste des structures
-// (décision 0013) ; '' pour la dernière — ou une structure disparue de la
-// liste (Sheet éditée à la main, 0002) : le résumé n'offre que la fermeture.
-function structureSuivante(ids, id) {
-  var index = ids.indexOf(id);
-  return index !== -1 && index + 1 < ids.length ? ids[index + 1] : '';
-}
-
 // --- Page « À traiter » (décision 0014) : files, « libre depuis », historique ---
 
 // Date lisible ou null : une cellule éditée à la main (0002) peut porter
@@ -845,5 +837,5 @@ function situationAttribution(cle, lignesEmplacements, membres) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, structureSuivante, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, chercherMembreParCle, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, chercherMembreParCle, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, ETATS_OCCUPATION };
 }

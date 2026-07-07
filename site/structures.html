@@ -140,70 +140,68 @@
       <div id="liste-structures" class="wa-stack wa-gap-l"></div>
     </div>
 
-    <!-- État : tournée d'une structure (décision 0013) — écran dédié, encodage
-         fantôme/relevé (jamais les 5 statuts). Rien n'est écrit avant
-         « Terminer la tournée », et seulement pour les cellules touchées. -->
-    <section id="etat-tournee" class="wa-stack wa-gap-l" hidden>
-      <div class="wa-stack wa-gap-xs">
-        <h2 id="titre-tournee" class="wa-heading-l" tabindex="-1"></h2>
-        <p class="wa-color-text-quiet wa-text-pretty">Touchez chaque emplacement pour noter
-          ce que vous voyez : un premier appui confirme l'état estompé, un deuxième le
-          change, un troisième l'efface. Les emplacements que vous ne touchez pas
-          garderont leur dernière observation.</p>
-      </div>
-      <!-- La progression reste sous les yeux pendant tout le défilement de la
-           grille (sticky) ; pastille toujours libellée (décision 0016). -->
-      <div class="porte-compteur">
+    <!-- État : tournée d'une structure (décisions 0013, 0021) — recouvrement
+         plein écran épuré dédié au geste terrain (fixed inset:0, header masqué,
+         eau en pause). Encodage fantôme/relevé (jamais les 5 statuts). Rien
+         n'est écrit avant « Terminer la tournée », et seulement pour les
+         cellules touchées. -->
+    <section id="etat-tournee" class="recouvrement-tournee" hidden>
+      <!-- Barre haut fine : sortie · nom · compteur libellé · aide · rotation. -->
+      <div class="barre-tournee barre-haut-tournee">
+        <wa-button id="quitter-tournee" class="bouton-icone-tournee" appearance="plain" size="m">
+          <wa-icon name="xmark" label="Retour à la liste"></wa-icon>
+        </wa-button>
+        <h2 id="titre-tournee" class="titre-tournee" tabindex="-1"></h2>
         <span id="compteur-tournee" class="compteur-tournee" role="status"></span>
+        <wa-button id="aide-tournee" class="bouton-icone-tournee" appearance="plain" size="m">
+          <wa-icon name="circle-question" label="Comment relever ?"></wa-icon>
+        </wa-button>
+        <wa-button id="rotation-tournee" class="bouton-icone-tournee icone-rotation" appearance="plain" size="m">
+          <wa-icon name="mobile" label="Astuce : tourner l'écran"></wa-icon>
+        </wa-button>
       </div>
-      <div id="grille-tournee" class="grille-structure"></div>
-      <p class="indice-defilement wa-caption-s wa-color-text-quiet" hidden>Faites
-        glisser la grille vers la gauche pour voir tous les emplacements.</p>
-      <!-- L'erreur d'envoi vit à côté des boutons : c'est là que regarde
+      <!-- L'instruction lourde se réduit à cette ancre d'une ligne toujours
+           visible ; la mécanique du tap vit dans le popover d'aide (« ? »). -->
+      <p class="ancre-aide-tournee wa-caption-m">Touchez ce que vous voyez ;
+        ce que vous ne touchez pas ne change pas.</p>
+      <div id="grille-tournee" class="grille-structure grille-tournee-zone"></div>
+      <p class="indice-defilement wa-caption-s wa-color-text-quiet" hidden>Faites glisser —
+        ou tournez l'écran — pour voir tous les emplacements.</p>
+      <!-- L'erreur d'envoi vit à côté de « Terminer » : c'est là que regarde
            l'utilisateur au moment où elle apparaît. Les taps sont conservés. -->
       <wa-callout id="tournee-erreur" variant="danger" role="alert" tabindex="-1" hidden>
         <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
         <div class="wa-stack wa-gap-s">
           <span id="tournee-erreur-texte"></span>
           <div class="wa-cluster">
-            <wa-button id="tournee-reessayer" variant="brand" size="l">
+            <wa-button id="tournee-reessayer" variant="brand" size="m">
               <wa-icon slot="start" name="rotate-right"></wa-icon>
               Réessayer
             </wa-button>
           </div>
         </div>
       </wa-callout>
-      <div class="wa-cluster wa-gap-s">
-        <wa-button id="terminer-tournee" variant="brand" size="l">
+      <!-- Barre bas épinglée : « Terminer » pleine largeur, à portée de pouce,
+           inactif tant que rien n'est relevé (jamais de lot vide). -->
+      <div class="barre-tournee barre-bas-tournee">
+        <wa-button id="terminer-tournee" class="bouton-plein" variant="brand" size="m" disabled>
           <wa-icon slot="start" name="check"></wa-icon>
           Terminer la tournée
         </wa-button>
-        <wa-button id="retour-liste" appearance="plain" size="l">Retour à la liste</wa-button>
       </div>
-    </section>
-
-    <!-- État : résumé d'une tournée envoyée (décision 0013). Un seul foyer :
-         le callout succès porte tout le bilan — total relevé et changements,
-         l'information intéressante pour le comité. -->
-    <section id="etat-resume" class="wa-stack wa-gap-l" hidden>
-      <h2 id="titre-resume" class="wa-heading-l" tabindex="-1"></h2>
-      <wa-callout variant="success">
-        <wa-icon slot="icon" name="circle-check"></wa-icon>
-        <div class="wa-stack wa-gap-xs">
-          <span id="resume-bilan"></span>
-          <ul id="resume-changements" class="liste-changements" hidden></ul>
+      <!-- Aide et astuce de rotation en popovers flottants (par-dessus la
+           grille, sans reflow) — ancrés à leur déclencheur de la barre haut. -->
+      <wa-popover for="aide-tournee" placement="bottom">
+        <div class="wa-stack wa-gap-2xs texte-popover">
+          <span>Un appui <strong>confirme</strong> ce que vous voyez.</span>
+          <span>Un deuxième appui <strong>bascule</strong> occupé ↔ libre.</span>
+          <span>Un troisième appui <strong>annule</strong> le relevé.</span>
         </div>
-      </wa-callout>
-      <div class="wa-cluster wa-gap-s">
-        <!-- Sur la dernière structure de la liste, « Structure suivante »
-             disparaît et le retour devient la seule action — promue primaire
-             (une seule action primaire par vue). -->
-        <wa-button id="structure-suivante" variant="brand" size="l">
-          Structure suivante
-          <wa-icon slot="end" name="arrow-right"></wa-icon>
-        </wa-button>
-        <wa-button id="resume-retour-liste" appearance="plain" size="l">Retour à la liste</wa-button>
-      </div>
+      </wa-popover>
+      <wa-popover for="rotation-tournee" placement="bottom">
+        <p class="texte-popover">Tournez le téléphone à l'horizontale pour voir
+          plus d'emplacements d'un coup.</p>
+      </wa-popover>
     </section>
   </main>
 
@@ -233,6 +231,13 @@
             </wa-button>
           </div>
         </div>
+        <!-- Confirmation persistante d'une tournée enregistrée (décision 0021) :
+             remplace l'écran résumé — le bilan vit dans le contexte de la carte,
+             jusqu'à la prochaine action. -->
+        <wa-callout class="confirmation-tournee" variant="success" role="status" hidden>
+          <wa-icon slot="icon" name="circle-check"></wa-icon>
+          <span class="confirmation-tournee-texte"></span>
+        </wa-callout>
         <div class="mode-affichage wa-stack wa-gap-m">
           <!-- Une seule ligne de métadonnées : les embarcations acceptées et
                le total en pastille. Le type et le nombre par niveau se lisent
@@ -379,11 +384,18 @@
       vide: document.getElementById('etat-vide'),
       liste: document.getElementById('etat-liste'),
       tournee: document.getElementById('etat-tournee'),
-      resume: document.getElementById('etat-resume'),
     };
 
     function montrerEtat(nom) {
       for (const [cle, element] of Object.entries(etats)) element.hidden = cle !== nom;
+      // Le recouvrement plein écran (décision 0021) masque la bande animée et
+      // met l'eau en pause tant que la tournée est active (batterie terrain).
+      const enTournee = nom === 'tournee';
+      document.body.classList.toggle('tournee-active', enTournee);
+      if (window.oslEau) {
+        if (enTournee) window.oslEau.pause();
+        else window.oslEau.reprendre();
+      }
     }
 
     const CLE_SESSION = 'oslMotDePasseComite';
@@ -637,6 +649,19 @@
         champ('champ-compte').hidden = false;
       }
 
+      // Confirmation persistante d'une tournée qui vient d'être enregistrée
+      // (décision 0021) : un seul foyer, libellé, dans le contexte de la carte.
+      if (confirmationTournee && confirmationTournee.structure === analyse.id) {
+        const compte = confirmationTournee.compte;
+        const changements = confirmationTournee.changements;
+        champ('confirmation-tournee-texte').textContent =
+          'Tournée enregistrée · '
+          + compte + (compte > 1 ? ' relevés' : ' relevé') + ', '
+          + (changements === 0 ? 'aucun changement'
+            : changements === 1 ? '1 changement' : changements + ' changements');
+        champ('confirmation-tournee').hidden = false;
+      }
+
       const marquages = marquagesPour(analyse, conflits);
 
       const erreurs = analyse.problemes.filter((p) => p.severite === 'erreur');
@@ -719,6 +744,11 @@
     // lotDeTournee (numéro → état du cycle de tap, '' = revenu à non relevé).
     let tourneeCourante = null;
 
+    // Le bilan à afficher sur la carte au retour d'une tournée envoyée
+    // (décision 0021) : { structure, compte, changements } — consommé par le
+    // prochain rendu de la liste (persiste jusqu'à la prochaine action).
+    let confirmationTournee = null;
+
     // `relevesConserves` : taps à restaurer (reprise après une reconnexion en
     // pleine tournée) — par défaut, une tournée démarre vierge.
     function ouvrirTournee(id, relevesConserves) {
@@ -737,7 +767,14 @@
         // une seule observation : le total compte des numéros, pas des cellules.
         total: new Set(analyse.emplacements.map((e) => e.numero)).size,
       };
-      document.getElementById('titre-tournee').textContent = 'Tournée de la structure ' + id;
+      // Titre = l'identifiant de la structure seul : il tient toujours dans la
+      // barre fine (portrait comme paysage), sans jamais tronquer. Le contexte
+      // « tournée » est déjà partout (pastille de relevés, « Terminer la
+      // tournée ») ; l'aria-label porte l'intitulé complet pour les lecteurs
+      // d'écran.
+      const titre = document.getElementById('titre-tournee');
+      titre.textContent = id;
+      titre.setAttribute('aria-label', 'Tournée de la structure ' + id);
       document.getElementById('grille-tournee')
         .replaceChildren(tableauDeGrille(analyse, celluleTournee));
       majCompteurTournee();
@@ -763,15 +800,18 @@
     }
 
     // L'apparence d'une cellule découle de (fantôme, état relevé) — recalculée
-    // à chaque tap. Le mot d'état est toujours écrit : la couleur ne porte
-    // jamais seule (fantôme estompé, relevé coché et en gras).
+    // à chaque tap. Encodage « Élévation » à empreinte fixe (décision 0021) :
+    // pas-fait creux/estompé, fait surélevé coché ; occupé embarcation pleine,
+    // libre anneau contour. Le mot d'état est toujours écrit (la couleur ne
+    // porte jamais seule) et rien d'ajouté ne pousse la case (zéro reflow — la
+    // puce « a changé » a quitté la cellule vivante, elle vit sur la carte).
     function habillerCelluleTournee(bouton) {
       const numero = Number(bouton.dataset.numero);
       const fantome = fantomeOccupation(lignePourNumero(numero));
       const etat = tourneeCourante.releves[numero] || '';
-      // Le changement est l'information intéressante du comité (0013) : la
-      // cellule dont l'état confirmé diffère du fantôme porte le mot en puce.
-      const change = aChangeTournee(fantome, etat);
+      // Ce qu'on montre : l'état relevé s'il existe, sinon le fantôme (dernière
+      // observation) estompé ; '' quand jamais observé et pas encore relevé.
+      const affiche = etat || fantome;
       bouton.className = 'bouton-cellule-tournee '
         + (etat === 'occupé' ? 'releve releve-occupe'
           : etat === 'libre' ? 'releve releve-libre'
@@ -780,27 +820,37 @@
       const numeroTexte = document.createElement('span');
       numeroTexte.className = 'numero-cellule';
       numeroTexte.textContent = String(numero);
+
+      // Coche dans un coin toujours réservé : sa visibilité bascule, sa place
+      // ne change jamais la taille de la case.
+      const coche = document.createElement('span');
+      coche.className = 'coche-cellule';
+      const cocheIcone = document.createElement('wa-icon');
+      cocheIcone.setAttribute('name', 'check');
+      coche.appendChild(cocheIcone);
+
+      const corps = document.createElement('span');
+      corps.className = 'etat-cellule';
+      if (affiche === 'occupé') {
+        const glyphe = document.createElement('wa-icon');
+        glyphe.className = 'glyphe-cellule';
+        glyphe.setAttribute('name', 'sailboat');
+        corps.appendChild(glyphe);
+      } else if (affiche === 'libre') {
+        const glyphe = document.createElement('span');
+        glyphe.className = 'glyphe-cellule glyphe-anneau';
+        corps.appendChild(glyphe);
+      }
       const mot = document.createElement('span');
-      mot.className = 'etat-cellule';
-      if (etat) {
-        const coche = document.createElement('wa-icon');
-        coche.setAttribute('name', 'check');
-        mot.append(coche, ' ' + etat);
-      } else {
-        mot.textContent = fantome || '—';
-      }
-      bouton.replaceChildren(numeroTexte, mot);
-      if (change) {
-        const marqueur = document.createElement('span');
-        marqueur.className = 'marqueur-change';
-        marqueur.textContent = 'a changé';
-        bouton.appendChild(marqueur);
-      }
+      mot.textContent = affiche || '—';
+      corps.appendChild(mot);
+
+      bouton.replaceChildren(numeroTexte, coche, corps);
 
       const position = 'Emplacement ' + numero
         + (bouton.dataset.niveau !== '' ? ', niveau ' + bouton.dataset.niveau : '');
       bouton.setAttribute('aria-label', position + ' — ' + (etat
-        ? 'relevé : ' + etat + (change ? ', a changé' : '')
+        ? 'relevé : ' + etat
         : (fantome ? 'dernière observation : ' + fantome : 'jamais observé') + ', pas encore relevé'));
     }
 
@@ -818,11 +868,13 @@
     }
 
     // « 12/16 relevés » : mis à jour à chaque tap — y compris quand le
-    // troisième tap fait redescendre le compte.
+    // troisième tap fait redescendre le compte. « Terminer » reste inactif tant
+    // que rien n'est relevé : jamais de lot vide (décision 0021).
     function majCompteurTournee() {
       const compte = lotDeTournee(tourneeCourante.releves).length;
       document.getElementById('compteur-tournee').textContent =
         compte + '/' + tourneeCourante.total + (compte > 1 ? ' relevés' : ' relevé');
+      document.getElementById('terminer-tournee').disabled = compte === 0;
     }
 
     // Retour à la liste sans envoi : re-rendu depuis l'état courant (rien n'a
@@ -836,8 +888,9 @@
       if (bouton) focusComposant(bouton);
     }
 
-    // Des observations non envoyées ne sont jamais jetées sans confirmation.
-    document.getElementById('retour-liste').addEventListener('click', () => {
+    // Garde-fou de sortie (décision 0021) : le ✕ ne demande confirmation que
+    // s'il reste des relevés non envoyés — sinon il ferme sans friction.
+    document.getElementById('quitter-tournee').addEventListener('click', () => {
       const observations = lotDeTournee(tourneeCourante.releves);
       if (observations.length === 0) {
         fermerTournee();
@@ -907,10 +960,15 @@
           fantomes[observation.numero] = fantomeOccupation(lignePourNumero(observation.numero));
         }
         const resume = resumeDeTournee(tourneeCourante.releves, fantomes);
-        const suivante = structureSuivante(
-          donneesCourantes.structures.map((ligne) => ligne.id), structure);
         tourneeCourante = null;
-        afficherResume(structure, resume, suivante);
+        // Plus d'écran résumé ni d'enchaînement imposé (décision 0021) : la
+        // confirmation vivra sur la carte de la structure, au retour à la liste.
+        confirmationTournee = { structure, compte: resume.compte, changements: resume.changements.length };
+        // Statuts frais depuis la Sheet (0002) : l'effet de la tournée se lit
+        // dans la grille de la carte. Pas de bannière globale (0016) — la
+        // confirmation persistante de la carte est le seul foyer du bilan.
+        await chargerStructures(motDePasseActif);
+        if (!etats.liste.hidden) focaliserCarteTournee(structure);
       } catch (erreurEnvoi) {
         // Une erreur métier est affichée à l'utilisateur : info en console,
         // pas error (la boucle de captures échoue sur toute console.error).
@@ -941,66 +999,17 @@
     // été accepté avant le premier envoi.
     document.getElementById('tournee-reessayer').addEventListener('click', envoyerTournee);
 
-    // --- Résumé d'une tournée envoyée (0013) : bilan, puis enchaînement ---
-
-    // Le résumé affiché : { structure, suivante } — les deux sorties en dépendent.
-    let resumeCourant = null;
-
-    function afficherResume(structure, resume, suivante) {
-      resumeCourant = { structure, suivante };
-      document.getElementById('titre-resume').textContent =
-        'Tournée de la structure ' + structure + ' enregistrée';
-      document.getElementById('resume-bilan').textContent =
-        (resume.compte === 1 ? '1 emplacement relevé' : resume.compte + ' emplacements relevés')
-        + (resume.changements.length === 0 ? ', aucun changement.'
-          : resume.changements.length === 1 ? ', 1 changement :'
-          : ', ' + resume.changements.length + ' changements :');
-      const liste = document.getElementById('resume-changements');
-      liste.replaceChildren();
-      liste.hidden = resume.changements.length === 0;
-      for (const changement of resume.changements) {
-        const element = document.createElement('li');
-        const numero = document.createElement('strong');
-        numero.textContent = 'n° ' + changement.numero;
-        element.append(numero, ' — maintenant ' + changement.occupation);
-        liste.appendChild(element);
-      }
-      const boutonSuivante = document.getElementById('structure-suivante');
-      const boutonRetour = document.getElementById('resume-retour-liste');
-      boutonSuivante.hidden = !suivante;
-      // Une seule action primaire par vue : sur la dernière structure de la
-      // liste, le retour — devenu la seule action — est promu primaire.
-      if (suivante) {
-        boutonRetour.setAttribute('appearance', 'plain');
-        boutonRetour.removeAttribute('variant');
-      } else {
-        boutonRetour.setAttribute('appearance', 'accent');
-        boutonRetour.setAttribute('variant', 'brand');
-      }
-      montrerEtat('resume');
-      window.scrollTo(0, 0);
-      document.getElementById('titre-resume').focus();
+    // Retour à la liste, calé sur la carte relevée (décision 0021) : on ne perd
+    // pas sa place. Le focus posé sur le titre de la carte l'amène dans la vue ;
+    // un scrollIntoView explicite garantit le cadrage même si le focus n'a pas
+    // eu à défiler.
+    function focaliserCarteTournee(structure) {
+      const carte = document.querySelector('wa-card[data-structure="' + structure + '"]');
+      if (!carte) return;
+      carte.scrollIntoView({ block: 'center' });
+      const cible = carte.querySelector('.champ-id');
+      if (cible) focusComposant(cible);
     }
-
-    document.getElementById('structure-suivante').addEventListener('click', async () => {
-      const { suivante } = resumeCourant;
-      resumeCourant = null;
-      // Fantômes frais depuis la Sheet (0002) avant d'ouvrir la suivante ;
-      // si elle a disparu ou est devenue illisible entre-temps, ouvrirTournee
-      // laisse la liste.
-      await chargerStructures(sessionStorage.getItem(CLE_SESSION) || '');
-      if (!etats.liste.hidden) ouvrirTournee(suivante);
-    });
-
-    document.getElementById('resume-retour-liste').addEventListener('click', async () => {
-      const { structure } = resumeCourant;
-      resumeCourant = null;
-      // Statuts frais depuis la Sheet (0002) — l'effet de la tournée se voit.
-      // Pas de message succès en plus : le résumé était la confirmation (0016).
-      await chargerStructures(sessionStorage.getItem(CLE_SESSION) || '');
-      const cible = document.querySelector('wa-card[data-structure="' + structure + '"] .champ-id');
-      if (!etats.liste.hidden && cible) cible.focus();
-    });
 
     // --- Édition (contrat complet : type, saisie, embarcations, emplacements, notes) ---
 
@@ -1269,6 +1278,10 @@
       for (const analyse of structures) {
         liste.appendChild(carteStructure(analyse, lignesParId.get(analyse.id), conflits));
       }
+      // La confirmation de tournée n'apparaît qu'une fois, au retour à la liste :
+      // consommée ici, elle ne resurgit pas sur un rendu ultérieur (persiste
+      // toutefois à l'écran jusqu'à la prochaine action, qui re-rend la liste).
+      confirmationTournee = null;
       montrerEtat('liste');
       requestAnimationFrame(majIndicesDefilement);
     }
@@ -1349,11 +1362,10 @@
     });
 
     // Hook de test (décision 0006) : ?etat=mot-de-passe|mdp-refuse|chargement|
-    // liste|liste-vide|erreur|tournee|tournee-derniere fige la page dans un
-    // état pour les captures. Inerte sans paramètre. `liste` et `tournee*`
-    // passent par un vrai fetch (API mockée par Playwright) ; sur le vrai
-    // site, ils aboutissent à l'écran de connexion. `tournee-derniere` ouvre
-    // la dernière structure de la liste — son résumé n'a pas de suivante.
+    // liste|liste-vide|erreur|tournee fige la page dans un état pour les
+    // captures. Inerte sans paramètre. `liste` et `tournee` passent par un vrai
+    // fetch (API mockée par Playwright) ; sur le vrai site, ils aboutissent à
+    // l'écran de connexion.
     const etatForce = new URLSearchParams(location.search).get('etat');
     if (etatForce === 'mot-de-passe') montrerConnexion(false);
     else if (etatForce === 'mdp-refuse') montrerConnexion(true);
@@ -1361,11 +1373,9 @@
     else if (etatForce === 'erreur') montrerErreur();
     else if (etatForce === 'liste-vide') afficherInventaire([], [], []);
     else if (etatForce === 'liste') chargerStructures('capture');
-    else if (etatForce === 'tournee' || etatForce === 'tournee-derniere') {
+    else if (etatForce === 'tournee') {
       chargerStructures('capture').then(() => {
-        if (etats.liste.hidden) return;
-        const ids = donneesCourantes.structures.map((ligne) => ligne.id);
-        ouvrirTournee(etatForce === 'tournee' ? 'S01' : ids[ids.length - 1]);
+        if (!etats.liste.hidden) ouvrirTournee('S01');
       });
     }
     else {
