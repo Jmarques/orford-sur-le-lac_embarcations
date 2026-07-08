@@ -309,8 +309,12 @@ wa-card h4 {
    les cartes s'alignent), le volet absorbe la largeur ; mobile empilé. Le corps
    occupe toute la carte (padding retiré, chaque zone se pade), et la carte
    clippe ses coins pour que le fond du rail et le bandeau suivent l'arrondi. --- */
-.carte-structure::part(base),
-.carte-squelette::part(base) {
+/* La carte clippe ses coins pour que le fond du rail et le bandeau suivent
+   l'arrondi du galet. L'overflow va sur l'HÔTE (wa-card, qui porte le
+   border-radius et où vivent bord/fond/ombre) — pas sur ::part(base), dont le
+   radius est nul : sinon le fond du rail carre les coins arrondis. */
+.carte-structure,
+.carte-squelette {
   overflow: hidden;
 }
 .carte-structure::part(body),
