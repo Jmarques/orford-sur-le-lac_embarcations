@@ -26,6 +26,44 @@ function apparenceStatut(code) {
   return APPARENCE_STATUTS[code] || { variante: 'neutral', icone: 'circle-question' };
 }
 
+// L'encodage COMPOSÉ d'une cellule de grille (décision 0022), par code de
+// statut — le seul foyer de la SÉMANTIQUE de forme. La FORME porte l'occupation
+// (`occupe` → plein · `libre` → bordé · `nonObserve` → puits creux : c'est ici
+// qu'on décide quel glyphe la vue insère), le REPÈRE (« tag ») marque la SEULE
+// non-attribution OBSERVÉE (Disponible, À identifier) — jamais « Non observé »,
+// dont le message est « on ne sait pas encore ». La TEINTE, elle, vit dans
+// theme.css keyée par le code (0004), pas ici. Tout est dérivé du code (0011) :
+// occupation et attribution y sont déjà croisées, la cellule ne relit pas la
+// ligne. Ce langage est celui de l'écran de tournée (0021).
+var ENCODAGE_CELLULE = {
+  conforme: { occupation: 'occupe' },
+  peutEtreALiberer: { occupation: 'libre' },
+  orphelin: { occupation: 'occupe', repere: true },
+  disponible: { occupation: 'libre', repere: true },
+  pasObserve: { occupation: 'nonObserve' },
+};
+
+function apparenceCellule(code) {
+  // Repli neutre non observé : un code inattendu (0002) rend un puits calme,
+  // jamais un undefined.
+  var base = ENCODAGE_CELLULE[code] || { occupation: 'nonObserve' };
+  return { occupation: base.occupation, repere: !!base.repere };
+}
+
+// Le type d'embarcation accepté par une structure → clé de silhouette (décision
+// 0022) : canoë / kayak / planche ont la leur ; tout autre type (Config étendu,
+// ex. « Pédalo ») retombe sur « autre ». FA free n'a aucun de ces icônes — les
+// silhouettes elles-mêmes sont dessinées en SVG dans la couche vue.
+var SILHOUETTES_EMBARCATION = {
+  'Canoë': 'canoe',
+  'Kayak': 'kayak',
+  'Planche (SUP)': 'planche',
+};
+
+function silhouetteEmbarcation(type) {
+  return SILHOUETTES_EMBARCATION[String(type || '').trim()] || 'autre';
+}
+
 // Les faits viennent de grille.js : globales dans le navigateur (chargé avant),
 // require() en node (tests). Ce pont est le seul endroit qui connaît les deux.
 var FAITS = (typeof require === 'function')
@@ -127,6 +165,8 @@ function proseSignal(ligne, evenements, contexte) {
 if (typeof module !== 'undefined') {
   module.exports = {
     apparenceStatut: apparenceStatut,
+    apparenceCellule: apparenceCellule,
+    silhouetteEmbarcation: silhouetteEmbarcation,
     proseSignal: proseSignal,
     formatAdresse: formatAdresse,
     cartePositions: cartePositions,

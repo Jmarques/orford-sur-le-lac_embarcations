@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { apparenceStatut, proseSignal, formatAdresse, cartePositions, positionParNumero, lienMailto } = require('../site/presentation.js');
+const { apparenceStatut, apparenceCellule, silhouetteEmbarcation, proseSignal, formatAdresse, cartePositions, positionParNumero, lienMailto } = require('../site/presentation.js');
 const { chercherMembreParCle, cleAdresse } = require('../site/grille.js');
 
 // Même formateur que le module : l'attendu suit le fuseau de la machine, donc
@@ -24,6 +24,51 @@ test('un code inconnu (donnée inattendue) retombe sur une apparence neutre — 
   const apparence = apparenceStatut('statutInventé');
   assert.equal(apparence.variante, 'neutral');
   assert.ok(apparence.icone, 'une icône de repli, jamais undefined');
+});
+
+// --- apparenceCellule : l'encodage COMPOSÉ de la grille (décision 0022) ---
+// La FORME porte l'occupation (le seul foyer JS : quel glyphe insérer), le
+// REPÈRE la seule non-attribution observée. La TEINTE, elle, vit dans theme.css
+// keyée par le code (0004) — pas ici. Tout est dérivé du code de statut (0011).
+
+test('chaque statut a son encodage de cellule (occupation · repère)', () => {
+  // En ordre : attribué + occupé → plein, pas de repère.
+  assert.deepEqual(apparenceCellule('conforme'), { occupation: 'occupe', repere: false });
+  // Attribué, libre : bordé (libre), attribué donc pas de repère.
+  assert.deepEqual(apparenceCellule('peutEtreALiberer'), { occupation: 'libre', repere: false });
+  // À identifier : occupé, non attribué → repère.
+  assert.deepEqual(apparenceCellule('orphelin'), { occupation: 'occupe', repere: true });
+  // Disponible : libre, non attribué → repère.
+  assert.deepEqual(apparenceCellule('disponible'), { occupation: 'libre', repere: true });
+  // Non observé : puits ; jamais de repère (message = « on ne sait pas encore »).
+  assert.deepEqual(apparenceCellule('pasObserve'), { occupation: 'nonObserve', repere: false });
+});
+
+test('le repère ne marque QUE la non-attribution observée (Disponible, À identifier)', () => {
+  assert.equal(apparenceCellule('disponible').repere, true);
+  assert.equal(apparenceCellule('orphelin').repere, true);
+  assert.equal(apparenceCellule('conforme').repere, false);
+  assert.equal(apparenceCellule('peutEtreALiberer').repere, false);
+  assert.equal(apparenceCellule('pasObserve').repere, false);
+});
+
+test('un code inconnu retombe sur une cellule neutre non observée — jamais undefined', () => {
+  assert.deepEqual(apparenceCellule('statutInventé'), { occupation: 'nonObserve', repere: false });
+});
+
+// --- silhouetteEmbarcation : type d'embarcation → clé de silhouette ---
+
+test('chaque type d\'embarcation a sa silhouette ; tout autre type retombe sur « autre »', () => {
+  assert.equal(silhouetteEmbarcation('Canoë'), 'canoe');
+  assert.equal(silhouetteEmbarcation('Kayak'), 'kayak');
+  assert.equal(silhouetteEmbarcation('Planche (SUP)'), 'planche');
+  assert.equal(silhouetteEmbarcation('Pédalo'), 'autre');
+  assert.equal(silhouetteEmbarcation(''), 'autre');
+  assert.equal(silhouetteEmbarcation(undefined), 'autre');
+});
+
+test('silhouetteEmbarcation tolère les espaces autour du type (cellule éditée à la main)', () => {
+  assert.equal(silhouetteEmbarcation('  Kayak  '), 'kayak');
 });
 
 // --- proseSignal : une phrase par audience, mêmes faits, sortie identique ---

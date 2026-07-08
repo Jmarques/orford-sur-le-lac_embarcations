@@ -379,84 +379,132 @@ wa-skeleton {
   color: var(--wa-color-text-quiet);
 }
 
-/* Une cellule = un emplacement numéroté. Taille fixe sur l'échelle (les
-   colonnes s'alignent), assez large pour trois chiffres et un doigt (terrain). */
-.cellule-emplacement {
-  min-inline-size: var(--wa-space-3xl);
-  block-size: var(--wa-space-3xl);
-  text-align: center;
-  vertical-align: middle;
-  background: var(--wa-color-surface-default);
-  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
-  border-radius: var(--wa-border-radius-s);
-  font-size: var(--wa-font-size-s);
-}
-
-/* Mini-cellule de la légende : le compte DANS le rectangle de couleur — même
-   forme qu'une cellule de la grille, le code couleur se lit par identité.
-   Définie AVANT les classes .statut-* pour qu'elles la colorent. */
-.cellule-legende {
-  display: inline-grid;
-  place-items: center;
-  min-inline-size: var(--wa-space-xl);
-  block-size: var(--wa-space-l);
-  padding-inline: var(--wa-space-2xs);
-  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
-  border-radius: var(--wa-border-radius-s);
-  background: var(--wa-color-surface-default);
-  font-size: var(--wa-font-size-s);
-  font-weight: var(--wa-font-weight-bold);
-}
-
-/* Statut dérivé d'un emplacement (décision 0011) : la couleur code le statut
-   sur les cellules ET les pastilles de la légende — paires fill/on du même
-   pas (quiet = attendu, normal = problème à repérer). La couleur ne porte
-   jamais seule : légende, libellés du panneau et aria-label la doublent. */
-.statut-conforme {
-  background: var(--wa-color-success-fill-quiet);
-  border-color: var(--wa-color-success-border-quiet);
-  color: var(--wa-color-success-on-quiet);
-}
-.statut-disponible {
-  background: var(--wa-color-brand-fill-quiet);
-  border-color: var(--wa-color-brand-border-quiet);
-  color: var(--wa-color-brand-on-quiet);
-}
-/* pasObserve : l'apparence par défaut de la cellule (calme) — pas de règle. */
-.statut-peutEtreALiberer {
-  background: var(--wa-color-warning-fill-normal);
-  border-color: var(--wa-color-warning-border-normal);
-  color: var(--wa-color-warning-on-normal);
-  font-weight: var(--wa-font-weight-bold);
-}
-.statut-orphelin {
-  background: var(--wa-color-danger-fill-normal);
-  border-color: var(--wa-color-danger-border-normal);
-  color: var(--wa-color-danger-on-normal);
-  font-weight: var(--wa-font-weight-bold);
-}
-
-/* La cellule interactive contient un vrai <button> pleine surface : le <td>
-   garde son rôle de cellule de table (lecteurs d'écran), le bouton porte le
-   clic, le clavier et le focus. Il hérite couleur et fonte de son statut. */
-.bouton-cellule {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
+/* --- Géométrie de cellule partagée : l'empreinte fixe de l'écran de tournée
+   (décision 0021), reprise par la grille de consultation (décision 0022) —
+   mêmes tokens (4xl, padding xs, border-width-m). Numéro en coin, glyphe
+   centré, coin de repère réservé ; les états (teinte, forme) sont des
+   modificateurs par-dessus. --- */
+.cellule-grille {
+  position: relative;
+  box-sizing: border-box;
+  inline-size: var(--wa-space-4xl);
+  block-size: var(--wa-space-4xl);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding: var(--wa-space-xs);
+  border-radius: var(--wa-border-radius-m);
+  /* Bordure d'empreinte constante ; chaque état pose sa couleur et son style. */
+  border: var(--wa-border-width-m) solid transparent;
   background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
   font: inherit;
   color: inherit;
   cursor: pointer;
 }
-.cellule-emplacement:has(> .bouton-cellule):hover {
-  filter: brightness(0.94);
-}
-.bouton-cellule:focus-visible {
+.cellule-grille:focus-visible {
   outline: var(--wa-focus-ring);
   outline-offset: var(--wa-focus-ring-offset);
+}
+
+/* --- Cellule de CONSULTATION (structures, décision 0022) : encodage composé.
+   La FORME dit l'occupation (bateau plein .glyphe-cellule / anneau bordé
+   .glyphe-anneau / puits creux .tiret-cellule — glyphes partagés avec la
+   tournée), la TEINTE (.statut-*) dit la gravité, le REPÈRE (.repere-cellule)
+   marque la non-attribution. Contour net, empreinte surélevée. --- */
+.cellule-structure {
+  box-shadow: var(--wa-shadow-s);
+}
+.cellule-structure:hover {
+  filter: brightness(0.96);
+}
+/* Tiret « non observé ». */
+.tiret-cellule {
+  font-size: var(--wa-font-size-l);
+  line-height: 1;
+  opacity: 0.6;
+}
+/* Repère « tag » : coin haut-droite réservé (comme la coche de tournée) — ne
+   s'affiche que sur la non-attribution observée (rendu conditionnel côté JS). */
+.repere-cellule {
+  position: absolute;
+  inset-block-start: var(--wa-space-3xs);
+  inset-inline-end: var(--wa-space-2xs);
+  font-size: var(--wa-font-size-s);
+  line-height: 1;
+  opacity: 0.85;
+}
+
+/* --- Mini-cellule de légende : l'apparence EXACTE d'une cellule de grille en
+   petit (même teinte, même glyphe) — le code visuel se lit par identité. Le
+   compte vit à côté, en texte (plus de nombre nu dans un rectangle sans forme). */
+.cellule-legende {
+  position: relative;
+  box-sizing: border-box;
+  inline-size: var(--wa-space-2xl);
+  block-size: var(--wa-space-2xl);
+  display: grid;
+  place-content: center;
+  border-radius: var(--wa-border-radius-s);
+  border: var(--wa-border-width-m) solid transparent;
+  box-shadow: var(--wa-shadow-s);
+}
+.cellule-legende .glyphe-cellule {
+  font-size: var(--wa-font-size-m);
+}
+.cellule-legende .glyphe-anneau {
+  inline-size: 0.8em;
+  block-size: 0.8em;
+}
+.cellule-legende .repere-cellule {
+  font-size: var(--wa-font-size-xs);
+}
+.compte-legende {
+  color: var(--wa-color-text-quiet);
+}
+/* Pied de légende : le repère expliqué (pas un second axe) — sur sa ligne. */
+.legende-note {
+  flex-basis: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wa-space-2xs);
+  font-size: var(--wa-font-size-s);
+  color: var(--wa-color-text-quiet);
+}
+
+/* Teinte par statut (décision 0022) — occupation = plein vs bordé, gravité =
+   famille saturée. En ordre = le vert PLEIN de la tournée ; problèmes rouge/
+   ambre pleins (ils ressortent d'autant plus, complémentaires du vert) ;
+   Disponible = carte claire bordée ; Non observé = puits creux. La couleur ne
+   porte jamais seule : glyphe + libellé (légende, fiche, aria-label) doublent.
+   Mêmes classes sur la cellule ET la mini-cellule de légende (identité).
+   Définies APRÈS les bases pour que la teinte l'emporte (même spécificité). */
+.statut-conforme {
+  background: var(--wa-color-brand-fill-loud);
+  border-color: var(--wa-color-brand-border-loud);
+  color: var(--wa-color-brand-on-loud);
+}
+.statut-orphelin {
+  background: var(--wa-color-danger-fill-loud);
+  border-color: var(--wa-color-danger-border-loud);
+  color: var(--wa-color-danger-on-loud);
+}
+.statut-peutEtreALiberer {
+  background: var(--wa-color-warning-fill-loud);
+  border-color: var(--wa-color-warning-border-loud);
+  color: var(--wa-color-warning-on-loud);
+}
+.statut-disponible {
+  background: var(--wa-color-brand-fill-quiet);
+  border-color: var(--wa-color-brand-border-loud);
+  color: var(--wa-color-brand-on-quiet);
+}
+/* Non observé : puits creux pointillé (le pas-fait de la tournée). */
+.statut-pasObserve {
+  background: var(--wa-color-surface-lowered);
+  border-style: dashed;
+  border-color: var(--wa-color-surface-border);
+  color: var(--wa-color-text-quiet);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.06);
 }
 
 /* Cellule de l'écran de tournée (décisions 0013, 0021) : encodage « Élévation »
@@ -466,9 +514,16 @@ wa-skeleton {
    reste affirmé quand relevé — occupé rempli (une embarcation), libre carte
    claire bordée (place vide, glyphe en cercle contour). Le coin de coche est
    toujours réservé et la taille ne bouge jamais au tap : zéro reflow. */
-.cellule-tournee {
+/* Cellule-hôte d'une grille (le <td>) : padding nul, la cellule stylée occupe
+   la case — partagé par la tournée et la consultation. */
+.cellule-tournee,
+.cellule-hote {
   padding: 0;
   vertical-align: middle;
+}
+/* Une cellule d'aperçu (div, non interactif) ne fait pas semblant d'être cliquable. */
+div.cellule-grille {
+  cursor: default;
 }
 .bouton-cellule-tournee {
   position: relative;
@@ -724,12 +779,18 @@ body.tournee-active .pied {
    se confondre avec le fill plein d'« Embarcation à identifier ». Le détail
    est toujours énoncé en texte dans le callout de la carte. Défini APRÈS les
    statuts : une erreur de données prime sur le statut. */
-.cellule-emplacement.conflit,
+/* En double = erreur de saisie : un liseré pointillé rouge PAR-DESSUS l'état
+   (0022) — l'outline garde la teinte de statut visible dessous. */
+.cellule-structure.conflit {
+  outline: var(--wa-border-width-m) dashed var(--wa-color-danger-border-loud);
+  outline-offset: 1px;
+}
+/* Dans la légende, « En double » n'a pas de statut : boîte neutre pointillée. */
 .cellule-legende.conflit {
   background: var(--wa-color-surface-default);
-  border: var(--wa-border-width-m) dashed var(--wa-color-danger-border-loud);
+  border-style: dashed;
+  border-color: var(--wa-color-danger-border-loud);
   color: var(--wa-color-danger-on-quiet);
-  font-weight: var(--wa-font-weight-bold);
 }
 
 /* Dans un callout multi-messages, l'icône se cale en haut plutôt que de

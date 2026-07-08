@@ -443,33 +443,71 @@
       return donneesCourantes.emplacements.find((l) => Number(l.numero) === Number(numero));
     }
 
+    // Le glyphe d'occupation d'une cellule de grille (langage de la tournée,
+    // décision 0022) : bateau plein (occupé), anneau contour (libre), tiret
+    // (non observé). Partagé par la grille de consultation et la légende.
+    function glypheOccupation(occupation) {
+      if (occupation === 'occupe') {
+        const glyphe = document.createElement('wa-icon');
+        glyphe.className = 'glyphe-cellule';
+        glyphe.setAttribute('name', 'sailboat');
+        return glyphe;
+      }
+      if (occupation === 'libre') {
+        const glyphe = document.createElement('span');
+        glyphe.className = 'glyphe-cellule glyphe-anneau';
+        return glyphe;
+      }
+      const glyphe = document.createElement('span');
+      glyphe.className = 'tiret-cellule';
+      glyphe.textContent = '—';
+      return glyphe;
+    }
+
+    // Habille une cellule de consultation (bouton ou div d'aperçu) selon
+    // l'encodage composé (presentation.js) : teinte par statut, glyphe
+    // d'occupation, repère de non-attribution ; numéro toujours en coin,
+    // empreinte fixe (rien ne bouge). Le repère « tag » ne marque que la
+    // non-attribution observée (Disponible, À identifier).
+    function habillerCelluleStructure(noeud, statut, numero, enConflit) {
+      const vm = apparenceCellule(statut.code);
+      noeud.className = 'cellule-grille cellule-structure statut-' + statut.code
+        + (enConflit ? ' conflit' : '');
+      const numeroTexte = document.createElement('span');
+      numeroTexte.className = 'numero-cellule';
+      numeroTexte.textContent = String(numero);
+      const enfants = [numeroTexte, glypheOccupation(vm.occupation)];
+      if (vm.repere) {
+        const repere = document.createElement('wa-icon');
+        repere.className = 'repere-cellule';
+        repere.setAttribute('name', 'tag');
+        enfants.push(repere);
+      }
+      noeud.replaceChildren(...enfants);
+    }
+
     function celluleEmplacement(emplacement, marquages, interactif) {
       const cellule = document.createElement('td');
+      cellule.className = 'cellule-hote';
       const statut = statutEmplacement(lignePourNumero(emplacement.numero));
-      cellule.className = 'cellule-emplacement statut-' + statut.code;
       let description = 'Emplacement ' + emplacement.numero
         + (emplacement.niveau !== '' ? ', niveau ' + emplacement.niveau : '')
         + ' — ' + statut.libelle;
       const raison = marquages.get(emplacement.numero);
-      if (raison) {
-        cellule.classList.add('conflit');
-        cellule.title = raison;
-        description += ' — ' + raison;
+      if (raison) description += ' — ' + raison;
+      // La cellule stylée est un vrai <button> (consultation → fiche) ou un
+      // <div> (aperçu d'édition, non interactif) ; le <td> garde son rôle de
+      // table (lecteurs d'écran), la cellule porte teinte, glyphe et repère.
+      const noeud = document.createElement(interactif ? 'button' : 'div');
+      if (interactif) {
+        noeud.type = 'button';
+        noeud.addEventListener('click', () => fiche.ouvrir(emplacement.numero));
       }
-      if (!interactif) {
-        cellule.textContent = String(emplacement.numero);
-        cellule.setAttribute('aria-label', description);
-        return cellule;
-      }
-      // Un vrai <button> dans la cellule : le <td> garde son rôle de table.
-      const bouton = document.createElement('button');
-      bouton.type = 'button';
-      bouton.className = 'bouton-cellule';
-      bouton.dataset.numero = String(emplacement.numero);
-      bouton.textContent = String(emplacement.numero);
-      bouton.setAttribute('aria-label', description);
-      bouton.addEventListener('click', () => fiche.ouvrir(emplacement.numero));
-      cellule.appendChild(bouton);
+      noeud.dataset.numero = String(emplacement.numero);
+      habillerCelluleStructure(noeud, statut, emplacement.numero, !!raison);
+      noeud.setAttribute('aria-label', description);
+      if (raison) noeud.title = raison;
+      cellule.appendChild(noeud);
       return cellule;
     }
 
@@ -528,8 +566,10 @@
 
       // `unite` : les statuts comptent des emplacements affichés, « En
       // double » compte des numéros — l'unité est dite dans le popover et au
-      // lecteur d'écran, jamais laissée à deviner.
-      const entree = (code, classeCellule, libelle, compte, unite, explication) => {
+      // lecteur d'écran, jamais laissée à deviner. La mini-cellule reprend
+      // l'apparence EXACTE de la grille (teinte + glyphe + repère) ; le compte
+      // vit à côté en texte (plus de nombre nu enfermé dans un rectangle).
+      const entree = (code, libelle, compte, unite, explication) => {
         if (compte === 0) return;
         const jeton = document.createElement('button');
         jeton.type = 'button';
@@ -537,15 +577,34 @@
         jeton.className = 'jeton-legende';
         jeton.setAttribute('aria-expanded', 'false');
         jeton.setAttribute('aria-describedby', 'explication-' + code);
+
+        // La mini-cellule est décorative (aria-hidden) : le libellé et le
+        // compte portent le sens ; le glyphe illustre le code couleur.
         const cellule = document.createElement('span');
-        cellule.className = 'cellule-legende ' + classeCellule;
-        cellule.textContent = String(compte);
+        cellule.className = 'cellule-legende '
+          + (code === 'conflit' ? 'conflit' : 'statut-' + code);
+        cellule.setAttribute('aria-hidden', 'true');
+        if (code !== 'conflit') {
+          const vm = apparenceCellule(code);
+          cellule.appendChild(glypheOccupation(vm.occupation));
+          if (vm.repere) {
+            const repere = document.createElement('wa-icon');
+            repere.className = 'repere-cellule';
+            repere.setAttribute('name', 'tag');
+            cellule.appendChild(repere);
+          }
+        }
         jeton.appendChild(cellule);
+
+        jeton.appendChild(document.createTextNode(' ' + libelle));
+        const compteSpan = document.createElement('span');
+        compteSpan.className = 'compte-legende';
+        compteSpan.textContent = ' · ' + compte;
         const uniteCachee = document.createElement('span');
         uniteCachee.className = 'wa-visually-hidden';
-        uniteCachee.textContent = ' ' + unite + (compte > 1 ? 's' : '') + ' —';
-        jeton.appendChild(uniteCachee);
-        jeton.appendChild(document.createTextNode(' ' + libelle));
+        uniteCachee.textContent = ' ' + unite + (compte > 1 ? 's' : '');
+        compteSpan.appendChild(uniteCachee);
+        jeton.appendChild(compteSpan);
         legende.appendChild(jeton);
 
         const popover = document.createElement('wa-popover');
@@ -564,17 +623,32 @@
         popover.addEventListener('wa-hide', () => jeton.setAttribute('aria-expanded', 'false'));
       };
 
+      let aRepere = false;
       for (const exemple of exemples) {
         const statut = statutEmplacement({ numero: 0, ...exemple });
-        entree(statut.code, 'statut-' + statut.code, statut.libelle,
-          comptes.parCode[statut.code] || 0, 'emplacement', statut.explication);
+        const compte = comptes.parCode[statut.code] || 0;
+        entree(statut.code, statut.libelle, compte, 'emplacement', statut.explication);
+        if (compte > 0 && apparenceCellule(statut.code).repere) aRepere = true;
       }
       // 6e apparence : l'erreur de données (numéro inscrit deux fois).
       // La consigne « bouton Modifier » n'est dite qu'une fois, dans la
       // synthèse d'erreurs — pas répétée ici.
-      entree('conflit', 'conflit', 'En double', comptes.enConflit, 'numéro',
+      entree('conflit', 'En double', comptes.enConflit, 'numéro',
         'Le même numéro est inscrit dans deux structures (ou deux fois dans la même) '
         + '— une erreur dans la colonne « emplacements ».');
+
+      // Pied : le repère expliqué (une seule ligne, pas un second axe) — montré
+      // seulement quand des cellules à repère sont présentes.
+      if (aRepere) {
+        const note = document.createElement('span');
+        note.className = 'legende-note';
+        const icone = document.createElement('wa-icon');
+        icone.setAttribute('name', 'tag');
+        note.appendChild(icone);
+        note.appendChild(document.createTextNode(
+          ' Le repère marque un emplacement non attribué (Disponible ou À identifier).'));
+        legende.appendChild(note);
+      }
     }
 
     // Résumé chiffré de l'aperçu d'ÉDITION seulement. Le détail « 8 par
