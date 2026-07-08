@@ -684,28 +684,14 @@ wa-skeleton {
 div.cellule-grille {
   cursor: default;
 }
+/* La tournée réutilise la géométrie partagée .cellule-grille (empreinte fixe,
+   numéro en coin, glyphe centré, focus) ; elle n'ajoute que son ÉTAT par défaut
+   = pas-fait (puits creux pointillé), réécrit par .fantome/.releve ci-dessous. */
 .bouton-cellule-tournee {
-  position: relative;
-  box-sizing: border-box;
-  /* Empreinte constante quel que soit l'état : le tap ne redimensionne jamais
-     la case ni sa rangée (défaut n°1 corrigé). */
-  inline-size: var(--wa-space-4xl);
-  block-size: var(--wa-space-4xl);
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  padding: var(--wa-space-xs);
-  border-radius: var(--wa-border-radius-m);
-  font: inherit;
-  cursor: pointer;
-  /* Défauts réécrits par chaque état ci-dessous (pas-fait par défaut). */
   background: var(--wa-color-surface-lowered);
-  border: var(--wa-border-width-m) dashed var(--wa-color-surface-border);
+  border-style: dashed;
+  border-color: var(--wa-color-surface-border);
   color: var(--wa-color-text-normal);
-}
-.bouton-cellule-tournee:focus-visible {
-  outline: var(--wa-focus-ring);
-  outline-offset: var(--wa-focus-ring-offset);
 }
 /* Numéro : coin haut-gauche, discret, toujours présent. */
 .numero-cellule {

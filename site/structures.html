@@ -949,7 +949,7 @@
       // Ce qu'on montre : l'état relevé s'il existe, sinon le fantôme (dernière
       // observation) estompé ; '' quand jamais observé et pas encore relevé.
       const affiche = etat || fantome;
-      bouton.className = 'bouton-cellule-tournee '
+      bouton.className = 'cellule-grille bouton-cellule-tournee '
         + (etat === 'occupé' ? 'releve releve-occupe'
           : etat === 'libre' ? 'releve releve-libre'
           : fantome ? 'fantome' : 'sans-fantome');
@@ -968,15 +968,10 @@
 
       const corps = document.createElement('span');
       corps.className = 'etat-cellule';
-      if (affiche === 'occupé') {
-        const glyphe = document.createElement('wa-icon');
-        glyphe.className = 'glyphe-cellule';
-        glyphe.setAttribute('name', 'sailboat');
-        corps.appendChild(glyphe);
-      } else if (affiche === 'libre') {
-        const glyphe = document.createElement('span');
-        glyphe.className = 'glyphe-cellule glyphe-anneau';
-        corps.appendChild(glyphe);
+      // Même glyphe que la grille de consultation (glypheOccupation) pour occupé
+      // et libre ; le pas-encore-relevé ('') n'a que son mot « — », sans glyphe.
+      if (affiche === 'occupé' || affiche === 'libre') {
+        corps.appendChild(glypheOccupation(affiche === 'occupé' ? 'occupe' : 'libre'));
       }
       const mot = document.createElement('span');
       mot.textContent = affiche || '—';
