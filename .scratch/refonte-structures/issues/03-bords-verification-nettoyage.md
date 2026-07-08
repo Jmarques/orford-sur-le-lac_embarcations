@@ -1,6 +1,6 @@
 # 03 — Bords, vérification & nettoyage
 
-Status: ready-for-agent
+Status: done — commit en cours (T03)
 
 ## Parent
 

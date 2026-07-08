@@ -1,6 +1,6 @@
 # 02 — La carte : rail d'identité + volet grille, foyers de messages, responsive, édition
 
-Status: ready-for-agent
+Status: done — commit 09efa1b
 
 ## Parent
 

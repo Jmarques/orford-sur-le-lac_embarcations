@@ -1,6 +1,6 @@
 # 01 — Le langage de la grille : encodage composé, cellule partagée, légende par statut
 
-Status: ready-for-agent
+Status: done — commit 9a5c98a
 
 ## Parent
 

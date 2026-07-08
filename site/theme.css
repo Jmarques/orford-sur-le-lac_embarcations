@@ -650,6 +650,21 @@ wa-skeleton {
   color: var(--wa-color-text-quiet);
   box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.06);
 }
+/* Le numéro reste lisible même dans un puits « non observé » — sur un fond pâle,
+   la teinte quiet + l'opacité réduite le rendaient trop faible pour l'aîné. */
+.statut-pasObserve .numero-cellule {
+  opacity: 1;
+  color: var(--wa-color-text-normal);
+}
+
+/* La grille de CONSULTATION épouse la largeur de son contenu (une structure
+   étroite ne laisse plus un grand puits vide à droite) tout en défilant si elle
+   dépasse la carte ; la grille de tournée garde son comportement plein écran. */
+.grille-structure:not(.grille-tournee-zone) {
+  inline-size: max-content;
+  max-inline-size: 100%;
+  align-self: start;
+}
 
 /* Cellule de l'écran de tournée (décisions 0013, 0021) : encodage « Élévation »
    à EMPREINTE FIXE. L'axe dominant est fait / pas-fait (tout couvrir est le but
