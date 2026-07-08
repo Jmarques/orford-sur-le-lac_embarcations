@@ -73,8 +73,8 @@ function creerFicheEmplacement(options) {
               <h3 class="wa-heading-s">Qu'observez-vous sur place ?</h3>
               <!-- Deux réponses seulement : sur place, on voit une embarcation ou pas. -->
               <div class="boutons-occupation">
-                <wa-button class="bouton-occupation" data-occupation="occupé" appearance="outlined" size="l">Occupé</wa-button>
-                <wa-button class="bouton-occupation" data-occupation="libre" appearance="outlined" size="l">Libre</wa-button>
+                <wa-button class="bouton-occupation" data-occupation="occupé" appearance="outlined" size="m">Occupé</wa-button>
+                <wa-button class="bouton-occupation" data-occupation="libre" appearance="outlined" size="m">Libre</wa-button>
               </div>
               <wa-callout id="fiche-erreur-observer" variant="danger" role="alert" tabindex="-1" hidden>
                 <wa-icon slot="icon" name="circle-exclamation"></wa-icon>

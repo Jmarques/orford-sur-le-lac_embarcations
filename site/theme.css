@@ -123,10 +123,12 @@ body {
   padding-inline: var(--wa-space-l);
 }
 
-/* La page structures affiche des grilles jusqu'à ~15 colonnes : sa colonne de
-   contenu s'élargit (multiple de l'échelle d'espacement, pas de valeur brute). */
+/* La page structures affiche de larges grilles dans une carte rail + volet
+   (0022) : sa colonne de contenu s'élargit pour exploiter les grands écrans et
+   faire tenir beaucoup plus de colonnes sans défilement horizontal. Capée
+   (jamais bord-à-bord) et en multiple de l'échelle d'espacement. */
 .contenu-structures {
-  max-width: calc(12 * var(--wa-space-5xl));
+  max-width: calc(18 * var(--wa-space-5xl));
 }
 
 /* … mais seul l'état liste a besoin de cette largeur : les autres états
@@ -548,6 +550,14 @@ wa-skeleton {
 .cellule-grille:focus-visible {
   outline: var(--wa-focus-ring);
   outline-offset: var(--wa-focus-ring-offset);
+}
+/* Le glyphe d'occupation vit dans son propre conteneur centré (comme le mot de
+   la tournée dans .etat-cellule) : ainsi le wa-icon n'est jamais le frère qui
+   SUIT le numéro, et Web Awesome ne lui ajoute pas sa marge d'espacement
+   (`& > * + wa-icon`, 0.75em) qui décentrait le bateau. */
+.corps-cellule {
+  display: grid;
+  place-items: center;
 }
 
 /* --- Cellule de CONSULTATION (structures, décision 0022) : encodage composé.

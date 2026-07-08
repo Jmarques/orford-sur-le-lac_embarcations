@@ -57,7 +57,7 @@
                   type="password" password-toggle autocomplete="current-password" required>
           <wa-icon slot="start" name="lock"></wa-icon>
         </wa-input>
-        <wa-button id="entrer" class="bouton-plein" type="submit" variant="brand" size="l">
+        <wa-button id="entrer" class="bouton-plein" type="submit" variant="brand" size="m">
           <wa-icon slot="start" name="unlock"></wa-icon>
           Entrer
         </wa-button>
@@ -107,7 +107,7 @@
           class="phrase-contact" hidden> Vous pouvez aussi nous écrire à <a class="lien-comite" href=""></a>.</span>
       </wa-callout>
       <div class="wa-cluster">
-        <wa-button id="reessayer" variant="brand" size="l">
+        <wa-button id="reessayer" variant="brand" size="m">
           <wa-icon slot="start" name="rotate-right"></wa-icon>
           Réessayer
         </wa-button>
@@ -317,11 +317,11 @@
       <div class="wa-cluster wa-gap-s">
         <!-- disabled jusqu'à la fin de l'initialisation du formulaire :
              jamais de soumission native (= rechargement) possible. -->
-        <wa-button class="bouton-enregistrer" type="submit" variant="brand" size="l" disabled>
+        <wa-button class="bouton-enregistrer" type="submit" variant="brand" size="m" disabled>
           <wa-icon slot="start" name="check"></wa-icon>
           Enregistrer
         </wa-button>
-        <wa-button class="bouton-annuler" type="button" appearance="plain" size="l">Annuler</wa-button>
+        <wa-button class="bouton-annuler" type="button" appearance="plain" size="m">Annuler</wa-button>
       </div>
     </form>
   </template>
@@ -512,7 +512,12 @@
       const numeroTexte = document.createElement('span');
       numeroTexte.className = 'numero-cellule';
       numeroTexte.textContent = String(numero);
-      const enfants = [numeroTexte, glypheOccupation(vm.occupation)];
+      // Le glyphe dans son propre conteneur : il n'est ainsi jamais le frère qui
+      // SUIT le numéro, donc Web Awesome ne lui colle pas sa marge d'espacement.
+      const corps = document.createElement('span');
+      corps.className = 'corps-cellule';
+      corps.appendChild(glypheOccupation(vm.occupation));
+      const enfants = [numeroTexte, corps];
       if (vm.repere) {
         const repere = document.createElement('wa-icon');
         repere.className = 'repere-cellule';

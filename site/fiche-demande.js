@@ -93,7 +93,7 @@ function creerFicheDemande(options) {
           <!-- Le bouton d'acceptation n'apparaît qu'une fois une place choisie :
                toujours plein, toujours cliquable — jamais un désactivé pâle. -->
           <div id="fiche-demande-accepter-zone" class="wa-cluster wa-gap-s" hidden>
-            <wa-button id="fiche-demande-accepter" variant="brand" size="l">
+            <wa-button id="fiche-demande-accepter" variant="brand" size="m">
               <wa-icon slot="start" name="circle-check"></wa-icon>
               <span id="fiche-demande-accepter-texte">Attribuer et accepter</span>
             </wa-button>
