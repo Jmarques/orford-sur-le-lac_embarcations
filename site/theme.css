@@ -302,6 +302,150 @@ wa-card h4 {
   color: var(--wa-color-brand-on-quiet);
 }
 
+/* --- Carte de structure : rail d'identité + volet grille (décision 0022).
+   Desktop côte à côte — rail à largeur FIXE (les colonnes de gauche de toutes
+   les cartes s'alignent), le volet absorbe la largeur ; mobile empilé. Le corps
+   occupe toute la carte (padding retiré, chaque zone se pade), et la carte
+   clippe ses coins pour que le fond du rail et le bandeau suivent l'arrondi. --- */
+.carte-structure::part(base),
+.carte-squelette::part(base) {
+  overflow: hidden;
+}
+.carte-structure::part(body),
+.carte-squelette::part(body) {
+  padding: 0;
+}
+/* Bandeau de confirmation post-tournée : pleine largeur en tête, carré. */
+.bandeau-carte {
+  --wa-callout-border-width: 0;
+  border-radius: 0;
+}
+.corps-carte {
+  display: grid;
+  grid-template-columns: 14rem 1fr;
+  align-items: stretch;
+}
+.rail-structure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wa-space-m);
+  padding: var(--wa-space-l);
+  background: var(--wa-color-surface-lowered);
+  border-inline-end: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+}
+.rail-tete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wa-space-xs);
+}
+.rail-embarcations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wa-space-2xs);
+}
+.rail-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--wa-space-2xs);
+}
+/* Les actions suivent la méta (près du haut, accessibles même sur une grande
+   structure) ; pleine largeur du rail. « Faire la tournée » primaire d'abord. */
+.rail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wa-space-2xs);
+}
+.rail-actions wa-button::part(base) {
+  width: 100%;
+}
+.volet-carte {
+  min-inline-size: 0;
+}
+.volet-grille {
+  padding: var(--wa-space-l);
+}
+
+/* Type d'embarcation en puce silhouette + libellé (décision 0022). */
+.emb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wa-space-2xs);
+  padding: var(--wa-space-3xs) var(--wa-space-xs);
+  border-radius: var(--wa-border-radius-pill);
+  background: var(--wa-color-brand-fill-quiet);
+  color: var(--wa-color-brand-on-quiet);
+  font-size: var(--wa-font-size-s);
+  font-weight: var(--wa-font-weight-bold);
+  white-space: nowrap;
+}
+.emb-silhouette {
+  display: inline-flex;
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+}
+.emb-silhouette svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+/* Compte : texte simple libellé + icône (pas une pilule de plus — 0016). */
+.meta-compte {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wa-space-2xs);
+  color: var(--wa-color-text-quiet);
+  font-size: var(--wa-font-size-s);
+}
+
+/* Étiquette de niveau abrégée « N3 » sur mobile (la forme longue reste pour
+   les lecteurs d'écran) — décision 0022. */
+.niveau-court {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  /* Carte empilée : rail au-dessus (trois rangées organisées), grille dessous. */
+  .corps-carte {
+    grid-template-columns: 1fr;
+  }
+  .rail-structure {
+    border-inline-end: none;
+    border-block-end: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+    gap: var(--wa-space-s);
+  }
+  .rail-tete,
+  .rail-meta {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--wa-space-s);
+  }
+  .rail-actions {
+    margin-block-start: 0;
+    flex-direction: row;
+  }
+  .rail-actions wa-button {
+    flex: 1;
+  }
+  .volet-grille {
+    padding: var(--wa-space-m);
+  }
+  .etiquette-niveau {
+    min-inline-size: 0;
+  }
+  .niveau-long {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .niveau-court {
+    display: inline;
+  }
+}
+
 /* Les silhouettes de chargement suivent les surfaces du thème (le gris-bleu
    par défaut jure sur le sable — propriétés documentées de wa-skeleton). */
 wa-skeleton {

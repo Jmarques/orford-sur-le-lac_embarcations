@@ -64,28 +64,36 @@
       </form>
     </wa-card>
 
-    <!-- État : chargement — le squelette pré-dessine la vraie carte (titre et
-         boutons en tête, ligne de métadonnées, panneau de grille en creux)
-         pour éviter tout saut de mise en page à l'arrivée des données. -->
+    <!-- État : chargement — le squelette pré-dessine la vraie carte (rail
+         d'identité + volet grille en creux) pour éviter tout saut de mise en
+         page à l'arrivée des données (décision 0022). -->
     <div id="etat-chargement" class="wa-stack wa-gap-l" role="status" aria-busy="true" hidden>
-      <wa-card>
-        <div class="wa-stack wa-gap-m">
-          <div class="wa-split">
+      <wa-card class="carte-squelette">
+        <div class="corps-carte">
+          <div class="rail-structure">
             <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
+            <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
             <wa-skeleton class="squelette-boutons" effect="sheen"></wa-skeleton>
           </div>
-          <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
-          <wa-skeleton class="squelette-grille" effect="sheen"></wa-skeleton>
+          <div class="volet-carte">
+            <div class="volet-grille">
+              <wa-skeleton class="squelette-grille" effect="sheen"></wa-skeleton>
+            </div>
+          </div>
         </div>
       </wa-card>
-      <wa-card>
-        <div class="wa-stack wa-gap-m">
-          <div class="wa-split">
+      <wa-card class="carte-squelette">
+        <div class="corps-carte">
+          <div class="rail-structure">
             <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
+            <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
             <wa-skeleton class="squelette-boutons" effect="sheen"></wa-skeleton>
           </div>
-          <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
-          <wa-skeleton class="squelette-grille" effect="sheen"></wa-skeleton>
+          <div class="volet-carte">
+            <div class="volet-grille">
+              <wa-skeleton class="squelette-grille" effect="sheen"></wa-skeleton>
+            </div>
+          </div>
         </div>
       </wa-card>
       <p class="wa-visually-hidden">Chargement des structures…</p>
@@ -213,49 +221,53 @@
   <!-- Modèle d'une carte de structure (rempli par textContent : jamais de HTML de la Sheet). -->
   <template id="modele-structure">
     <wa-card class="carte-structure">
-      <div class="wa-stack wa-gap-m">
-        <div class="wa-split wa-flex-wrap wa-align-items-baseline">
-          <!-- tabindex : cible de focus après une sauvegarde (retour à la carte). -->
-          <h3 class="wa-heading-m champ-id" tabindex="-1"></h3>
-          <div class="wa-cluster wa-gap-s">
+      <!-- Confirmation persistante d'une tournée enregistrée (0021/0022) :
+           bandeau pleine largeur EN TÊTE de carte, là où l'œil revient du plein
+           écran ; il persiste jusqu'à la prochaine action. -->
+      <wa-callout class="confirmation-tournee bandeau-carte" variant="success" role="status" hidden>
+        <wa-icon slot="icon" name="circle-check"></wa-icon>
+        <span class="confirmation-tournee-texte"></span>
+      </wa-callout>
+      <div class="corps-carte">
+        <!-- Rail d'identité (décision 0022) : id, types en silhouette, compte,
+             santé des données, actions. L'édition est rare → « Modifier »
+             secondaire (contour) mais toujours visible ; « Faire la tournée »
+             reste l'unique action primaire. Le rail reste visible pendant
+             l'édition (le contexte de la structure ne disparaît pas). -->
+        <aside class="rail-structure">
+          <div class="rail-tete">
+            <!-- tabindex : cible de focus après une sauvegarde (retour à la carte). -->
+            <h3 class="wa-heading-m champ-id" tabindex="-1"></h3>
+            <div class="rail-embarcations champ-embarcations"></div>
+          </div>
+          <div class="rail-meta">
+            <span class="meta-compte champ-compte" hidden></span>
             <wa-badge class="badge-etat" hidden></wa-badge>
-            <!-- L'action de terrain (décision 0013), légèrement plus affirmée
-                 que Modifier (variant brand) sans devenir l'action primaire. -->
-            <wa-button class="bouton-tournee" appearance="outlined" variant="brand">
+          </div>
+          <div class="rail-actions">
+            <wa-button class="bouton-tournee" variant="brand" size="m">
               <wa-icon slot="start" name="list-check"></wa-icon>
               Faire la tournée
             </wa-button>
-            <wa-button class="bouton-modifier" appearance="outlined">
+            <wa-button class="bouton-modifier" appearance="outlined" size="m">
               <wa-icon slot="start" name="pen"></wa-icon>
               Modifier
             </wa-button>
           </div>
-        </div>
-        <!-- Confirmation persistante d'une tournée enregistrée (décision 0021) :
-             remplace l'écran résumé — le bilan vit dans le contexte de la carte,
-             jusqu'à la prochaine action. -->
-        <wa-callout class="confirmation-tournee" variant="success" role="status" hidden>
-          <wa-icon slot="icon" name="circle-check"></wa-icon>
-          <span class="confirmation-tournee-texte"></span>
-        </wa-callout>
-        <div class="mode-affichage wa-stack wa-gap-m">
-          <!-- Une seule ligne de métadonnées : les embarcations acceptées et
-               le total en pastille. Le type et le nombre par niveau se lisent
-               dans la grille elle-même — les répéter en texte serait du bruit. -->
-          <div class="wa-cluster wa-gap-m wa-color-text-quiet">
-            <span class="wa-cluster wa-gap-2xs">
-              <wa-icon name="sailboat"></wa-icon>
-              <span class="champ-embarcations"></span>
-            </span>
-            <wa-badge class="badge-compte champ-compte" variant="neutral" appearance="filled-outlined" pill hidden></wa-badge>
+        </aside>
+        <!-- Volet : la représentation physique + ses messages de contexte
+             (santé des données en tête). L'édition remplace la grille par le
+             formulaire, le rail restant en place. -->
+        <div class="volet-carte">
+          <div class="mode-affichage volet-grille wa-stack wa-gap-m">
+            <div class="bloc-problemes wa-stack wa-gap-s"></div>
+            <div class="grille-structure"></div>
+            <p class="indice-defilement wa-caption-s wa-color-text-quiet" hidden>Faites
+              glisser la grille vers la gauche pour voir tous les emplacements.</p>
+            <p class="champ-notes note-membre wa-text-pretty" hidden></p>
           </div>
-          <div class="bloc-problemes wa-stack wa-gap-s"></div>
-          <div class="grille-structure"></div>
-          <p class="indice-defilement wa-caption-s wa-color-text-quiet" hidden>Faites
-            glisser la grille vers la gauche pour voir tous les emplacements.</p>
-          <p class="champ-notes note-membre wa-text-pretty" hidden></p>
+          <div class="mode-edition" hidden></div>
         </div>
-        <div class="mode-edition" hidden></div>
       </div>
     </wa-card>
   </template>
@@ -443,6 +455,30 @@
       return donneesCourantes.emplacements.find((l) => Number(l.numero) === Number(numero));
     }
 
+    // Silhouettes des types d'embarcation (décision 0022) : FA free n'a ni
+    // kayak, ni canoë, ni planche — on les dessine en SVG, teintées currentColor.
+    // Constantes de CONFIANCE (jamais de HTML de la Sheet) : seules elles
+    // passent par innerHTML ; le libellé du type reste en textContent.
+    const SILHOUETTES_SVG = {
+      canoe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 11c4 6 16 6 20 0"/><path d="M2 11c1-2 3-2.6 10-2.6S21 9 22 11"/><path d="M8 9.2V13M16 9.2V13"/></svg>',
+      kayak: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12c3 3 17 3 20 0-3-3-17-3-20 0Z"/><path d="M6 7l12 10M18 7L6 17"/></svg>',
+      planche: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="16" rx="9" ry="2.4"/><path d="M12 14V4M9 6h6"/></svg>',
+      autre: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14h18l-2 4H5z"/><path d="M12 3v11"/></svg>',
+    };
+
+    // Une puce « type d'embarcation » : silhouette + libellé (le libellé de la
+    // Sheet en textContent ; la silhouette est une constante de confiance).
+    function chipEmbarcation(type) {
+      const chip = document.createElement('span');
+      chip.className = 'emb-chip';
+      const silhouette = document.createElement('span');
+      silhouette.className = 'emb-silhouette';
+      silhouette.innerHTML = SILHOUETTES_SVG[silhouetteEmbarcation(type)];
+      chip.appendChild(silhouette);
+      chip.appendChild(document.createTextNode(' ' + type));
+      return chip;
+    }
+
     // Le glyphe d'occupation d'une cellule de grille (langage de la tournée,
     // décision 0022) : bateau plein (occupé), anneau contour (libre), tiret
     // (non observé). Partagé par la grille de consultation et la légende.
@@ -525,7 +561,18 @@
           const etiquette = document.createElement('th');
           etiquette.scope = 'row';
           etiquette.className = 'etiquette-niveau wa-caption-s';
-          etiquette.textContent = 'Niveau ' + (analyse.lignes.length - indexLigne);
+          // « Niveau 3 » en grand écran, « N3 » sur mobile (on gagne la largeur
+          // pour voir plus d'emplacements — décision 0022). Le lecteur d'écran
+          // entend toujours la forme longue.
+          const niveau = analyse.lignes.length - indexLigne;
+          const longue = document.createElement('span');
+          longue.className = 'niveau-long';
+          longue.textContent = 'Niveau ' + niveau;
+          const courte = document.createElement('span');
+          courte.className = 'niveau-court';
+          courte.setAttribute('aria-hidden', 'true');
+          courte.textContent = 'N' + niveau;
+          etiquette.append(longue, courte);
           rangee.appendChild(etiquette);
         }
         for (const emplacement of analyse.emplacements) {
@@ -709,18 +756,34 @@
 
       carte.querySelector('wa-card').dataset.structure = analyse.id;
       champ('champ-id').textContent = 'Structure ' + analyse.id;
-      champ('champ-embarcations').textContent =
-        String(ligneSheet.embarcations || '').trim() || 'embarcations non renseignées';
 
-      // Le total, toujours libellé (« 24 » nu serait ambigu) ; « debout »
-      // survit ici pour les verticales — la grille sans étiquettes de niveau
-      // ne le montre pas, contrairement aux horizontales.
+      // Type(s) d'embarcation en silhouette (décision 0022) : chaque type est
+      // une puce icône + libellé. Le libellé vient de la Sheet (textContent),
+      // la silhouette d'une constante de confiance (jamais de HTML de la Sheet).
+      const embConteneur = champ('champ-embarcations');
+      const types = String(ligneSheet.embarcations || '').split(',')
+        .map((t) => t.trim()).filter(Boolean);
+      if (types.length) {
+        embConteneur.replaceChildren(...types.map(chipEmbarcation));
+      } else {
+        const vide = document.createElement('span');
+        vide.className = 'emb-vide wa-color-text-quiet';
+        vide.textContent = 'embarcations non renseignées';
+        embConteneur.replaceChildren(vide);
+      }
+
+      // Le total, toujours libellé (« 24 » nu serait ambigu — 0016) ; « debout »
+      // survit ici pour les verticales — la grille sans étiquettes de niveau ne
+      // le montre pas, contrairement aux horizontales.
       const total = analyse.emplacements.length;
       if (total > 0) {
-        champ('champ-compte').textContent = total
+        const compte = champ('champ-compte');
+        const icone = document.createElement('wa-icon');
+        icone.setAttribute('name', 'table-cells');
+        compte.replaceChildren(icone, document.createTextNode(' ' + total
           + (total > 1 ? ' emplacements' : ' emplacement')
-          + (analyse.type === 'vertical' ? ' debout' : '');
-        champ('champ-compte').hidden = false;
+          + (analyse.type === 'vertical' ? ' debout' : '')));
+        compte.hidden = false;
       }
 
       // Confirmation persistante d'une tournée qui vient d'être enregistrée
@@ -1179,7 +1242,8 @@
       const zoneEdition = carte.querySelector('.mode-edition');
       zoneEdition.appendChild(document.getElementById('modele-edition').content.cloneNode(true));
       carte.querySelector('.mode-affichage').hidden = true;
-      carte.querySelector('.bouton-modifier').hidden = true;
+      // Le rail reste (id, types), mais ses actions se retirent pendant l'édition.
+      carte.querySelector('.rail-actions').hidden = true;
       // Le badge décrit l'état ENREGISTRÉ ; pendant l'édition il contredirait
       // l'aperçu live juste dessous — on le masque.
       carte.querySelector('.badge-etat').hidden = true;
