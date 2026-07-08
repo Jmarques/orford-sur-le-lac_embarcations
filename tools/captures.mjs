@@ -317,22 +317,22 @@ export const CAPTURES = [
   // statut sur l'onglet Observer (l'onglet de cette page). `pleinVue` : un
   // <dialog> du top layer se rend mal en capture pleine page — viewport seul.
   { nom: 'structures-fiche-orphelin', page: 'structures.html', etat: 'liste',
-    cliquer: '.bouton-cellule[data-numero="76"]', attendre: '.bouton-occupation', pleinVue: true },
+    cliquer: '.cellule-structure[data-numero="76"]', attendre: '.bouton-occupation', pleinVue: true },
   { nom: 'structures-fiche-conforme', page: 'structures.html', etat: 'liste',
-    cliquer: '.bouton-cellule[data-numero="74"]', attendre: '.bouton-occupation', pleinVue: true },
+    cliquer: '.cellule-structure[data-numero="74"]', attendre: '.bouton-occupation', pleinVue: true },
   { nom: 'structures-fiche-attribue-libre', page: 'structures.html', etat: 'liste',
-    cliquer: '.bouton-cellule[data-numero="75"]', attendre: '.bouton-occupation', pleinVue: true },
+    cliquer: '.cellule-structure[data-numero="75"]', attendre: '.bouton-occupation', pleinVue: true },
   { nom: 'structures-fiche-disponible', page: 'structures.html', etat: 'liste',
-    cliquer: '.bouton-cellule[data-numero="77"]', attendre: '.bouton-occupation', pleinVue: true },
+    cliquer: '.cellule-structure[data-numero="77"]', attendre: '.bouton-occupation', pleinVue: true },
   { nom: 'structures-fiche-pas-observe', page: 'structures.html', etat: 'liste',
-    cliquer: '.bouton-cellule[data-numero="90"]', attendre: '.bouton-occupation', pleinVue: true },
+    cliquer: '.cellule-structure[data-numero="90"]', attendre: '.bouton-occupation', pleinVue: true },
   // L'onglet Traiter, accessible depuis la grille (0018) : journal, note et
   // gestes selon le statut — avec membre (75, attribué) et sans (76, orphelin).
   { nom: 'structures-fiche-traiter', page: 'structures.html', etat: 'liste',
-    cliquer: ['.bouton-cellule[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]'],
+    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]'],
     attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
   { nom: 'structures-fiche-traiter-a-identifier', page: 'structures.html', etat: 'liste',
-    cliquer: ['.bouton-cellule[data-numero="76"]', '#fiche-onglets wa-tab[panel="traiter"]'],
+    cliquer: ['.cellule-structure[data-numero="76"]', '#fiche-onglets wa-tab[panel="traiter"]'],
     attendre: '#fiche-journal .ligne-journal', pleinVue: true },
   // La légende explique ses termes au toucher (wa-popover ancré au jeton).
   // `presenceSeule` : c'est l'attribut [open] qui prouve l'ouverture — le host
@@ -341,7 +341,7 @@ export const CAPTURES = [
     cliquer: '#legende-conflit', attendre: 'wa-popover[for="legende-conflit"][open]',
     presenceSeule: true, pleinVue: true },
   { nom: 'structures-fiche-erreur', page: 'structures.html', etat: 'liste',
-    cliquer: ['.bouton-cellule[data-numero="76"]', '.bouton-occupation[data-occupation="libre"]'],
+    cliquer: ['.cellule-structure[data-numero="76"]', '.bouton-occupation[data-occupation="libre"]'],
     attendre: '#fiche-erreur-observer:not([hidden])', pleinVue: true,
     reponses: { observerEmplacement: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
   // Observation réussie : la fiche RESTE ouverte (0018) — le statut de 76
@@ -349,13 +349,13 @@ export const CAPTURES = [
   // yeux, la grille derrière se recolore. `reponsesApres` : l'inventaire
   // rechargé après le geste, pas celui du premier chargement.
   { nom: 'structures-observation-succes', page: 'structures.html', etat: 'liste',
-    cliquer: ['.bouton-cellule[data-numero="76"]', '.bouton-occupation[data-occupation="libre"]'],
+    cliquer: ['.cellule-structure[data-numero="76"]', '.bouton-occupation[data-occupation="libre"]'],
     attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
   // Note ajoutée depuis la grille : fiche ouverte, journal enrichi (6e ligne
   // pour 75), champ vidé.
   { nom: 'structures-fiche-note-succes', page: 'structures.html', etat: 'liste',
-    ouvrir: ['.bouton-cellule[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]'],
+    ouvrir: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]'],
     remplir: { selecteur: '#fiche-champ-note textarea', valeur: 'Parlé au membre : il vide l\'emplacement d\'ici la fin du mois. — Jeremy' },
     cliquer: '#fiche-ajouter-note',
     attendre: '#fiche-journal .ligne-journal:nth-of-type(6)', pleinVue: true,
@@ -363,13 +363,13 @@ export const CAPTURES = [
   // La confirmation avant de libérer : aucun tap accidentel ne retire une
   // adresse. `presenceSeule` : host wa-dialog « invisible » pour Playwright.
   { nom: 'structures-fiche-confirmation-liberation', page: 'structures.html', etat: 'liste',
-    cliquer: ['.bouton-cellule[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]',
+    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]',
       '#fiche-liberer'],
     attendre: '#fiche-dialogue-liberer[open]', presenceSeule: true, pleinVue: true },
   // Libération depuis la grille : confirmation, puis fiche TOUJOURS ouverte —
   // le statut bascule à « Disponible » et la libération se lit au journal.
   { nom: 'structures-fiche-liberation-succes', page: 'structures.html', etat: 'liste',
-    cliquer: ['.bouton-cellule[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]',
+    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]',
       '#fiche-liberer', '#fiche-dialogue-liberer-confirmer'],
     attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_LIBERATION } },
