@@ -586,15 +586,31 @@ function construireCas_(groupe, membres) {
   };
 }
 
-// Le dossier d'une adresse (0019), hors quota OU dans les règles — la fiche
-// d'adresse reste racontable après une libération qui referme le cas. null si
-// l'adresse n'a aucune attribution lisible.
+// Le dossier d'une adresse (0019, généralisé 0023/0024) : hors quota, dans les
+// règles, OU connue seulement via l'onglet Membres (aucune attribution — la
+// page Adresses doit ouvrir n'importe quelle adresse, y compris un nouveau
+// membre pas encore attribué). Une adresse sans attribution mais présente dans
+// Membres donne un dossier à `nombre: 0` / `emplacements: []` bâti sur la
+// ligne Membres. null seulement si l'adresse n'est ni attribuée ni connue de
+// Membres.
 function casAdresse(cle, lignesEmplacements, membres) {
   var groupe = null;
   groupesParAdresse_(lignesEmplacements).forEach(function (g) {
     if (!groupe && g.cle === cle) groupe = g;
   });
-  return groupe ? construireCas_(groupe, membres) : null;
+  if (groupe) return construireCas_(groupe, membres);
+
+  var membre = chercherMembreParCle(membres, cle);
+  if (!membre) return null;
+  return {
+    cle: cle,
+    adresse: String(membre.numeroAdresse).trim() + ' ' + String(membre.rue).trim(),
+    membre: membre,
+    quota: quotaLisible_(membre),
+    nombre: 0,
+    depassement: 0,
+    emplacements: [],
+  };
 }
 
 // La file « Hors quota » (0019) : les attributions regroupées par clé
