@@ -587,6 +587,15 @@
         afficherCas();
       },
       surSessionExpiree: sessionExpiree,
+      // « Fiche d'adresse » depuis un emplacement attribué (MIROIR de
+      // surOuvrirEmplacement) : REMPLACE le drawer par la fiche d'adresse (jamais
+      // deux empilés) ; la refermer — bouton retour, X ou échap — rouvre la fiche
+      // d'emplacement d'origine.
+      surOuvrirAdresse: async (cle, adresse, numero) => {
+        navigationVersAdresse = true;
+        await fiche.fermer();
+        ficheAdresse.ouvrir(cle, { libelle: 'Emplacement ' + numero, surRetour: () => fiche.ouvrir(numero) });
+      },
     });
 
     // La fiche d'adresse (0019) : le dossier d'un cas « Hors quota ». Toucher
@@ -633,6 +642,9 @@
     // Fermeture de la fiche d'adresse POUR ouvrir une fiche d'emplacement :
     // pas une sortie — le focus ne revient pas au registre à ce moment-là.
     let navigationVersEmplacement = false;
+    // Symétrique : fermeture de la fiche d'emplacement POUR ouvrir une fiche
+    // d'adresse (« Fiche d'adresse ») — pas une sortie non plus.
+    let navigationVersAdresse = false;
 
     function ouvrirCas(cas, avecAttribution) {
       ficheOrigine = {
@@ -656,7 +668,14 @@
     elementFiche.addEventListener('wa-after-hide', (evenement) => {
       // Seule la fermeture du drawer lui-même compte — pas celle d'un
       // composant qui émettrait wa-after-hide depuis l'intérieur de la fiche.
-      if (evenement.target !== elementFiche || !ficheOrigine) return;
+      if (evenement.target !== elementFiche) return;
+      // Navigation vers la fiche d'adresse : pas une sortie, on ne restaure pas
+      // le focus au registre (l'emplacement se rouvrira au retour).
+      if (navigationVersAdresse) {
+        navigationVersAdresse = false;
+        return;
+      }
+      if (!ficheOrigine) return;
       const { numero, titre } = ficheOrigine;
       ficheOrigine = null;
       const rangee = document.querySelector('.rangee-cas[data-numero="' + numero + '"]');

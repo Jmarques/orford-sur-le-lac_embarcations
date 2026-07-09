@@ -26,6 +26,13 @@
 //   surDonneesFraiches(inventaire) — la page range l'état frais et re-rend
 //                      derrière la fiche (grille recolorée, registre re-trié).
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
+//   surOuvrirAdresse(cle, adresse, numero) — MIROIR de surOuvrirEmplacement de
+//                      la fiche d'adresse (0019/0024) : la page ferme cette fiche
+//                      et ouvre la fiche d'adresse avec retour vers l'emplacement.
+//                      OPTIONNEL — sans lui, le bouton « Fiche d'adresse » de la
+//                      barre utilitaire ne paraît pas (la page ne sait pas héberger
+//                      la fiche d'adresse). Ne paraît que si l'emplacement est
+//                      attribué (le dossier d'adresse n'existe que là).
 
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
    serieLibreObservee, depassementQuota, casAdresse,
@@ -92,13 +99,19 @@ function creerFicheEmplacement(options) {
         <p id="fiche-note-comite" class="note-membre wa-text-pretty" hidden></p>
 
         <!-- BARRE UTILITAIRE : les actions non liées à un problème. « Sur place »
-             révèle le relevé replié ; « Fiche d'adresse » (navigation) viendra
-             ici à la tranche suivante. -->
+             révèle le relevé replié ; « Fiche d'adresse » (navigation, MIROIR de
+             0019) ouvre le dossier de l'adresse attribuée avec retour ici — même
+             tokens que « Sur place » (outlined, size m). Masquée si l'emplacement
+             n'est pas attribué, ou si la page ne câble pas surOuvrirAdresse. -->
         <div class="barre-utilitaire wa-cluster wa-gap-s">
           <wa-button id="fiche-sur-place" appearance="outlined" size="m"
                      aria-expanded="false" aria-controls="fiche-sur-place-panneau">
             <wa-icon slot="start" name="binoculars"></wa-icon>
             Sur place
+          </wa-button>
+          <wa-button id="fiche-vers-adresse" appearance="outlined" size="m" hidden>
+            <wa-icon slot="start" name="address-card"></wa-icon>
+            Fiche d'adresse
           </wa-button>
         </div>
         <!-- Relevé « Sur place » (observation Occupé/Libre) : replié par défaut,
@@ -347,6 +360,15 @@ function creerFicheEmplacement(options) {
     // Nom, contact tappable et mention « aucun membre » : bloc partagé (0024).
     rendreBlocMembre('fiche', membre);
 
+    // « Fiche d'adresse » (navigation, MIROIR de 0019) : ouvre le dossier de
+    // l'adresse attribuée. Offerte SEULEMENT si l'emplacement est attribué (le
+    // dossier n'existe que là) ET si la page sait héberger la fiche d'adresse
+    // (elle câble surOuvrirAdresse) — sinon un bouton mort. Masquée aussi quand
+    // on est ARRIVÉ depuis une fiche d'adresse (retourCourant) : le bouton retour
+    // ramène déjà à CE dossier (l'adresse de l'emplacement == celle du retour) —
+    // pas deux chemins pour le même endroit, ni de va-et-vient sans fin.
+    el('fiche-vers-adresse').hidden = !(attribue && options.surOuvrirAdresse) || !!retourCourant;
+
     // Note du comité de la ligne d'emplacement (annotation durable, non datée).
     const note = el('fiche-note-comite');
     note.hidden = !(ligne && String(ligne.note || '').trim());
@@ -400,6 +422,16 @@ function creerFicheEmplacement(options) {
     const revele = panneau.hasAttribute('hidden');
     panneau.hidden = !revele;
     el('fiche-sur-place').setAttribute('aria-expanded', String(revele));
+  });
+
+  // « Fiche d'adresse » : demande à la page d'ouvrir le dossier de l'adresse
+  // attribuée, avec retour ici (MIROIR de surOuvrirEmplacement, 0019). La page
+  // ferme cette fiche AVANT d'ouvrir la fiche d'adresse — jamais deux drawers.
+  el('fiche-vers-adresse').addEventListener('click', () => {
+    const ligne = lignePourNumero(numeroCourant);
+    if (!ligne || !options.surOuvrirAdresse) return;
+    const cle = cleAdresse(ligne);
+    if (cle) options.surOuvrirAdresse(cle, adresseLisible(ligne), numeroCourant);
   });
 
   // « Relancer le membre » : ouvre l'aperçu du courriel (rien n'est envoyé — 0003).

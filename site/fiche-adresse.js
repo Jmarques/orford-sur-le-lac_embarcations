@@ -23,6 +23,10 @@
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
 //   surOuvrirEmplacement(numero, cle, adresse) — la page ferme cette fiche et
 //                      ouvre la fiche d'emplacement avec retour (0019).
+// ouvrir(cle, retour) : `retour` (0019/0024, ouverture depuis une fiche
+//   d'emplacement) = { libelle, surRetour } — affiche « Retour à <libelle> » et
+//   rejoue surRetour à la fermeture du drawer (MIROIR du retour de la fiche
+//   d'emplacement : X et échap reviennent aussi à l'emplacement).
 
 /* global statutEmplacement, casAdresse, journalDeCas, apparenceStatut, cartePositions,
    creerBlocMembre, rendreBlocMembre, creerBlocJournal, rendreListeJournal, calerBlocJournal,
@@ -32,6 +36,16 @@ function creerFicheAdresse(options) {
   document.body.insertAdjacentHTML('beforeend', `
     <wa-drawer id="fiche-adresse" label="Adresse">
       <div class="corps-fiche-adresse wa-stack wa-gap-l">
+        <!-- Retour vers la fiche d'emplacement (MIROIR de 0019) : présent
+             seulement quand la fiche a été ouverte depuis un emplacement — jamais
+             deux drawers empilés, le retour rouvre l'emplacement après fermeture. -->
+        <div id="fiche-adresse-retour-zone" class="wa-cluster" hidden>
+          <wa-button id="fiche-adresse-retour" appearance="plain">
+            <wa-icon slot="start" name="arrow-left"></wa-icon>
+            <span id="fiche-adresse-retour-texte">Retour</span>
+          </wa-button>
+        </div>
+
         <!-- SUJET — callout SEULEMENT pour un problème/exception (Hors quota) :
              il porte alors son remède, rattaché au problème qu'il résout (0024).
              Neutre : une règle de gestion, pas une urgence de terrain. Rien
@@ -81,6 +95,11 @@ function creerFicheAdresse(options) {
   // Sheet — la clé ne s'affiche jamais).
   let cleCourante = '';
   let adresseCourante = '';
+
+  // Le retour de navigation (MIROIR de 0019) : posé à l'ouverture depuis une
+  // fiche d'emplacement ({ libelle, surRetour }), consommé à la fermeture du
+  // drawer — quelle que soit la façon de fermer (bouton retour, X, échap).
+  let retourCourant = null;
 
   function donneesCas() {
     return casAdresse(cleCourante, options.donnees().emplacements, options.donnees().membres);
@@ -248,6 +267,17 @@ function creerFicheAdresse(options) {
   }
   drawer.addEventListener('wa-after-show', calerJournal);
 
+  // Le bouton retour ne fait que fermer : le retour lui-même est joué à la
+  // fermeture du drawer (wa-after-hide), pour que X et échap reviennent aussi à
+  // l'emplacement — dans ce contexte, il EST la surface d'origine (MIROIR de 0019).
+  el('fiche-adresse-retour').addEventListener('click', () => drawer.removeAttribute('open'));
+  drawer.addEventListener('wa-after-hide', (evenement) => {
+    if (evenement.target !== drawer || !retourCourant) return;
+    const retour = retourCourant;
+    retourCourant = null;
+    retour.surRetour();
+  });
+
   function cacherErreur() {
     el('fiche-adresse-erreur').hidden = true;
   }
@@ -287,6 +317,9 @@ function creerFicheAdresse(options) {
   // — un refus métier est remonté en ErreurApi avant d'arriver ici.
   async function sessionEncoreValide(resultat) {
     if (resultat.accesRefuse) {
+      // La session est morte : ne pas rouvrir l'emplacement au passage — la page
+      // va montrer l'écran de connexion.
+      retourCourant = null;
       await fermer();
       options.surSessionExpiree();
       return false;
@@ -343,12 +376,20 @@ function creerFicheAdresse(options) {
   });
 
   // Ouvre la fiche d'un cas par sa clé d'adresse normalisée (fileHorsQuota).
-  async function ouvrir(cle) {
+  // `retour` (MIROIR de 0019, ouverture depuis une fiche d'emplacement) :
+  // { libelle, surRetour } — affiche « Retour à <libelle> » et rejoue surRetour
+  // à la fermeture du drawer.
+  async function ouvrir(cle, retour) {
     await Promise.all(['wa-drawer', 'wa-dialog', 'wa-textarea', 'wa-button', 'wa-callout', 'wa-badge']
       .map((nom) => customElements.whenDefined(nom)));
     cleCourante = cle;
     const cas = donneesCas();
     if (cas) adresseCourante = cas.adresse;
+    retourCourant = retour || null;
+    el('fiche-adresse-retour-zone').hidden = !retourCourant;
+    if (retourCourant) {
+      el('fiche-adresse-retour-texte').textContent = 'Retour à ' + retourCourant.libelle;
+    }
     // Même choix de contenant que la fiche d'emplacement (0018).
     drawer.setAttribute('placement', matchMedia('(max-width: 640px)').matches ? 'bottom' : 'end');
     el('fiche-adresse-champ-note').value = '';
