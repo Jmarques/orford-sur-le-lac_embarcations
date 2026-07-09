@@ -860,6 +860,103 @@ function situationAttribution(cle, lignesEmplacements, membres) {
   return { nombre: nombre, quota: quota, bloque: nombre >= quota };
 }
 
+// --- Page « Adresses » (décision 0023) : index de recherche + matching tri-clé ---
+
+// L'index de recherche : l'UNION des adresses ayant des attributions et des
+// lignes de l'onglet Membres, dédupée par clé d'adresse normalisée (0019).
+// Une adresse connue seulement via Membres (aucune attribution) y figure avec
+// `emplacements: []` — la page Adresses doit pouvoir ouvrir n'importe quelle
+// adresse, y compris un nouveau membre pas encore attribué (0023). Chaque
+// entrée : { cle, adresse, membre, emplacements } ; l'affichage garde le texte
+// de la première ligne rencontrée (attribution d'abord, sinon Membres).
+function toutesLesAdresses_(lignesEmplacements, membres) {
+  var parCle = {};
+  var ordre = [];
+  groupesParAdresse_(lignesEmplacements).forEach(function (groupe) {
+    parCle[groupe.cle] = {
+      cle: groupe.cle,
+      adresse: groupe.adresse,
+      membre: chercherMembreParCle(membres, groupe.cle),
+      emplacements: groupe.emplacements,
+    };
+    ordre.push(groupe.cle);
+  });
+  (membres || []).forEach(function (membre) {
+    var cle = cleAdresse(membre);
+    if (cle === '' || parCle[cle]) return;
+    parCle[cle] = {
+      cle: cle,
+      adresse: String(membre.numeroAdresse).trim() + ' ' + String(membre.rue).trim(),
+      membre: membre,
+      emplacements: [],
+    };
+    ordre.push(cle);
+  });
+  return ordre.map(function (cle) { return parCle[cle]; });
+}
+
+// Normalise un texte pour la recherche : la clé d'adresse (trim, minuscules,
+// espaces réduits — cohérent avec cleAdresse, 0019) PLUS le repli des accents.
+// « erables » retrouve « Érables » : l'aîné au téléphone ne tape pas les
+// accents, et la même normalisation s'applique des deux côtés (requête et
+// champs cherchés) pour que l'appariement soit symétrique.
+function normaliserRecherche_(texte) {
+  return cleTexte_(texte).normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+// La raison pour laquelle une entrée d'index correspond à une requête, ou null.
+// Trois clés testées dans l'ordre de priorité — nom, adresse, numéro
+// d'emplacement (préfixe, requête numérique seulement). La raison d'un match
+// par numéro porte QUEL numéro a matché (le plus petit préfixé), pour la
+// légende « · Emplacement N » (0023).
+function raisonDeMatch_(requeteNormalisee, estNumerique, entree) {
+  var nom = normaliserRecherche_(entree.membre && entree.membre.nom);
+  if (nom !== '' && nom.indexOf(requeteNormalisee) !== -1) return { cle: 'nom' };
+  if (normaliserRecherche_(entree.adresse).indexOf(requeteNormalisee) !== -1) return { cle: 'adresse' };
+  if (estNumerique) {
+    var numeros = (entree.emplacements || [])
+      .map(function (ligne) { return Number(ligne.numero); })
+      .filter(function (n) { return Number.isInteger(n) && n > 0 && String(n).indexOf(requeteNormalisee) === 0; })
+      .sort(function (a, b) { return a - b; });
+    if (numeros.length > 0) return { cle: 'numero', numero: numeros[0] };
+  }
+  return null;
+}
+
+// La recherche tri-clé de la page « Adresses » (0023) : pour une requête,
+// trouve les entrées de l'index (union `toutesLesAdresses_`) par nom de
+// [[Membre]], par [[Adresse]] (numéro + rue), ou par numéro d'[[Emplacement]]
+// (préfixe pour les chiffres). Chaque résultat porte l'entrée complète et la
+// RAISON de son match (dont le numéro, pour la légende). Classement : les
+// correspondances de nom d'abord, puis adresse, puis numéro ; ordre de l'index
+// stable à égalité de priorité. Une requête vide ne trouve rien. La même
+// ambiguïté qu'au tableur — un « 234 » civique et un « 234 » d'emplacement —
+// donne deux résultats distincts, chacun disant pourquoi il correspond.
+function chercherAdresses(requete, adresses) {
+  var q = normaliserRecherche_(requete);
+  if (q === '') return [];
+  var estNumerique = /^\d+$/.test(q);
+  var priorite = { nom: 0, adresse: 1, numero: 2 };
+  return (adresses || [])
+    .map(function (entree, index) {
+      var raison = raisonDeMatch_(q, estNumerique, entree);
+      return raison ? { entree: entree, raison: raison, ordre: index } : null;
+    })
+    .filter(function (r) { return r !== null; })
+    .sort(function (a, b) {
+      return (priorite[a.raison.cle] - priorite[b.raison.cle]) || (a.ordre - b.ordre);
+    })
+    .map(function (r) {
+      return {
+        cle: r.entree.cle,
+        adresse: r.entree.adresse,
+        membre: r.entree.membre,
+        emplacements: r.entree.emplacements,
+        raison: r.raison,
+      };
+    });
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, chercherMembreParCle, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, chercherMembreParCle, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, toutesLesAdresses_, chercherAdresses, ETATS_OCCUPATION };
 }
