@@ -17,7 +17,9 @@
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
    serieLibreObservee, depassementQuota,
    cleAdresse, ETATS_OCCUPATION, apparenceStatut, proseSignal, formatAdresse,
-   chercherMembreParCle, positionParNumero, lienMailto */
+   chercherMembreParCle, positionParNumero, lienMailto,
+   creerBlocMembre, rendreBlocMembre, creerBlocJournal, rendreListeJournal,
+   calerBlocJournal */
 
 function creerFicheEmplacement(options) {
   // Markup constant (aucune donnée) : tout ce qui vient de la Sheet est posé
@@ -45,23 +47,7 @@ function creerFicheEmplacement(options) {
             <span id="fiche-statut-detail" class="detail-statut"></span>
           </div>
         </wa-callout>
-        <div id="fiche-membre" class="wa-stack wa-gap-2xs" hidden>
-          <!-- Nom et adresse sur la même ligne (repli naturel si étroite) :
-               la fiche reste courte sur téléphone. La pastille quota (0019)
-               n'apparaît QUE quand l'adresse dépasse son quota — silence
-               dans les règles (0016) ; le traitement vit dans À traiter. -->
-          <p class="wa-cluster wa-gap-xs wa-align-items-baseline">
-            <span id="fiche-membre-nom" class="champ-membre-nom"></span>
-            <span id="fiche-membre-adresse" class="wa-color-text-quiet"></span>
-            <wa-badge id="fiche-membre-quota" variant="neutral" appearance="filled-outlined" hidden></wa-badge>
-          </p>
-          <div class="wa-cluster wa-gap-m liens-contact">
-            <a id="fiche-telephone" hidden><wa-icon name="phone"></wa-icon> <span id="fiche-telephone-texte"></span></a>
-            <a id="fiche-courriel" hidden><wa-icon name="envelope"></wa-icon> <span id="fiche-courriel-texte"></span></a>
-          </div>
-          <p id="fiche-membre-absent" class="wa-caption-m wa-color-text-quiet" hidden>Aucun membre inscrit
-            dans l'onglet Membres pour cette adresse.</p>
-        </div>
+        ${creerBlocMembre({ prefixe: 'fiche', avecAdresse: true, avecQuota: true, conteneurCache: true })}
         <p id="fiche-note-comite" class="note-membre wa-text-pretty" hidden></p>
         <wa-tab-group id="fiche-onglets">
           <wa-tab panel="observer">Observer</wa-tab>
@@ -84,30 +70,7 @@ function creerFicheEmplacement(options) {
           </wa-tab-panel>
           <wa-tab-panel name="traiter">
             <div class="wa-stack wa-gap-s">
-              <h3 class="wa-heading-s">Journal de l'emplacement</h3>
-              <ol id="fiche-journal" class="liste-evenements zone-journal wa-stack wa-gap-s"></ol>
-              <p id="fiche-journal-vide" class="wa-caption-m wa-color-text-quiet" hidden>Rien au journal
-                pour l'instant.</p>
-              <!-- Le champ vit en pied du journal : le geste se lit comme
-                   « j'ajoute une ligne à ce journal ». -->
-              <form id="fiche-formulaire-note" class="wa-stack wa-gap-s">
-                <!-- rows=1 + resize auto : le champ grandit en écrivant ; le
-                     placeholder court tient sur une ligne (hauteur mobile). -->
-                <wa-textarea id="fiche-champ-note" label="Ajouter une note" rows="1" resize="auto"
-                             placeholder="ex. : courriel envoyé — Jeremy"></wa-textarea>
-                <!-- L'erreur d'envoi vit à côté des boutons : c'est là que regarde
-                     l'utilisateur au moment où elle apparaît. Le texte saisi est conservé. -->
-                <wa-callout id="fiche-erreur-traiter" variant="danger" role="alert" tabindex="-1" hidden>
-                  <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-                  <span id="fiche-erreur-traiter-texte"></span>
-                </wa-callout>
-                <div class="wa-cluster wa-gap-s">
-                  <wa-button id="fiche-ajouter-note" type="submit" appearance="outlined" variant="brand">
-                    <wa-icon slot="start" name="pen"></wa-icon>
-                    Ajouter la note
-                  </wa-button>
-                </div>
-              </form>
+              ${creerBlocJournal({ prefixe: 'fiche', sujet: 'l\'emplacement', amorce: 'ex. : courriel envoyé — Jeremy', erreurId: 'fiche-erreur-traiter' })}
               <!-- L'aide colle au bouton qu'elle explique (revue UI) : on ne
                    s'attend pas à un brouillon préparé — le dire est du
                    procédural rassurant, pas du bruit (0016/0019). -->
@@ -210,24 +173,16 @@ function creerFicheEmplacement(options) {
     return evenement.action + (evenement.details ? ' — ' + evenement.details : '');
   }
 
-  function ligneJournal(evenement) {
-    const element = document.createElement('li');
-    element.className = 'ligne-journal';
+  // Le descripteur d'un événement pour le bloc journal partagé (blocs-fiche.js) :
+  // icône du type, libellé et texte. Le journal de l'emplacement montre aussi
+  // les observations, d'où EVENEMENTS_JOURNAL et son repli 'circle-info'.
+  function decrireEvenement(evenement) {
     const type = EVENEMENTS_JOURNAL[evenement.action];
-    const icone = document.createElement('wa-icon');
-    icone.setAttribute('name', type ? type.icone : 'circle-info');
-    icone.setAttribute('label', type ? type.libelle : 'Événement');
-    const bloc = document.createElement('span');
-    bloc.className = 'texte-journal';
-    const quand = document.createElement('span');
-    quand.className = 'wa-caption-m wa-color-text-quiet';
-    quand.textContent = formatDate.format(evenement.date);
-    const quoi = document.createElement('span');
-    quoi.className = 'wa-text-pretty';
-    quoi.textContent = texteEvenement(evenement);
-    bloc.append(quand, quoi);
-    element.append(icone, bloc);
-    return element;
+    return {
+      icone: type ? type.icone : 'circle-info',
+      label: type ? type.libelle : 'Événement',
+      texte: texteEvenement(evenement),
+    };
   }
 
   // Le courriel pré-rempli n'est JAMAIS envoyé par l'app (0003) : le membre du
@@ -289,13 +244,8 @@ function creerFicheEmplacement(options) {
     const attribue = gestes.liberer;
     const blocMembre = el('fiche-membre');
     blocMembre.hidden = !attribue;
-    const nom = el('fiche-membre-nom');
-    const telephone = el('fiche-telephone');
-    const courriel = el('fiche-courriel');
-    nom.hidden = telephone.hidden = courriel.hidden = true;
     if (!blocMembre.hidden) {
       el('fiche-membre-adresse').textContent = adresseLisible(ligne);
-      el('fiche-membre-absent').hidden = !!membre;
       // Pastille quota (0019) : seulement quand l'adresse dépasse — le membre
       // du comité qui ouvre un emplacement depuis la grille découvre le
       // contexte du dossier ; rien quand l'adresse est dans les règles. Le
@@ -305,23 +255,11 @@ function creerFicheEmplacement(options) {
       const pastilleQuota = el('fiche-membre-quota');
       pastilleQuota.hidden = !quota;
       if (quota) pastilleQuota.textContent = 'Hors quota — ' + quota.nombre + ' emplacements à cette adresse';
-      if (membre) {
-        nom.hidden = false;
-        nom.textContent = String(membre.nom || '').trim();
-        const numeroTelephone = String(membre.telephone || '').trim();
-        if (numeroTelephone) {
-          telephone.href = 'tel:' + numeroTelephone.replace(/[^+\d]/g, '');
-          el('fiche-telephone-texte').textContent = numeroTelephone;
-          telephone.hidden = false;
-        }
-        const adresseCourriel = String(membre.courriel || '').trim();
-        if (adresseCourriel) {
-          courriel.href = 'mailto:' + adresseCourriel;
-          el('fiche-courriel-texte').textContent = adresseCourriel;
-          courriel.hidden = false;
-        }
-      }
     }
+    // Nom, contact tappable et mention « aucun membre » : bloc partagé (0024).
+    // `membre` est undefined quand l'emplacement n'est pas attribué (bloc replié
+    // au-dessus) — les liens restent masqués sous le conteneur caché.
+    rendreBlocMembre('fiche', membre);
 
     // Note du comité de la ligne d'emplacement (annotation durable, non datée).
     const note = el('fiche-note-comite');
@@ -359,11 +297,8 @@ function creerFicheEmplacement(options) {
       : 'Jamais observé pour l\'instant.';
 
     // Onglet Traiter : journal complet (défilé au plus récent) + gestes.
-    const journal = el('fiche-journal');
     const historique = historiqueEmplacement(options.donnees().journal, numeroCourant);
-    journal.replaceChildren(...historique.map(ligneJournal));
-    el('fiche-journal-vide').hidden = historique.length > 0;
-    calerJournal();
+    rendreListeJournal('fiche', historique, decrireEvenement);
 
     el('fiche-liberer').hidden = !gestes.liberer;
     const ecrire = el('fiche-ecrire');
@@ -378,10 +313,7 @@ function creerFicheEmplacement(options) {
   // au frame suivant, une fois le panneau réellement mesurable (wa-tab-show
   // part avant que le contenu soit visible).
   function calerJournal() {
-    requestAnimationFrame(() => {
-      const journal = el('fiche-journal');
-      journal.scrollTop = journal.scrollHeight;
-    });
+    calerBlocJournal('fiche');
   }
   drawer.addEventListener('wa-after-show', calerJournal);
   el('fiche-onglets').addEventListener('wa-tab-show', calerJournal);
