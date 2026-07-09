@@ -313,49 +313,67 @@ export const CAPTURES = [
   { nom: 'structures-liste', page: 'structures.html', etat: 'liste', attendre: '.carte-structure' },
   { nom: 'structures-liste-defilee', page: 'structures.html', etat: 'liste', attendre: '.carte-structure', defiler: '.grille-structure' },
   { nom: 'structures-liste-vide', page: 'structures.html', etat: 'liste-vide', attendre: '#etat-vide:not([hidden])' },
-  // Fiche d'emplacement (décision 0018) : le drawer partagé, un scénario par
-  // statut sur l'onglet Observer (l'onglet de cette page). `pleinVue` : un
-  // <dialog> du top layer se rend mal en capture pleine page — viewport seul.
+  // Fiche d'emplacement unifiée (décision 0024) : coquille à plat, un scénario
+  // par statut. Un état SAIN se lit en ligne calme (statut-calme, teintée de la
+  // gravité) ; un état à PROBLÈME porte un callout avec ses remèdes. `pleinVue` :
+  // un drawer/dialog du top layer se rend mal en capture pleine page — viewport
+  // seul.
+  // À identifier : une anomalie (danger) — callout de sa gravité réelle, sans
+  // remède (rien à faire d'ici que d'aller l'observer). Jamais moins saillant
+  // que le warning « Attribué, libre » (design.md).
   { nom: 'structures-fiche-orphelin', page: 'structures.html', etat: 'liste',
-    cliquer: '.cellule-structure[data-numero="76"]', attendre: '.bouton-occupation', pleinVue: true },
+    cliquer: '.cellule-structure[data-numero="76"]',
+    attendre: '#fiche-statut[variant="danger"]', pleinVue: true },
   { nom: 'structures-fiche-conforme', page: 'structures.html', etat: 'liste',
-    cliquer: '.cellule-structure[data-numero="74"]', attendre: '.bouton-occupation', pleinVue: true },
+    cliquer: '.cellule-structure[data-numero="74"]',
+    attendre: '#fiche-statut-calme[data-variant="success"]', pleinVue: true },
+  // Attribué, libre : le seul état où « Relancer » et « Libérer » ont une raison
+  // — les remèdes vivent dans le callout warning du statut (0024).
   { nom: 'structures-fiche-attribue-libre', page: 'structures.html', etat: 'liste',
-    cliquer: '.cellule-structure[data-numero="75"]', attendre: '.bouton-occupation', pleinVue: true },
-  { nom: 'structures-fiche-disponible', page: 'structures.html', etat: 'liste',
-    cliquer: '.cellule-structure[data-numero="77"]', attendre: '.bouton-occupation', pleinVue: true },
-  { nom: 'structures-fiche-pas-observe', page: 'structures.html', etat: 'liste',
-    cliquer: '.cellule-structure[data-numero="90"]', attendre: '.bouton-occupation', pleinVue: true },
-  // L'onglet Traiter, accessible depuis la grille (0018) : journal, note et
-  // gestes selon le statut — avec membre (75, attribué) et sans (76, orphelin).
-  { nom: 'structures-fiche-traiter', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]'],
+    cliquer: '.cellule-structure[data-numero="75"]',
     attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
-  { nom: 'structures-fiche-traiter-a-identifier', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="76"]', '#fiche-onglets wa-tab[panel="traiter"]'],
-    attendre: '#fiche-journal .ligne-journal', pleinVue: true },
+  { nom: 'structures-fiche-disponible', page: 'structures.html', etat: 'liste',
+    cliquer: '.cellule-structure[data-numero="77"]',
+    attendre: '#fiche-statut-calme[data-variant="brand"]', pleinVue: true },
+  { nom: 'structures-fiche-pas-observe', page: 'structures.html', etat: 'liste',
+    cliquer: '.cellule-structure[data-numero="90"]',
+    attendre: '#fiche-statut-calme[data-variant="neutral"]', pleinVue: true },
+  // Emplacement sain mais dont l'ADRESSE dépasse son quota (82 → 501 Rue du Pré,
+  // 4 emplacements pour 2) : callout neutral « Adresse hors quota » portant
+  // « Libérer », le statut propre de l'emplacement dit calmement dessous (0024).
+  { nom: 'structures-fiche-hors-quota', page: 'structures.html', etat: 'liste',
+    cliquer: '.cellule-structure[data-numero="82"]',
+    attendre: '#fiche-statut[variant="neutral"]', pleinVue: true },
+  // « Sur place » est une action : elle révèle le relevé Occupé/Libre replié.
+  { nom: 'structures-fiche-sur-place', page: 'structures.html', etat: 'liste',
+    cliquer: ['.cellule-structure[data-numero="74"]', '#fiche-sur-place'],
+    attendre: '.bouton-occupation', pleinVue: true },
   // La légende explique ses termes au toucher (wa-popover ancré au jeton).
   // `presenceSeule` : c'est l'attribut [open] qui prouve l'ouverture — le host
   // wa-popover est « invisible » pour Playwright même ouvert.
   { nom: 'structures-legende-explication', page: 'structures.html', etat: 'liste',
     cliquer: '#legende-conflit', attendre: 'wa-popover[for="legende-conflit"][open]',
     presenceSeule: true, pleinVue: true },
+  // Échec d'observation : « Sur place » révèle le relevé, puis « libre » échoue —
+  // l'erreur vit dans le panneau du relevé.
   { nom: 'structures-fiche-erreur', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="76"]', '.bouton-occupation[data-occupation="libre"]'],
+    cliquer: ['.cellule-structure[data-numero="76"]', '#fiche-sur-place',
+      '.bouton-occupation[data-occupation="libre"]'],
     attendre: '#fiche-erreur-observer:not([hidden])', pleinVue: true,
     reponses: { observerEmplacement: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
   // Observation réussie : la fiche RESTE ouverte (0018) — le statut de 76
-  // bascule d'« À identifier » (danger) à « Disponible » (brand) sous les
-  // yeux, la grille derrière se recolore. `reponsesApres` : l'inventaire
+  // bascule d'« À identifier » (danger) à « Disponible » (brand, ligne calme)
+  // sous les yeux, la grille derrière se recolore. `reponsesApres` : l'inventaire
   // rechargé après le geste, pas celui du premier chargement.
   { nom: 'structures-observation-succes', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="76"]', '.bouton-occupation[data-occupation="libre"]'],
-    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    cliquer: ['.cellule-structure[data-numero="76"]', '#fiche-sur-place',
+      '.bouton-occupation[data-occupation="libre"]'],
+    attendre: '#fiche-statut-calme[data-variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
-  // Note ajoutée depuis la grille : fiche ouverte, journal enrichi (6e ligne
-  // pour 75), champ vidé.
+  // Note ajoutée depuis la grille : coquille à plat (journal toujours visible),
+  // fiche ouverte, journal enrichi (6e ligne pour 75), champ vidé.
   { nom: 'structures-fiche-note-succes', page: 'structures.html', etat: 'liste',
-    ouvrir: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]'],
+    ouvrir: '.cellule-structure[data-numero="75"]',
     remplir: { selecteur: '#fiche-champ-note textarea', valeur: 'Parlé au membre : il vide l\'emplacement d\'ici la fin du mois. — Jeremy' },
     cliquer: '#fiche-ajouter-note',
     attendre: '#fiche-journal .ligne-journal:nth-of-type(6)', pleinVue: true,
@@ -363,15 +381,15 @@ export const CAPTURES = [
   // La confirmation avant de libérer : aucun tap accidentel ne retire une
   // adresse. `presenceSeule` : host wa-dialog « invisible » pour Playwright.
   { nom: 'structures-fiche-confirmation-liberation', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]',
-      '#fiche-liberer'],
+    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-liberer'],
     attendre: '#fiche-dialogue-liberer[open]', presenceSeule: true, pleinVue: true },
   // Libération depuis la grille : confirmation, puis fiche TOUJOURS ouverte —
-  // le statut bascule à « Disponible » et la libération se lit au journal.
+  // le statut bascule à « Disponible » (ligne calme) et la libération se lit au
+  // journal.
   { nom: 'structures-fiche-liberation-succes', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]',
-      '#fiche-liberer', '#fiche-dialogue-liberer-confirmer'],
-    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-liberer',
+      '#fiche-dialogue-liberer-confirmer'],
+    attendre: '#fiche-statut-calme[data-variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_LIBERATION } },
   { nom: 'structures-edition', page: 'structures.html', etat: 'liste', cliquer: '[data-structure="S02"] .bouton-modifier', attendre: '.mode-edition:not([hidden]) .apercu-grille .grille-emplacements' },
   // `:not([disabled])` : le bouton n'est cliquable qu'une fois le formulaire initialisé.
@@ -494,23 +512,26 @@ export const CAPTURES = [
     cliquer: ['.rangee-cas[data-cle="234 rue du pré"]', '.rangee-emplacement[data-numero="84"]',
       '#fiche-retour'],
     attendre: '#fiche-adresse-fait', pleinVue: true },
-  // La fiche d'un cas attribué, onglet Traiter d'office : membre, journal, gestes.
+  // La fiche unifiée d'un cas attribué-libre : callout warning portant les
+  // remèdes (Relancer, Libérer), membre, relevé replié, journal (0024).
   { nom: 'a-traiter-fiche', page: 'a-traiter.html', etat: 'liste',
     cliquer: '.rangee-cas[data-numero="75"]',
     attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
-  // La ligne d'aide sous « Écrire au membre » (0019) vit en pied de drawer,
-  // sous le pli : `voir` la fait défiler dans la vue pour la capture.
-  { nom: 'a-traiter-fiche-aide-ecrire', page: 'a-traiter.html', etat: 'liste',
-    cliquer: '.rangee-cas[data-numero="75"]',
-    attendre: '#fiche-aide-ecrire:not([hidden])', voir: '#fiche-aide-ecrire', pleinVue: true },
-  // La fiche d'un « À identifier » : pas de membre, journal + note seulement.
+  // « Relancer le membre » ouvre l'aperçu du courriel pré-rédigé (objet + corps
+  // + « rien n'est envoyé automatiquement ») — jamais d'envoi auto (0003/0024).
+  // `presenceSeule` : host wa-dialog « invisible » pour Playwright même ouvert.
+  { nom: 'a-traiter-apercu-courriel', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-ecrire'],
+    attendre: '#apercu-courriel[open]', presenceSeule: true, pleinVue: true },
+  // La fiche d'un « À identifier » : statut calme (danger), pas de membre,
+  // journal + note seulement.
   { nom: 'a-traiter-fiche-a-identifier', page: 'a-traiter.html', etat: 'liste',
     cliquer: '.rangee-cas[data-numero="76"]',
     attendre: '#fiche-journal .ligne-journal', pleinVue: true },
-  // L'onglet Observer, accessible depuis le registre (0018) : vérifier ses
-  // cas sur le terrain avec la page À traiter ouverte.
-  { nom: 'a-traiter-fiche-observer', page: 'a-traiter.html', etat: 'liste',
-    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-onglets wa-tab[panel="observer"]'],
+  // « Sur place » (action de la barre utilitaire) révèle le relevé Occupé/Libre
+  // pour vérifier un cas sur le terrain, page À traiter ouverte (0024).
+  { nom: 'a-traiter-fiche-sur-place', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-sur-place'],
     attendre: '.bouton-occupation', pleinVue: true },
   // Note ajoutée : fiche TOUJOURS ouverte (0018), journal enrichi (6e ligne
   // pour 75), champ vidé — le registre derrière comptera 2 notes.
@@ -532,18 +553,18 @@ export const CAPTURES = [
   { nom: 'a-traiter-confirmation-liberation', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-liberer'],
     attendre: '#fiche-dialogue-liberer[open]', presenceSeule: true, pleinVue: true },
-  // Libération : fiche TOUJOURS ouverte, statut basculé à « Disponible » —
-  // au rechargement (reponsesApres), 75 a quitté le registre derrière.
+  // Libération : fiche TOUJOURS ouverte, statut basculé à « Disponible » (ligne
+  // calme) — au rechargement (reponsesApres), 75 a quitté le registre derrière.
   { nom: 'a-traiter-liberation-succes', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-liberer', '#fiche-dialogue-liberer-confirmer'],
-    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    attendre: '#fiche-statut-calme[data-variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_LIBERATION } },
-  // Observation qui referme le cas : depuis l'onglet Observer d'un
-  // « À identifier », « libre » fait basculer le statut ET sortir la rangée.
+  // Observation qui referme le cas : « Sur place » révèle le relevé, « libre »
+  // fait basculer le statut ET sortir la rangée derrière.
   { nom: 'a-traiter-observation-succes', page: 'a-traiter.html', etat: 'liste',
-    cliquer: ['.rangee-cas[data-numero="76"]', '#fiche-onglets wa-tab[panel="observer"]',
+    cliquer: ['.rangee-cas[data-numero="76"]', '#fiche-sur-place',
       '.bouton-occupation[data-occupation="libre"]'],
-    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    attendre: '#fiche-statut-calme[data-variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
   // Fiche de demande (décision 0020) : l'écran de décision. Inventaire dédié
   // (INVENTAIRE_FICHE_DEMANDE) pour couvrir chaque état sans toucher au reste.

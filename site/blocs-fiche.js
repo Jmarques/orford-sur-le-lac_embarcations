@@ -173,3 +173,60 @@ function calerBlocJournal(prefixe) {
     journal.scrollTop = journal.scrollHeight;
   });
 }
+
+// --- Aperçu du courriel pré-rédigé (décisions 0024, 0003) -------------------
+
+// Un dialogue partagé qui montre l'objet et le corps d'un courriel AVANT
+// d'ouvrir la messagerie du membre du comité. Rien n'est jamais envoyé par
+// l'app (0003) : « Ouvrir dans ma messagerie » pose un mailto pré-rempli, à
+// relire et ajuster. Réutilisé par la fiche d'emplacement (relancer un membre)
+// et la fiche d'adresse (demander de libérer une place) — d'où sa place dans
+// les blocs partagés. Le dialogue est injecté une seule fois, à la première
+// ouverture, puis réutilisé ; l'objet et le corps passent par textContent
+// (anti-XSS), le mailto est encodé par lienMailto (presentation.js).
+function injecterApercuCourriel_() {
+  if (document.getElementById('apercu-courriel')) return;
+  document.body.insertAdjacentHTML('beforeend', `
+    <wa-dialog id="apercu-courriel" label="Courriel pré-rédigé">
+      <div class="wa-stack wa-gap-m">
+        <!-- La réassurance d'abord (0003) : elle lève l'inquiétude « est-ce
+             que ça part tout seul ? » avant de montrer le brouillon. -->
+        <p class="wa-color-text-quiet wa-text-pretty">Rien n'est envoyé automatiquement.
+          En ouvrant, ce brouillon apparaîtra dans votre messagerie — relisez-le et
+          ajustez-le avant de l'envoyer.</p>
+        <div class="wa-stack wa-gap-2xs">
+          <span class="wa-caption-m wa-color-text-quiet">Objet</span>
+          <strong id="apercu-courriel-objet" class="wa-text-pretty"></strong>
+        </div>
+        <div class="wa-stack wa-gap-2xs">
+          <span class="wa-caption-m wa-color-text-quiet">Message</span>
+          <div id="apercu-courriel-corps" class="apercu-corps wa-text-pretty"></div>
+        </div>
+      </div>
+      <wa-button id="apercu-courriel-ouvrir" slot="footer" variant="brand" appearance="accent" size="m">
+        <wa-icon slot="start" name="envelope"></wa-icon>
+        Ouvrir dans ma messagerie
+      </wa-button>
+      <!-- La sortie sûre est un vrai bouton, aussi facile à viser que l'action
+           (public aîné) — pas un lien texte. -->
+      <wa-button slot="footer" appearance="outlined" size="m" data-dialog="close">Fermer</wa-button>
+    </wa-dialog>`);
+  // Le bouton d'ouverture est un lien mailto : ouvrir la messagerie ne quitte
+  // pas la page, on referme le dialogue derrière (le brouillon vit désormais
+  // dans le client mail du membre du comité).
+  document.getElementById('apercu-courriel-ouvrir')
+    .addEventListener('click', function () {
+      document.getElementById('apercu-courriel').removeAttribute('open');
+    });
+}
+
+// Ouvre l'aperçu pour un courriel { courriel, sujet, corps } (mêmes clés que
+// lienMailto). L'appelant construit l'objet et le corps ; ici on ne fait que
+// montrer et préparer le mailto.
+function ouvrirApercuCourriel(courriel) {
+  injecterApercuCourriel_();
+  document.getElementById('apercu-courriel-objet').textContent = courriel.sujet;
+  document.getElementById('apercu-courriel-corps').textContent = courriel.corps;
+  document.getElementById('apercu-courriel-ouvrir').setAttribute('href', lienMailto(courriel));
+  document.getElementById('apercu-courriel').setAttribute('open', '');
+}
