@@ -521,9 +521,24 @@ export const CAPTURES = [
     adresse: '12 rue des érables',
     attendre: '.rangee-emplacement', pleinVue: true },
   // La fiche unifiée d'un cas attribué-libre : callout warning portant les
-  // remèdes (Relancer, Libérer), membre, relevé replié, journal (0024).
+  // remèdes (Relancer, Libérer), membre, relevé replié, journal (0024). La barre
+  // utilitaire montre « Fiche d'adresse » (l'emplacement est attribué) — MIROIR
+  // de 0019, issue 06.
   { nom: 'a-traiter-fiche', page: 'a-traiter.html', etat: 'liste',
     cliquer: '.rangee-cas[data-numero="75"]',
+    attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
+  // Navigation fiche d'emplacement → fiche d'adresse (MIROIR de 0019, issue 06) :
+  // « Fiche d'adresse » REMPLACE le drawer par le dossier de l'adresse attribuée
+  // (jamais deux empilés), qui porte le bouton retour « Retour à Emplacement 75 ».
+  // 75 = 12 Rue des Érables (Louise, exception à 3, 1 seul emplacement) : dossier
+  // « dans le quota » ouvert depuis un emplacement — aucun callout.
+  { nom: 'a-traiter-fiche-vers-adresse', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-vers-adresse'],
+    attendre: '#fiche-adresse-retour-zone:not([hidden])', pleinVue: true },
+  // … et retour : la fiche d'emplacement se rouvre (75 attribué-libre → le
+  // callout warning et ses remèdes reparaissent), re-rendue depuis l'état frais.
+  { nom: 'a-traiter-retour-fiche-emplacement', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-vers-adresse', '#fiche-adresse-retour'],
     attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
   // « Relancer le membre » ouvre l'aperçu du courriel pré-rédigé (objet + corps
   // + « rien n'est envoyé automatiquement ») — jamais d'envoi auto (0003/0024).
