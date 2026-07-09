@@ -155,9 +155,34 @@ test('le dossier d\'une adresse existe aussi dans les règles — la fiche reste
   assert.deepEqual(cas.emplacements.map((l) => l.numero), [74, 75]);
 });
 
-test('le dossier d\'une adresse sans attribution lisible est null', () => {
-  assert.equal(casAdresse('9 chemin inconnu', troisAttributions(), []), null);
-  assert.equal(casAdresse('', troisAttributions(), []), null);
+test('une adresse connue seulement via Membres (aucune attribution) a un dossier à nombre 0 (0023/0024)', () => {
+  const cas = casAdresse('12 rue des érables', [], [membre()]);
+  assert.equal(cas.cle, '12 rue des érables');
+  assert.equal(cas.adresse, '12 Rue des Érables'); // le texte vient de la ligne Membres
+  assert.equal(cas.membre.nom, 'Louise Bédard');
+  assert.equal(cas.nombre, 0);
+  assert.equal(cas.quota, 2);
+  assert.equal(cas.depassement, 0);
+  assert.deepEqual(cas.emplacements, []);
+});
+
+test('le dossier Membres-seul porte le quota accordé applicable (dépassement reste 0 sans attribution)', () => {
+  const cas = casAdresse('12 rue des érables', [], [membre({ quotaAccorde: 3 })]);
+  assert.equal(cas.nombre, 0);
+  assert.equal(cas.quota, 3);
+  assert.equal(cas.depassement, 0);
+});
+
+test('le dossier Membres-seul apparie la clé malgré la casse et rend le texte de la ligne Membres', () => {
+  const cas = casAdresse('12 rue des érables', [], [membre({ rue: 'RUE DES ÉRABLES' })]);
+  assert.equal(cas.adresse, '12 RUE DES ÉRABLES');
+  assert.deepEqual(cas.emplacements, []);
+  assert.equal(cas.nombre, 0);
+});
+
+test('le dossier d\'une adresse ni attribuée ni connue de Membres est null', () => {
+  assert.equal(casAdresse('9 chemin inconnu', troisAttributions(), [membre()]), null);
+  assert.equal(casAdresse('', troisAttributions(), [membre()]), null);
 });
 
 // --- Le journal d'un cas (0019) : notes d'adresse + libérations de ses emplacements ---
