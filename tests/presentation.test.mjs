@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { apparenceStatut, apparenceCellule, silhouetteEmbarcation, proseSignal, formatAdresse, cartePositions, positionParNumero, lienMailto } = require('../site/presentation.js');
+const { apparenceStatut, apparenceCellule, silhouetteEmbarcation, proseSignal, formatAdresse, cartePositions, positionParNumero, lienMailto, santeDossier } = require('../site/presentation.js');
 const { chercherMembreParCle, cleAdresse } = require('../site/grille.js');
 
 // Même formateur que le module : l'attendu suit le fuseau de la machine, donc
@@ -151,6 +151,82 @@ test('chercherMembreParCle apparie malgré la casse ; clé vide ou absente → u
   assert.equal(chercherMembreParCle(membres, cle).nom, 'Marc');
   assert.equal(chercherMembreParCle(membres, ''), undefined);
   assert.equal(chercherMembreParCle(membres, cleAdresse({ numeroAdresse: '99', rue: 'Absente' })), undefined);
+});
+
+// --- santeDossier : la pastille de santé d'un dossier d'adresse (0023) ---
+// Dérivée (jamais stockée) : pire d'abord parmi les statuts des emplacements de
+// l'adresse, le dépassement de quota prioritaire sur tout. Libellé + variante,
+// la couleur ne portant jamais seule (0016).
+
+// Une ligne d'Emplacements attribuée à « 12 Rue des Érables ».
+function ligneSante(surcharges = {}) {
+  return {
+    numero: 75, numeroAdresse: 12, rue: 'Rue des Érables',
+    occupationObservee: 'occupé', dateObservation: '2026-06-20T12:00:00.000Z',
+    ...surcharges,
+  };
+}
+const membreSante = (surcharges = {}) => ({ numeroAdresse: 12, rue: 'Rue des Érables', nom: 'Louise Bédard', ...surcharges });
+const CLE_SANTE = '12 rue des érables';
+
+test('un dossier tout en ordre → pastille « En ordre » verte (success)', () => {
+  const sante = santeDossier(CLE_SANTE, [
+    ligneSante({ numero: 74, occupationObservee: 'occupé' }),
+    ligneSante({ numero: 75, occupationObservee: 'occupé' }),
+  ], [membreSante()]);
+  assert.equal(sante.libelle, 'En ordre');
+  assert.equal(sante.variante, 'success');
+});
+
+test('pire d\'abord : un seul « Attribué, libre » parmi des « En ordre » domine → warning', () => {
+  const sante = santeDossier(CLE_SANTE, [
+    ligneSante({ numero: 74, occupationObservee: 'occupé' }),
+    ligneSante({ numero: 75, occupationObservee: 'libre' }),
+  ], [membreSante()]);
+  assert.equal(sante.libelle, 'Attribué, libre');
+  assert.equal(sante.variante, 'warning');
+});
+
+test('« Non observé » l\'emporte sur « En ordre », mais cède à « Attribué, libre »', () => {
+  // Non observé (75) domine En ordre (74) — sans dépasser le quota (2).
+  const nonObserve = santeDossier(CLE_SANTE, [
+    ligneSante({ numero: 74, occupationObservee: 'occupé' }),
+    ligneSante({ numero: 75, occupationObservee: '' }),
+  ], [membreSante()]);
+  assert.equal(nonObserve.libelle, 'Non observé');
+  assert.equal(nonObserve.variante, 'neutral');
+
+  // Attribué-libre (75) domine Non observé (76) — quota 3 pour ne pas dépasser.
+  const attribueLibre = santeDossier(CLE_SANTE, [
+    ligneSante({ numero: 74, occupationObservee: 'occupé' }),
+    ligneSante({ numero: 75, occupationObservee: 'libre' }),
+    ligneSante({ numero: 76, occupationObservee: '' }),
+  ], [membreSante({ quotaAccorde: 3 })]);
+  assert.equal(attribueLibre.libelle, 'Attribué, libre');
+});
+
+test('« Hors quota » prime sur tout — même quand un emplacement est « Attribué, libre »', () => {
+  // 3 attributions, quota 2 : hors quota. Un emplacement est libre (problème
+  // terrain) mais le dépassement passe devant — pastille NEUTRE (règle de gestion).
+  const sante = santeDossier(CLE_SANTE, [
+    ligneSante({ numero: 74, occupationObservee: 'occupé' }),
+    ligneSante({ numero: 75, occupationObservee: 'libre' }),
+    ligneSante({ numero: 76, occupationObservee: 'occupé' }),
+  ], [membreSante()]);
+  assert.equal(sante.libelle, 'Hors quota');
+  assert.equal(sante.variante, 'neutral');
+});
+
+test('une adresse sans emplacement (connue seulement via Membres) → « Aucun emplacement » neutre', () => {
+  const sante = santeDossier(CLE_SANTE, [], [membreSante()]);
+  assert.equal(sante.libelle, 'Aucun emplacement');
+  assert.equal(sante.variante, 'neutral');
+});
+
+test('une clé sans dossier (ni attribuée ni connue de Membres) reste neutre, sans planter', () => {
+  const sante = santeDossier('99 chemin inconnu', [ligneSante()], [membreSante()]);
+  assert.equal(sante.libelle, 'Aucun emplacement');
+  assert.equal(sante.variante, 'neutral');
 });
 
 // --- lienMailto : assemblage encodé (l'invariant XSS/encodage, une fois) ---
