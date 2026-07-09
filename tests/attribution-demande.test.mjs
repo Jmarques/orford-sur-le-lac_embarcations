@@ -2,6 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
+// Les fonctions de domaine du traitement d'une demande (décision 0020) :
+// suggestions d'emplacements, différence de contact, autres demandes ouvertes,
+// situation de quota. Elles alimentent désormais le bloc « Demande en cours » de
+// la fiche d'adresse (décision 0024, amende 0020) — l'écran de demande autonome
+// a été retiré, mais ces règles restent le cœur de l'attribution.
 const require = createRequire(import.meta.url);
 const {
   suggestionsEmplacements,
