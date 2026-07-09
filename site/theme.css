@@ -1151,66 +1151,6 @@ wa-callout::part(icon) {
   font-weight: var(--wa-font-weight-semibold);
 }
 
-/* --- Fiche de demande (décision 0020) : l'écran de décision d'une demande --- */
-
-/* La fiche de demande porte plus de contenu que les autres (contact, situation,
-   grille de suggestions, refus) : un peu plus large sur desktop (drawer latéral).
-   Sur mobile elle reste un drawer bas — `--size` y serait une hauteur, laissée
-   au défaut. */
-@media (min-width: 641px) {
-  #fiche-demande {
-    --size: 30rem;
-  }
-}
-/* Le bouton d'acceptation porte un libellé long (« Attribuer le n° 10 et
-   accepter ») : il se replie sur deux lignes plutôt que de déborder du drawer,
-   sa hauteur suit son contenu (native.css force sinon une ligne unique). */
-#fiche-demande-accepter::part(label) {
-  white-space: normal;
-}
-#fiche-demande-accepter::part(base) {
-  block-size: auto;
-  min-block-size: var(--wa-form-control-height-l);
-  padding-block: var(--wa-space-xs);
-}
-
-/* Contact : chaque champ garde sa valeur ; celle qui diffère du membre courant
-   est mise en avant, l'ancienne rappelée en légende barrée (deux voix nettes). */
-.liste-contact-demande {
-  list-style: none;
-  margin: 0;
-  padding-inline-start: 0;
-}
-.ligne-contact-demande {
-  display: flex;
-  flex-direction: column;
-}
-/* La nouvelle valeur est affirmée en gras (pas en vert : le vert dit « validé »
-   ailleurs) ; l'ancienne, barrée en légende, porte le signal du changement. */
-.valeur-changee {
-  font-weight: var(--wa-font-weight-semibold);
-}
-.valeur-ancienne {
-  text-decoration: line-through;
-}
-
-/* Une attribution de l'adresse (lecture seule dans la fiche de demande) :
-   numéro + pastille de statut, sans chevron (elle ne s'ouvre pas d'ici). */
-.rangee-emplacement-statique {
-  display: flex;
-  align-items: baseline;
-  gap: var(--wa-space-s);
-}
-
-/* Rappel doux (« une autre demande de cette adresse attend ») : une
-   information de contexte, jamais une alarme (0016). */
-.rappel-doux {
-  display: flex;
-  align-items: center;
-  gap: var(--wa-space-xs);
-  color: var(--wa-color-text-quiet);
-}
-
 /* État vide neutre (« aucune place — faites une tournée ») : ni succès (vert),
    ni danger — une invitation calme à agir. */
 .section-vide-neutre {
@@ -1442,8 +1382,7 @@ wa-callout::part(icon) {
 
 /* Le bouton d'acceptation d'une demande porte un libellé long (« Attribuer le
    n° 10 et accepter ») : il se replie sur deux lignes plutôt que de déborder du
-   drawer (native.css fige sinon les <button> à une ligne unique). Même
-   traitement que #fiche-demande-accepter. */
+   drawer (native.css fige sinon les <button> à une ligne unique). */
 #fiche-adresse-demande-accepter::part(label) {
   white-space: normal;
 }
