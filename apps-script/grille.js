@@ -327,15 +327,23 @@ function statutEmplacement(ligne) {
 }
 
 // Les gestes de traitement structurés offerts par la fiche d'un emplacement
-// (décision 0018) : dérivés du statut seul, jamais de la page qui ouvre la
-// fiche. Libérer exige une attribution ; écrire au membre exige en plus un
-// courriel connu dans l'onglet Membres. `membre` = la ligne Membres de
-// l'adresse attribuée, ou undefined.
-function gestesEmplacement(ligne, membre) {
-  var attribue = estAttribue_(ligne);
+// (décisions 0018/0024) : dérivés du statut seul, jamais de la page qui ouvre
+// la fiche, et un remède n'apparaît que face à une RAISON (0024) — plus jamais
+// sur un état sain. « Écrire au membre » (relancer) est offert uniquement quand
+// l'emplacement est « Attribué, libre » (statut peutEtreALiberer) et que son
+// adresse a un courriel connu (onglet Membres). « Libérer » est offert quand
+// l'emplacement est « Attribué, libre » OU quand son adresse dépasse son quota
+// (le geste résout alors le dépassement, même si l'emplacement lui-même est En
+// ordre). Le contexte quota se calcule depuis l'inventaire complet, comme le
+// fait depassementQuota — d'où les mêmes entrées (lignesEmplacements, membres) ;
+// le membre courant (pour le courriel) en est dérivé, jamais passé à part.
+function gestesEmplacement(ligne, lignesEmplacements, membres) {
+  var attribueLibre = statutEmplacement(ligne).code === 'peutEtreALiberer';
+  var horsQuota = !!depassementQuota(ligne, lignesEmplacements, membres);
+  var membre = chercherMembreParCle(membres, cleAdresse(ligne));
   return {
-    liberer: attribue,
-    ecrire: attribue && !!(membre && String(membre.courriel || '').trim()),
+    liberer: attribueLibre || horsQuota,
+    ecrire: attribueLibre && !!(membre && String(membre.courriel || '').trim()),
   };
 }
 

@@ -237,11 +237,14 @@ function creerFicheEmplacement(options) {
     el('fiche-statut-libelle').textContent = statut.libelle;
     el('fiche-statut-detail').textContent = detailStatut(statut, ligne);
 
-    // Le membre (si attribué) — mêmes gestes que la fiche : dérivés du statut.
-    // `liberer` équivaut à « attribué » (grille.js) : la variable le nomme.
+    // Le membre (si attribué) et les gestes de la fiche, dérivés du statut et du
+    // contexte quota (0024) — depuis l'inventaire complet, comme depassementQuota.
+    // L'attribution commande l'affichage du bloc membre ; elle ne se lit plus sur
+    // `liberer` (resserré : un En ordre dans les règles n'offre plus aucun geste)
+    // mais sur la clé d'adresse, même règle qu'estAttribue_ (grille.js).
     const membre = ligne ? chercherMembre(ligne) : undefined;
-    const gestes = gestesEmplacement(ligne, membre);
-    const attribue = gestes.liberer;
+    const gestes = gestesEmplacement(ligne, options.donnees().emplacements, options.donnees().membres);
+    const attribue = !!(ligne && cleAdresse(ligne));
     const blocMembre = el('fiche-membre');
     blocMembre.hidden = !attribue;
     if (!blocMembre.hidden) {
