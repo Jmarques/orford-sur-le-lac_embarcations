@@ -507,11 +507,19 @@ export const CAPTURES = [
   { nom: 'a-traiter-fiche-adresse-vers-emplacement', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-cle="234 rue du pré"]', '.rangee-emplacement[data-numero="84"]'],
     attendre: '#fiche-retour-zone:not([hidden])', pleinVue: true },
-  // … et retour : la fiche d'adresse se rouvre, re-rendue.
+  // … et retour : la fiche d'adresse se rouvre, re-rendue (Marie est hors quota
+  // → le callout « Hors quota » reparaît).
   { nom: 'a-traiter-retour-fiche-adresse', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-cle="234 rue du pré"]', '.rangee-emplacement[data-numero="84"]',
       '#fiche-retour'],
-    attendre: '#fiche-adresse-fait', pleinVue: true },
+    attendre: '#fiche-adresse-statut:not([hidden])', pleinVue: true },
+  // Fiche d'adresse GÉNÉRALISÉE « dans le quota » (0024) : ouverte directement
+  // via le hook ?adresse= (la fiche s'ouvre pour n'importe quelle adresse, pas
+  // seulement hors quota). Louise, 12 Rue des Érables : 1 emplacement pour une
+  // exception à 3 → AUCUN callout, le calme signale l'absence de problème.
+  { nom: 'a-traiter-fiche-adresse-dans-quota', page: 'a-traiter.html', etat: 'liste',
+    adresse: '12 rue des érables',
+    attendre: '.rangee-emplacement', pleinVue: true },
   // La fiche unifiée d'un cas attribué-libre : callout warning portant les
   // remèdes (Relancer, Libérer), membre, relevé replié, journal (0024).
   { nom: 'a-traiter-fiche', page: 'a-traiter.html', etat: 'liste',
@@ -651,5 +659,11 @@ export function estProblemeConsole(type, texte, motifsIgnores) {
 
 export function urlDeScenario(base, scenario) {
   const url = base + '/' + scenario.page;
-  return scenario.etat ? url + '?etat=' + scenario.etat : url;
+  const params = [];
+  if (scenario.etat) params.push('etat=' + scenario.etat);
+  // `adresse` : ouvre directement la fiche d'adresse généralisée (0024) — la
+  // page Adresses (à venir) sera le vrai point d'entrée ; ici, un hook de
+  // capture (0006) pour montrer un dossier « dans le quota » avant elle.
+  if (scenario.adresse) params.push('adresse=' + encodeURIComponent(scenario.adresse));
+  return params.length ? url + '?' + params.join('&') : url;
 }
