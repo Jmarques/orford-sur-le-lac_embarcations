@@ -1111,6 +1111,16 @@ wa-callout::part(icon) {
   border-color: var(--wa-color-brand-border-normal);
 }
 
+/* Le titre d'une suggestion : le nom (voix de titre) et la pastille de santé du
+   dossier (décision 0023) sur une même ligne. La pastille se replie SOUS le nom
+   quand il est long, plutôt que de le comprimer — cibles larges, public aîné. */
+.suggestion .rangee-titre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--wa-space-2xs);
+}
+
 /* La ligne d'appui d'une suggestion (adresse, ou « Contact non inscrit ») : au
    corps normal, en retrait — l'identité (nom ou adresse) reste la voix de titre. */
 .suggestion-adresse {

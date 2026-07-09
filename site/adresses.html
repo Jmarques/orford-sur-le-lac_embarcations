@@ -151,7 +151,13 @@
     <li>
       <button type="button" class="rangee-cas suggestion">
         <span class="rangee-texte">
-          <span class="rangee-titre"><span class="suggestion-nom rangee-numero"></span></span>
+          <span class="rangee-titre">
+            <span class="suggestion-nom rangee-numero"></span>
+            <!-- La pastille de santé du dossier (décision 0023), dérivée « pire
+                 d'abord » : elle oriente sans coûter un clic. Libellé + couleur
+                 (jamais la couleur seule — 0016) ; remplie par textContent. -->
+            <wa-badge class="suggestion-sante" appearance="filled-outlined" pill></wa-badge>
+          </span>
           <span class="suggestion-adresse"></span>
         </span>
         <wa-icon class="rangee-chevron" name="chevron-right" aria-hidden="true"></wa-icon>
@@ -346,6 +352,12 @@
       const nom = resultat.membre && String(resultat.membre.nom || '').trim();
       // Nom en voix de titre s'il existe, sinon l'adresse porte l'identité.
       bouton.querySelector('.suggestion-nom').textContent = nom || resultat.adresse;
+      // La pastille de santé (0023) : l'état le plus « à voir » du dossier,
+      // dérivé (jamais stocké) — pire d'abord, hors quota prioritaire.
+      const sante = santeDossier(resultat.cle, donnees.emplacements, donnees.membres);
+      const badge = bouton.querySelector('.suggestion-sante');
+      badge.setAttribute('variant', sante.variante);
+      badge.textContent = sante.libelle;
       bouton.querySelector('.suggestion-adresse').textContent = texteAppui(resultat, Boolean(nom));
       bouton.addEventListener('click', () => ouvrirFiche(resultat.cle));
       return noeud;
