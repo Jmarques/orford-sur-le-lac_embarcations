@@ -15,7 +15,8 @@
 //   surOuvrirEmplacement(numero, cle, adresse) — la page ferme cette fiche et
 //                      ouvre la fiche d'emplacement avec retour (0019).
 
-/* global statutEmplacement, casAdresse, journalDeCas, apparenceStatut, cartePositions, lienMailto */
+/* global statutEmplacement, casAdresse, journalDeCas, apparenceStatut, cartePositions, lienMailto,
+   creerBlocMembre, rendreBlocMembre, creerBlocJournal, rendreListeJournal, calerBlocJournal */
 
 function creerFicheAdresse(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -31,40 +32,13 @@ function creerFicheAdresse(options) {
             <span id="fiche-adresse-fait-detail" class="detail-statut"></span>
           </div>
         </wa-callout>
-        <div id="fiche-adresse-membre" class="wa-stack wa-gap-2xs">
-          <p class="wa-cluster wa-gap-xs wa-align-items-baseline">
-            <span id="fiche-adresse-membre-nom" class="champ-membre-nom" hidden></span>
-          </p>
-          <div class="wa-cluster wa-gap-m liens-contact">
-            <a id="fiche-adresse-telephone" hidden><wa-icon name="phone"></wa-icon> <span id="fiche-adresse-telephone-texte"></span></a>
-            <a id="fiche-adresse-courriel" hidden><wa-icon name="envelope"></wa-icon> <span id="fiche-adresse-courriel-texte"></span></a>
-          </div>
-          <p id="fiche-adresse-membre-absent" class="wa-caption-m wa-color-text-quiet" hidden>Aucun membre inscrit
-            dans l'onglet Membres pour cette adresse.</p>
-        </div>
+        ${creerBlocMembre({ prefixe: 'fiche-adresse', avecAdresse: false, avecQuota: false, conteneurCache: false, nomCache: true })}
         <div class="wa-stack wa-gap-s">
           <h3 class="wa-heading-s">Les emplacements de l'adresse</h3>
           <ul id="fiche-adresse-emplacements" class="liste-emplacements-adresse wa-stack wa-gap-xs"></ul>
         </div>
         <div class="wa-stack wa-gap-s">
-          <h3 class="wa-heading-s">Journal de l'adresse</h3>
-          <ol id="fiche-adresse-journal" class="liste-evenements zone-journal wa-stack wa-gap-s"></ol>
-          <p id="fiche-adresse-journal-vide" class="wa-caption-m wa-color-text-quiet" hidden>Rien au journal
-            pour l'instant.</p>
-          <form id="fiche-adresse-formulaire-note" class="wa-stack wa-gap-s">
-            <wa-textarea id="fiche-adresse-champ-note" label="Ajouter une note" rows="1" resize="auto"
-                         placeholder="ex. : toléré à 3 jusqu'au printemps — Jeremy"></wa-textarea>
-            <wa-callout id="fiche-adresse-erreur" variant="danger" role="alert" tabindex="-1" hidden>
-              <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-              <span id="fiche-adresse-erreur-texte"></span>
-            </wa-callout>
-            <div class="wa-cluster wa-gap-s">
-              <wa-button id="fiche-adresse-ajouter-note" type="submit" appearance="outlined" variant="brand">
-                <wa-icon slot="start" name="pen"></wa-icon>
-                Ajouter la note
-              </wa-button>
-            </div>
-          </form>
+          ${creerBlocJournal({ prefixe: 'fiche-adresse', sujet: 'l\'adresse', amorce: 'ex. : toléré à 3 jusqu\'au printemps — Jeremy', erreurId: 'fiche-adresse-erreur' })}
           <div class="wa-cluster wa-gap-s">
             <wa-button id="fiche-adresse-ecrire" appearance="outlined" hidden>
               <wa-icon slot="start" name="envelope"></wa-icon>
@@ -83,7 +57,6 @@ function creerFicheAdresse(options) {
 
   const el = (id) => document.getElementById(id);
   const drawer = el('fiche-adresse');
-  const formatDate = new Intl.DateTimeFormat('fr-CA', { dateStyle: 'long' });
 
   // ErreurApi (erreur métier montrable) et le transport vers le backend
   // viennent du module client (client.js, chargé avant fiche-adresse.js).
@@ -141,26 +114,17 @@ function creerFicheAdresse(options) {
     return element;
   }
 
-  // Une ligne du journal de l'adresse : la libération nomme son emplacement,
-  // la note d'adresse parle du dossier entier.
-  function ligneJournal(evenement) {
-    const element = document.createElement('li');
-    element.className = 'ligne-journal';
-    const icone = document.createElement('wa-icon');
-    icone.setAttribute('name', evenement.action === 'libération' ? 'unlock' : 'pen');
-    icone.setAttribute('label', evenement.action === 'libération' ? 'Libération' : 'Note');
-    const bloc = document.createElement('span');
-    bloc.className = 'texte-journal';
-    const quand = document.createElement('span');
-    quand.className = 'wa-caption-m wa-color-text-quiet';
-    quand.textContent = formatDate.format(evenement.date);
-    const quoi = document.createElement('span');
-    quoi.className = 'wa-text-pretty';
-    quoi.textContent = (evenement.action === 'libération' && evenement.numero !== null
-      ? 'Emplacement ' + evenement.numero + ' — ' : '') + evenement.details;
-    bloc.append(quand, quoi);
-    element.append(icone, bloc);
-    return element;
+  // Le descripteur d'un événement du journal de l'adresse pour le bloc partagé
+  // (blocs-fiche.js) : la libération nomme son emplacement, la note d'adresse
+  // parle du dossier entier.
+  function decrireEvenement(evenement) {
+    const liberation = evenement.action === 'libération';
+    return {
+      icone: liberation ? 'unlock' : 'pen',
+      label: liberation ? 'Libération' : 'Note',
+      texte: (liberation && evenement.numero !== null
+        ? 'Emplacement ' + evenement.numero + ' — ' : '') + evenement.details,
+    };
   }
 
   // Le courriel pré-rempli n'est JAMAIS envoyé par l'app (0003) : le membre du
@@ -223,29 +187,10 @@ function creerFicheAdresse(options) {
         : nombre + ' emplacement' + pluriel + ' attribué' + pluriel + ' — '
           + (quota === 2 ? 'le quota est de 2' : 'exception accordée à ' + quota) + '.';
 
-    // Le membre : contact courant de l'adresse (0010), mention calme sinon.
+    // Le membre : contact courant de l'adresse (0010), mention calme sinon —
+    // bloc partagé (0024). `membre` sert aussi au geste « Écrire » plus bas.
     const membre = cas ? cas.membre : undefined;
-    const nom = el('fiche-adresse-membre-nom');
-    const telephone = el('fiche-adresse-telephone');
-    const courriel = el('fiche-adresse-courriel');
-    nom.hidden = telephone.hidden = courriel.hidden = true;
-    el('fiche-adresse-membre-absent').hidden = !!membre;
-    if (membre) {
-      nom.hidden = false;
-      nom.textContent = String(membre.nom || '').trim();
-      const numeroTelephone = String(membre.telephone || '').trim();
-      if (numeroTelephone) {
-        telephone.href = 'tel:' + numeroTelephone.replace(/[^+\d]/g, '');
-        el('fiche-adresse-telephone-texte').textContent = numeroTelephone;
-        telephone.hidden = false;
-      }
-      const adresseCourriel = String(membre.courriel || '').trim();
-      if (adresseCourriel) {
-        courriel.href = 'mailto:' + adresseCourriel;
-        el('fiche-adresse-courriel-texte').textContent = adresseCourriel;
-        courriel.hidden = false;
-      }
-    }
+    rendreBlocMembre('fiche-adresse', membre);
 
     // Les emplacements du dossier : le choix décisif — lequel libérer ? Le
     // statut de chacun se lit en toutes lettres, le tap ouvre sa fiche.
@@ -255,12 +200,9 @@ function creerFicheAdresse(options) {
       .map((ligne) => rangeeEmplacement(ligne, positions)));
 
     // Le journal du dossier : notes d'adresse + libérations des emplacements.
-    const journal = el('fiche-adresse-journal');
     const numeros = (cas ? cas.emplacements : []).map((l) => Number(l.numero));
     const evenements = journalDeCas(donnees.journal, cleCourante, numeros);
-    journal.replaceChildren(...evenements.map(ligneJournal));
-    el('fiche-adresse-journal-vide').hidden = evenements.length > 0;
-    calerJournal();
+    rendreListeJournal('fiche-adresse', evenements, decrireEvenement);
 
     const ecrire = el('fiche-adresse-ecrire');
     const peutEcrire = !!(cas && membre && String(membre.courriel || '').trim());
@@ -269,12 +211,9 @@ function creerFicheAdresse(options) {
     if (peutEcrire) ecrire.setAttribute('href', hrefEcrire(cas));
   }
 
-  // Cale le journal sur l'événement le plus récent (voir fiche.js).
+  // Cale le journal sur l'événement le plus récent (bloc partagé, voir fiche.js).
   function calerJournal() {
-    requestAnimationFrame(() => {
-      const journal = el('fiche-adresse-journal');
-      journal.scrollTop = journal.scrollHeight;
-    });
+    calerBlocJournal('fiche-adresse');
   }
   drawer.addEventListener('wa-after-show', calerJournal);
 
