@@ -639,6 +639,20 @@ export const CAPTURES = [
     attendre: '#fiche-demande-erreur:not([hidden])', voir: '#fiche-demande-erreur', pleinVue: true,
     reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE, deciderDemande: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
   { nom: 'a-traiter-erreur', page: 'a-traiter.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
+  // Page « Adresses » (décision 0023) : recherche à autocomplétion menant à la
+  // fiche d'adresse. Tous les états pilotables par ?etat= ; `recherche` passe
+  // par un vrai fetch (mocké), `q` préremplit le champ (résultats / aucun).
+  { nom: 'adresses-connexion', page: 'adresses.html', attendre: '#etat-connexion:not([hidden])' },
+  { nom: 'adresses-mdp-refuse', page: 'adresses.html', etat: 'mdp-refuse', attendre: '#erreur-connexion:not([hidden])' },
+  { nom: 'adresses-chargement', page: 'adresses.html', etat: 'chargement', attendre: '#etat-chargement:not([hidden])' },
+  // Repos : rien n'est tapé — l'invitation calme et centrée à chercher.
+  { nom: 'adresses-repos', page: 'adresses.html', etat: 'recherche', attendre: '#etat-repos:not([hidden])' },
+  // Résultats : « pré » retrouve les adresses de la Rue du Pré — une avec membre
+  // (Marie Gagnon, présélectionnée), une sans (501, « Contact non inscrit »).
+  { nom: 'adresses-resultats', page: 'adresses.html', etat: 'recherche', q: 'pré', attendre: '.suggestion' },
+  // Aucun résultat : le message dit ce qui a été cherché et quoi faire ensuite.
+  { nom: 'adresses-aucun', page: 'adresses.html', etat: 'recherche', q: 'zzz', attendre: '#etat-aucun:not([hidden])' },
+  { nom: 'adresses-erreur', page: 'adresses.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
 ];
 
 // Motifs de bruit console tolérés (regex). Liste minimale : tout autre
@@ -665,5 +679,8 @@ export function urlDeScenario(base, scenario) {
   // page Adresses (à venir) sera le vrai point d'entrée ; ici, un hook de
   // capture (0006) pour montrer un dossier « dans le quota » avant elle.
   if (scenario.adresse) params.push('adresse=' + encodeURIComponent(scenario.adresse));
+  // `q` : préremplit le champ de recherche de la page Adresses (0023) — les
+  // états « résultats » et « aucun-résultat » se capturent sans frappe simulée.
+  if (scenario.q) params.push('q=' + encodeURIComponent(scenario.q));
   return params.length ? url + '?' + params.join('&') : url;
 }
