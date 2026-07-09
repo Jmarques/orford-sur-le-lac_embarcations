@@ -848,6 +848,20 @@ function autresDemandesOuvertes(demande, demandes) {
   });
 }
 
+// La demande « en cours » d'une adresse (décision 0024) : la demande NOUVELLE
+// la plus ancienne portant cette clé d'adresse — celle que la fiche d'adresse
+// traite inline (attribuer / refuser). undefined si l'adresse n'a aucune
+// demande en attente. Même normalisation de clé et même dérivation d'état que
+// la section « Demandes » (0020) : rien n'est stocké.
+function demandeEnCoursAdresse(cle, demandes) {
+  if (!cle) return undefined;
+  var ouvertes = (demandes || []).filter(function (d) {
+    return d && cleAdresseDemande_(d) === cle && etatDemande(d).code === 'nouvelle';
+  });
+  ouvertes.sort(function (a, b) { return tempsLisible_(a.date) - tempsLisible_(b.date); });
+  return ouvertes[0];
+}
+
 // La situation quota d'une adresse pour décider d'une attribution (0020) : le
 // nombre d'attributions actuelles et le quota applicable. Attribuer une place
 // de plus est bloqué quand nombre >= quota (l'attribution ferait dépasser).
@@ -958,5 +972,5 @@ function chercherAdresses(requete, adresses) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, chercherMembreParCle, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, toutesLesAdresses_, chercherAdresses, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, chercherMembreParCle, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, demandeEnCoursAdresse, situationAttribution, estMobiliteReduite, toutesLesAdresses_, chercherAdresses, ETATS_OCCUPATION };
 }

@@ -520,6 +520,23 @@ export const CAPTURES = [
   { nom: 'a-traiter-fiche-adresse-dans-quota', page: 'a-traiter.html', etat: 'liste',
     adresse: '12 rue des érables',
     attendre: '.rangee-emplacement', pleinVue: true },
+  // Fiche d'adresse avec une DEMANDE en cours (0024) : le bloc « Demande en
+  // cours » traite la demande INLINE. Inventaire dédié (INVENTAIRE_FICHE_DEMANDE) :
+  // 60 Rue du Pré a un membre (Paul Roy) et une demande au contact DIFFÉRENT
+  // (Paul Roy-Tremblay, nouveau téléphone) → un seul « Mettre à jour le contact »,
+  // les suggestions Kayak, le niveau montré avec le numéro.
+  { nom: 'a-traiter-fiche-adresse-demande-diff', page: 'a-traiter.html', etat: 'liste',
+    adresse: '60 rue du pré',
+    attendre: '#fiche-adresse-demande-maj-zone:not([hidden])', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // Adresse DEMANDE-SEULE (0024) : 70 Rue du Pré n'a ni membre ni emplacement —
+  // le contact vient de la demande (« nouveau contact — enregistré à
+  // l'acceptation »), pas de bloc Membre, pas de liste d'emplacements, pas de
+  // journal (rien où attacher une note tant que l'adresse n'existe pas).
+  { nom: 'a-traiter-fiche-adresse-demande-seule', page: 'a-traiter.html', etat: 'liste',
+    adresse: '70 rue du pré',
+    attendre: '#fiche-adresse-demande-contact-nouveau:not([hidden])', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
   // La fiche unifiée d'un cas attribué-libre : callout warning portant les
   // remèdes (Relancer, Libérer), membre, relevé replié, journal (0024). La barre
   // utilitaire montre « Fiche d'adresse » (l'emplacement est attribué) — MIROIR

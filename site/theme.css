@@ -1409,6 +1409,19 @@ wa-callout::part(icon) {
   padding-block: var(--wa-space-xs);
 }
 
+/* Le bouton d'acceptation d'une demande porte un libellé long (« Attribuer le
+   n° 10 et accepter ») : il se replie sur deux lignes plutôt que de déborder du
+   drawer (native.css fige sinon les <button> à une ligne unique). Même
+   traitement que #fiche-demande-accepter. */
+#fiche-adresse-demande-accepter::part(label) {
+  white-space: normal;
+}
+#fiche-adresse-demande-accepter::part(base) {
+  block-size: auto;
+  min-block-size: var(--wa-form-control-height-m);
+  padding-block: var(--wa-space-xs);
+}
+
 /* Statut d'un état sain (ou statut propre de l'emplacement sous un callout
    d'adresse hors quota) : une ligne calme, pas un gros callout. L'icône porte
    la gravité réelle par sa teinte (data-variant), doublée par le libellé — la
