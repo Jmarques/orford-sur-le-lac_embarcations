@@ -327,15 +327,23 @@ function statutEmplacement(ligne) {
 }
 
 // Les gestes de traitement structurés offerts par la fiche d'un emplacement
-// (décision 0018) : dérivés du statut seul, jamais de la page qui ouvre la
-// fiche. Libérer exige une attribution ; écrire au membre exige en plus un
-// courriel connu dans l'onglet Membres. `membre` = la ligne Membres de
-// l'adresse attribuée, ou undefined.
-function gestesEmplacement(ligne, membre) {
-  var attribue = estAttribue_(ligne);
+// (décisions 0018/0024) : dérivés du statut seul, jamais de la page qui ouvre
+// la fiche, et un remède n'apparaît que face à une RAISON (0024) — plus jamais
+// sur un état sain. « Écrire au membre » (relancer) est offert uniquement quand
+// l'emplacement est « Attribué, libre » (statut peutEtreALiberer) et que son
+// adresse a un courriel connu (onglet Membres). « Libérer » est offert quand
+// l'emplacement est « Attribué, libre » OU quand son adresse dépasse son quota
+// (le geste résout alors le dépassement, même si l'emplacement lui-même est En
+// ordre). Le contexte quota se calcule depuis l'inventaire complet, comme le
+// fait depassementQuota — d'où les mêmes entrées (lignesEmplacements, membres) ;
+// le membre courant (pour le courriel) en est dérivé, jamais passé à part.
+function gestesEmplacement(ligne, lignesEmplacements, membres) {
+  var attribueLibre = statutEmplacement(ligne).code === 'peutEtreALiberer';
+  var horsQuota = !!depassementQuota(ligne, lignesEmplacements, membres);
+  var membre = chercherMembreParCle(membres, cleAdresse(ligne));
   return {
-    liberer: attribue,
-    ecrire: attribue && !!(membre && String(membre.courriel || '').trim()),
+    liberer: attribueLibre || horsQuota,
+    ecrire: attribueLibre && !!(membre && String(membre.courriel || '').trim()),
   };
 }
 
@@ -586,15 +594,31 @@ function construireCas_(groupe, membres) {
   };
 }
 
-// Le dossier d'une adresse (0019), hors quota OU dans les règles — la fiche
-// d'adresse reste racontable après une libération qui referme le cas. null si
-// l'adresse n'a aucune attribution lisible.
+// Le dossier d'une adresse (0019, généralisé 0023/0024) : hors quota, dans les
+// règles, OU connue seulement via l'onglet Membres (aucune attribution — la
+// page Adresses doit ouvrir n'importe quelle adresse, y compris un nouveau
+// membre pas encore attribué). Une adresse sans attribution mais présente dans
+// Membres donne un dossier à `nombre: 0` / `emplacements: []` bâti sur la
+// ligne Membres. null seulement si l'adresse n'est ni attribuée ni connue de
+// Membres.
 function casAdresse(cle, lignesEmplacements, membres) {
   var groupe = null;
   groupesParAdresse_(lignesEmplacements).forEach(function (g) {
     if (!groupe && g.cle === cle) groupe = g;
   });
-  return groupe ? construireCas_(groupe, membres) : null;
+  if (groupe) return construireCas_(groupe, membres);
+
+  var membre = chercherMembreParCle(membres, cle);
+  if (!membre) return null;
+  return {
+    cle: cle,
+    adresse: String(membre.numeroAdresse).trim() + ' ' + String(membre.rue).trim(),
+    membre: membre,
+    quota: quotaLisible_(membre),
+    nombre: 0,
+    depassement: 0,
+    emplacements: [],
+  };
 }
 
 // La file « Hors quota » (0019) : les attributions regroupées par clé
@@ -824,6 +848,20 @@ function autresDemandesOuvertes(demande, demandes) {
   });
 }
 
+// La demande « en cours » d'une adresse (décision 0024) : la demande NOUVELLE
+// la plus ancienne portant cette clé d'adresse — celle que la fiche d'adresse
+// traite inline (attribuer / refuser). undefined si l'adresse n'a aucune
+// demande en attente. Même normalisation de clé et même dérivation d'état que
+// la section « Demandes » (0020) : rien n'est stocké.
+function demandeEnCoursAdresse(cle, demandes) {
+  if (!cle) return undefined;
+  var ouvertes = (demandes || []).filter(function (d) {
+    return d && cleAdresseDemande_(d) === cle && etatDemande(d).code === 'nouvelle';
+  });
+  ouvertes.sort(function (a, b) { return tempsLisible_(a.date) - tempsLisible_(b.date); });
+  return ouvertes[0];
+}
+
 // La situation quota d'une adresse pour décider d'une attribution (0020) : le
 // nombre d'attributions actuelles et le quota applicable. Attribuer une place
 // de plus est bloqué quand nombre >= quota (l'attribution ferait dépasser).
@@ -836,6 +874,103 @@ function situationAttribution(cle, lignesEmplacements, membres) {
   return { nombre: nombre, quota: quota, bloque: nombre >= quota };
 }
 
+// --- Page « Adresses » (décision 0023) : index de recherche + matching tri-clé ---
+
+// L'index de recherche : l'UNION des adresses ayant des attributions et des
+// lignes de l'onglet Membres, dédupée par clé d'adresse normalisée (0019).
+// Une adresse connue seulement via Membres (aucune attribution) y figure avec
+// `emplacements: []` — la page Adresses doit pouvoir ouvrir n'importe quelle
+// adresse, y compris un nouveau membre pas encore attribué (0023). Chaque
+// entrée : { cle, adresse, membre, emplacements } ; l'affichage garde le texte
+// de la première ligne rencontrée (attribution d'abord, sinon Membres).
+function toutesLesAdresses_(lignesEmplacements, membres) {
+  var parCle = {};
+  var ordre = [];
+  groupesParAdresse_(lignesEmplacements).forEach(function (groupe) {
+    parCle[groupe.cle] = {
+      cle: groupe.cle,
+      adresse: groupe.adresse,
+      membre: chercherMembreParCle(membres, groupe.cle),
+      emplacements: groupe.emplacements,
+    };
+    ordre.push(groupe.cle);
+  });
+  (membres || []).forEach(function (membre) {
+    var cle = cleAdresse(membre);
+    if (cle === '' || parCle[cle]) return;
+    parCle[cle] = {
+      cle: cle,
+      adresse: String(membre.numeroAdresse).trim() + ' ' + String(membre.rue).trim(),
+      membre: membre,
+      emplacements: [],
+    };
+    ordre.push(cle);
+  });
+  return ordre.map(function (cle) { return parCle[cle]; });
+}
+
+// Normalise un texte pour la recherche : la clé d'adresse (trim, minuscules,
+// espaces réduits — cohérent avec cleAdresse, 0019) PLUS le repli des accents.
+// « erables » retrouve « Érables » : l'aîné au téléphone ne tape pas les
+// accents, et la même normalisation s'applique des deux côtés (requête et
+// champs cherchés) pour que l'appariement soit symétrique.
+function normaliserRecherche_(texte) {
+  return cleTexte_(texte).normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+// La raison pour laquelle une entrée d'index correspond à une requête, ou null.
+// Trois clés testées dans l'ordre de priorité — nom, adresse, numéro
+// d'emplacement (préfixe, requête numérique seulement). La raison d'un match
+// par numéro porte QUEL numéro a matché (le plus petit préfixé), pour la
+// légende « · Emplacement N » (0023).
+function raisonDeMatch_(requeteNormalisee, estNumerique, entree) {
+  var nom = normaliserRecherche_(entree.membre && entree.membre.nom);
+  if (nom !== '' && nom.indexOf(requeteNormalisee) !== -1) return { cle: 'nom' };
+  if (normaliserRecherche_(entree.adresse).indexOf(requeteNormalisee) !== -1) return { cle: 'adresse' };
+  if (estNumerique) {
+    var numeros = (entree.emplacements || [])
+      .map(function (ligne) { return Number(ligne.numero); })
+      .filter(function (n) { return Number.isInteger(n) && n > 0 && String(n).indexOf(requeteNormalisee) === 0; })
+      .sort(function (a, b) { return a - b; });
+    if (numeros.length > 0) return { cle: 'numero', numero: numeros[0] };
+  }
+  return null;
+}
+
+// La recherche tri-clé de la page « Adresses » (0023) : pour une requête,
+// trouve les entrées de l'index (union `toutesLesAdresses_`) par nom de
+// [[Membre]], par [[Adresse]] (numéro + rue), ou par numéro d'[[Emplacement]]
+// (préfixe pour les chiffres). Chaque résultat porte l'entrée complète et la
+// RAISON de son match (dont le numéro, pour la légende). Classement : les
+// correspondances de nom d'abord, puis adresse, puis numéro ; ordre de l'index
+// stable à égalité de priorité. Une requête vide ne trouve rien. La même
+// ambiguïté qu'au tableur — un « 234 » civique et un « 234 » d'emplacement —
+// donne deux résultats distincts, chacun disant pourquoi il correspond.
+function chercherAdresses(requete, adresses) {
+  var q = normaliserRecherche_(requete);
+  if (q === '') return [];
+  var estNumerique = /^\d+$/.test(q);
+  var priorite = { nom: 0, adresse: 1, numero: 2 };
+  return (adresses || [])
+    .map(function (entree, index) {
+      var raison = raisonDeMatch_(q, estNumerique, entree);
+      return raison ? { entree: entree, raison: raison, ordre: index } : null;
+    })
+    .filter(function (r) { return r !== null; })
+    .sort(function (a, b) {
+      return (priorite[a.raison.cle] - priorite[b.raison.cle]) || (a.ordre - b.ordre);
+    })
+    .map(function (r) {
+      return {
+        cle: r.entree.cle,
+        adresse: r.entree.adresse,
+        membre: r.entree.membre,
+        emplacements: r.entree.emplacements,
+        raison: r.raison,
+      };
+    });
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, chercherMembreParCle, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, situationAttribution, estMobiliteReduite, ETATS_OCCUPATION };
+  module.exports = { parserGrille, normaliserGrille, analyserStructures, numerosOrphelins, statutEmplacement, gestesEmplacement, compterStatuts, fantomeOccupation, prochainEtatTournee, lotDeTournee, aChangeTournee, resumeDeTournee, filesATraiter, serieLibreObservee, fenetreApparition, dateLisible, historiqueEmplacement, cleAdresse, chercherMembreParCle, casAdresse, fileHorsQuota, journalDeCas, depassementQuota, etatDemande, sectionDemandes, journalDemande, suggestionsEmplacements, diffContact, autresDemandesOuvertes, demandeEnCoursAdresse, situationAttribution, estMobiliteReduite, toutesLesAdresses_, chercherAdresses, ETATS_OCCUPATION };
 }

@@ -74,6 +74,7 @@ var FAITS = (typeof require === 'function')
       fenetreApparition: fenetreApparition,
       dateLisible: dateLisible,
       analyserStructures: analyserStructures,
+      casAdresse: casAdresse,
     };
 
 // L'adresse « numeroAdresse rue » (décision 0012), toujours cette forme — que
@@ -162,12 +163,49 @@ function proseSignal(ligne, evenements, contexte) {
   return null;
 }
 
+// La pastille de santé d'un dossier d'adresse (décision 0023), prête à afficher
+// (libellé + variante Web Awesome) — le signal qui oriente une suggestion de la
+// page Adresses sans coûter un clic. Dérivée, jamais stockée (0011) : l'état le
+// plus « à voir » du dossier, PIRE D'ABORD parmi les statuts de ses emplacements,
+// le dépassement de quota PRIORITAIRE sur tout (une règle de gestion — d'où une
+// pastille NEUTRE, pas une alarme : design.md / 0016). Priorité :
+//   Hors quota > Attribué, libre (problème terrain) > Non observé > En ordre.
+// Réutilise casAdresse (le dossier + son dépassement, 0019/0023), statutEmplacement
+// (le statut ET son libellé — seul foyer) et apparenceStatut (la variante — seul
+// foyer). Une adresse sans attribution (connue seulement via Membres, ou clé sans
+// dossier) → « Aucun emplacement », neutre. Le libellé double toujours la couleur
+// (0016). Les emplacements d'un dossier sont tous attribués à l'adresse, donc leur
+// statut ne peut être qu'En ordre / Attribué-libre / Non observé — jamais orphelin
+// ni disponible ; le repli `|| 0` reste tolérant à une donnée inattendue (0002).
+var RANG_SANTE = { peutEtreALiberer: 3, pasObserve: 2, conforme: 1 };
+function santeDossier(cle, lignesEmplacements, membres) {
+  var cas = FAITS.casAdresse(cle, lignesEmplacements, membres);
+  if (!cas || cas.nombre === 0) {
+    return { code: 'sansEmplacement', libelle: 'Aucun emplacement', variante: 'neutral' };
+  }
+  if (cas.depassement > 0) {
+    return { code: 'horsQuota', libelle: 'Hors quota', variante: 'neutral' };
+  }
+  var pire = null;
+  var rangPire = 0;
+  cas.emplacements.forEach(function (ligne) {
+    var statut = FAITS.statutEmplacement(ligne);
+    if ((RANG_SANTE[statut.code] || 0) > rangPire) {
+      rangPire = RANG_SANTE[statut.code];
+      pire = statut;
+    }
+  });
+  if (!pire) pire = FAITS.statutEmplacement(cas.emplacements[0]);
+  return { code: pire.code, libelle: pire.libelle, variante: apparenceStatut(pire.code).variante };
+}
+
 if (typeof module !== 'undefined') {
   module.exports = {
     apparenceStatut: apparenceStatut,
     apparenceCellule: apparenceCellule,
     silhouetteEmbarcation: silhouetteEmbarcation,
     proseSignal: proseSignal,
+    santeDossier: santeDossier,
     formatAdresse: formatAdresse,
     cartePositions: cartePositions,
     positionParNumero: positionParNumero,

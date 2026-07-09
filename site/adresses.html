@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="fr" class="wa-theme-default wa-palette-default wa-light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Orford sur le Lac — Adresses</title>
+  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.10.0/styles/webawesome.css">
+  <script type="module" src="https://ka-f.webawesome.com/webawesome@3.10.0/webawesome.loader.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=Yellowtail&display=swap">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="liseret-marque"></div>
+
+  <header class="bande-lac">
+    <canvas class="eau-lac" aria-hidden="true"></canvas>
+    <div class="contenu wa-stack wa-gap-m">
+      <div class="wa-stack wa-gap-2xs">
+        <span class="wordmark-lac">Orford-sur-le-Lac</span>
+        <span class="wa-caption-m signature-lac surtitre-comite">Espace du comité</span>
+      </div>
+      <h1 class="wa-heading-xl wa-text-balance titre-lac">Adresses</h1>
+      <!-- Une phrase rassurante qui dit le geste (0016) : retrouver un dossier
+           par identité, sans connaître le numéro d'emplacement. -->
+      <p class="wa-text-pretty sous-titre-lac">Retrouvez le dossier d'un membre —
+        par son nom, son adresse, ou un numéro d'emplacement.</p>
+      <nav class="wa-cluster wa-gap-l nav-comite" aria-label="Pages du comité">
+        <a href="structures.html"><wa-icon name="table-cells"></wa-icon> Structures</a>
+        <a href="a-traiter.html"><wa-icon name="clipboard-list"></wa-icon> À traiter</a>
+        <a href="adresses.html" aria-current="page"><wa-icon name="magnifying-glass"></wa-icon> Adresses</a>
+      </nav>
+    </div>
+    <div class="houle">
+      <svg class="vagues" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,32 C240,64 480,0 720,32 C960,64 1200,0 1440,32 L1440,60 L0,60 Z"
+              fill="var(--wa-color-surface-default)"></path>
+      </svg>
+    </div>
+  </header>
+
+  <main class="contenu wa-stack wa-gap-xl">
+    <!-- État : connexion (mot de passe du comité) — le même bloc que les autres
+         pages comité (décision 0008). -->
+    <wa-card id="etat-connexion" hidden>
+      <form id="formulaire-connexion" class="wa-stack wa-gap-l">
+        <div class="wa-stack wa-gap-xs">
+          <h2 class="wa-heading-l">Page réservée au comité</h2>
+          <p class="wa-color-text-quiet wa-text-pretty">Entrez le mot de passe du comité pour chercher
+            une adresse. Il est le même pour tous les membres du comité.</p>
+        </div>
+        <wa-callout id="erreur-connexion" variant="danger" role="alert" hidden>
+          <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+          <span id="erreur-connexion-texte"></span>
+        </wa-callout>
+        <wa-input id="champ-mot-de-passe" name="motDePasse" class="champ-plein" label="Mot de passe du comité"
+                  type="password" password-toggle autocomplete="current-password" required>
+          <wa-icon slot="start" name="lock"></wa-icon>
+        </wa-input>
+        <wa-button id="entrer" class="bouton-plein" type="submit" variant="brand" size="m">
+          <wa-icon slot="start" name="unlock"></wa-icon>
+          Entrer
+        </wa-button>
+      </form>
+    </wa-card>
+
+    <!-- État : chargement — le squelette pré-dessine le champ puis quelques
+         rangées de suggestions, aux proportions du rendu (aucun saut). -->
+    <div id="etat-chargement" class="wa-stack wa-gap-l" role="status" aria-busy="true" hidden>
+      <wa-skeleton class="squelette-champ" effect="sheen"></wa-skeleton>
+      <wa-skeleton class="squelette-ligne moitie" effect="sheen"></wa-skeleton>
+      <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+      <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+      <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+      <p class="wa-visually-hidden">Chargement de l'inventaire des adresses…</p>
+    </div>
+
+    <!-- État : erreur de chargement — jamais une page morte. -->
+    <div id="etat-erreur" class="wa-stack wa-gap-m" hidden>
+      <wa-callout variant="danger" role="alert">
+        <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+        <span id="erreur-texte"></span><span
+          class="phrase-contact" hidden> Vous pouvez aussi nous écrire à <a class="lien-comite" href=""></a>.</span>
+      </wa-callout>
+      <div class="wa-cluster">
+        <wa-button id="reessayer" variant="brand" size="m">
+          <wa-icon slot="start" name="rotate-right"></wa-icon>
+          Réessayer
+        </wa-button>
+      </div>
+    </div>
+
+    <!-- État : la recherche (décision 0023). Le champ EST la page ; sous lui,
+         l'état de repos calme, la liste de suggestions, ou le message « aucune
+         adresse ». La recherche est 100 % client sur l'inventaire déjà chargé —
+         aucun appel réseau par frappe. -->
+    <div id="etat-recherche" class="wa-stack wa-gap-l" hidden>
+      <!-- Titre invisible : le h1 du header nomme déjà la page (0016) ; il reste
+           pour la structure lecteur d'écran. -->
+      <h2 class="wa-visually-hidden">Chercher une adresse</h2>
+
+      <!-- Pas de placeholder listant « nom / adresse / numéro » : ce serait un
+           second foyer de la même consigne que le paragraphe de repos ci-dessous
+           (0016). Le libellé et l'icône suffisent ; les exemples vivent au repos. -->
+      <wa-input id="champ-recherche" class="champ-plein champ-recherche" type="search" clearable
+                label="Rechercher une adresse" enterkeyhint="search" autocomplete="off"
+                aria-describedby="aide-recherche">
+        <wa-icon slot="start" name="magnifying-glass"></wa-icon>
+      </wa-input>
+
+      <!-- Compteur pour lecteurs d'écran seulement : « N adresses trouvées »
+           annoncé sans encombrer l'écran (l'œil voit déjà la liste). -->
+      <p id="annonce-resultats" class="wa-visually-hidden" role="status" aria-live="polite"></p>
+
+      <!-- Repos : rien n'est tapé — une invitation calme et centrée à chercher
+           (public aîné), jamais une alarme. -->
+      <div id="etat-repos" class="repos-recherche wa-stack wa-gap-s wa-align-items-center wa-text-center">
+        <wa-icon name="address-book" aria-hidden="true"></wa-icon>
+        <p class="wa-text-pretty wa-color-text-quiet">Tapez un nom (« Tremblay »), une adresse
+          (« 234 Rue du Pré ») ou un numéro d'emplacement (« 142 ») pour ouvrir un dossier.</p>
+      </div>
+
+      <!-- Résultats : la liste des suggestions. La première est présélectionnée ;
+           Entrée depuis le champ ouvre son dossier (le rappel procédural n'est
+           dit qu'ici, quand il sert — 0016). -->
+      <div id="zone-resultats" class="wa-stack wa-gap-s" hidden>
+        <p id="aide-recherche" class="wa-color-text-quiet wa-text-pretty">La première suggestion
+          est présélectionnée — appuyez sur Entrée, ou choisissez-en une, pour ouvrir son dossier.</p>
+        <ul id="liste-suggestions" class="liste-cas wa-stack wa-gap-s"></ul>
+      </div>
+
+      <!-- Aucun résultat : ce qui a été cherché, et quoi faire ensuite. -->
+      <div id="etat-aucun" class="section-vide-neutre" hidden>
+        <wa-icon name="circle-question" aria-hidden="true"></wa-icon>
+        <p id="aucun-texte" class="wa-text-pretty"></p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="pied wa-text-center">
+    Orford sur le Lac — Comité administratif<span class="phrase-contact" hidden> ·
+      <a class="lien-comite" href=""></a></span>
+  </footer>
+
+  <!-- Modèle d'une suggestion (remplie par textContent : jamais de HTML de la
+       Sheet — anti-XSS). Toute la rangée est le bouton qui ouvre la fiche
+       d'adresse. Réutilise la rangée-galet du registre (.rangee-cas). -->
+  <template id="modele-suggestion">
+    <li>
+      <button type="button" class="rangee-cas suggestion">
+        <span class="rangee-texte">
+          <span class="rangee-titre">
+            <span class="suggestion-nom rangee-numero"></span>
+            <!-- La pastille de santé du dossier (décision 0023), dérivée « pire
+                 d'abord » : elle oriente sans coûter un clic. Libellé + couleur
+                 (jamais la couleur seule — 0016) ; remplie par textContent. -->
+            <wa-badge class="suggestion-sante" appearance="filled-outlined" pill></wa-badge>
+          </span>
+          <span class="suggestion-adresse"></span>
+        </span>
+        <wa-icon class="rangee-chevron" name="chevron-right" aria-hidden="true"></wa-icon>
+      </button>
+    </li>
+  </template>
+
+  <!-- La fiche d'adresse (0023/0024) est le composant partagé de fiche-adresse.js ;
+       elle peut ouvrir une fiche d'emplacement (fiche.js), avec bouton retour. -->
+
+  <script src="config.js"></script>
+  <script src="eau.js"></script>
+  <script src="grille.js"></script>
+  <script src="presentation.js"></script>
+  <script src="client.js"></script>
+  <script src="blocs-fiche.js"></script>
+  <script src="fiche.js"></script>
+  <script src="fiche-adresse.js"></script>
+  <script type="module">
+    // wa-drawer / wa-dialog ne sont pas dans le markup statique : les fiches
+    // partagées (fiche.js, fiche-adresse.js) injectent et attendent les leurs —
+    // les attendre ici AVANT leur insertion bloquerait la page (loader à la
+    // demande). On n'attend que les composants du markup statique.
+    await Promise.all([
+      customElements.whenDefined('wa-button'),
+      customElements.whenDefined('wa-input'),
+      customElements.whenDefined('wa-card'),
+      customElements.whenDefined('wa-callout'),
+      customElements.whenDefined('wa-icon'),
+    ]);
+
+    // Filet de sécurité : liens de contact du comité, si configurés.
+    const courrielComite = window.OSL_CONFIG.courrielComite;
+    if (courrielComite) {
+      for (const lien of document.querySelectorAll('.lien-comite')) {
+        lien.href = 'mailto:' + courrielComite;
+        lien.textContent = courrielComite;
+      }
+      for (const phrase of document.querySelectorAll('.phrase-contact')) phrase.hidden = false;
+    }
+
+    const etats = {
+      connexion: document.getElementById('etat-connexion'),
+      chargement: document.getElementById('etat-chargement'),
+      erreur: document.getElementById('etat-erreur'),
+      recherche: document.getElementById('etat-recherche'),
+    };
+
+    function montrerEtat(nom) {
+      for (const [cle, element] of Object.entries(etats)) element.hidden = cle !== nom;
+    }
+
+    const CLE_SESSION = 'oslMotDePasseComite';
+
+    // Le mot de passe utilisé pour le chargement : la session, ou la valeur
+    // tentée à la connexion. Le client (client.js) le lit frais à chaque appel.
+    // Les fiches ont leur propre client (session déjà établie).
+    let motDePasseActif = sessionStorage.getItem(CLE_SESSION) || '';
+    const client = creerClient({
+      fetch: (url, params) => window.fetch(url, params),
+      apiUrl: window.OSL_CONFIG.apiUrl,
+      motDePasse: () => motDePasseActif,
+    });
+
+    // Réaction commune à une session morte : oublier le mot de passe, réafficher
+    // la connexion.
+    function sessionExpiree() {
+      sessionStorage.removeItem(CLE_SESSION);
+      motDePasseActif = '';
+      montrerConnexion(true);
+    }
+    const erreurConnexion = document.getElementById('erreur-connexion');
+    const champMotDePasse = document.getElementById('champ-mot-de-passe');
+
+    function montrerConnexion(refuse) {
+      erreurConnexion.hidden = !refuse;
+      if (refuse) {
+        document.getElementById('erreur-connexion-texte').textContent =
+          'Ce mot de passe n\'est pas le bon. Vérifiez-le auprès du comité, puis réessayez.';
+      }
+      montrerEtat('connexion');
+      champMotDePasse.focus();
+    }
+
+    function montrerErreur() {
+      document.getElementById('erreur-texte').textContent =
+        'Impossible de charger les adresses. Vérifiez votre connexion Internet, puis réessayez.';
+      montrerEtat('erreur');
+    }
+
+    // L'état courant renvoyé par l'API (0002 : toujours l'état frais de la Sheet).
+    let donnees = { structures: [], emplacements: [], membres: [], journal: [], demandes: [] };
+
+    function rangerDonnees(resultat) {
+      donnees = {
+        structures: resultat.structures || [],
+        emplacements: resultat.emplacements || [],
+        membres: resultat.membres || [],
+        journal: resultat.journal || [],
+        demandes: resultat.demandes || [],
+      };
+    }
+
+    // --- L'index de recherche (0009) : l'union Emplacements ∪ Membres, rebâtie à
+    // chaque état frais pour que la recherche reflète les gestes faits en fiche. --
+    let index = [];
+    function construireIndex() {
+      index = toutesLesAdresses_(donnees.emplacements, donnees.membres);
+    }
+
+    // --- Les fiches partagées (0023/0024) ---
+    const fiche = creerFicheEmplacement({
+      donnees: () => donnees,
+      motDePasse: () => sessionStorage.getItem(CLE_SESSION) || '',
+      surDonneesFraiches: (resultat) => {
+        rangerDonnees(resultat);
+        construireIndex();
+        rendreRecherche();
+      },
+      surSessionExpiree: sessionExpiree,
+    });
+
+    // Naviguer d'une fiche d'adresse vers une fiche d'emplacement : JAMAIS deux
+    // drawers empilés (0019) — on ferme la fiche d'adresse, on ouvre celle de
+    // l'emplacement avec un bouton retour qui rouvre le dossier.
+    let navigationVersEmplacement = false;
+    const ficheAdresse = creerFicheAdresse({
+      donnees: () => donnees,
+      motDePasse: () => sessionStorage.getItem(CLE_SESSION) || '',
+      surDonneesFraiches: (resultat) => {
+        rangerDonnees(resultat);
+        construireIndex();
+        rendreRecherche();
+      },
+      surSessionExpiree: sessionExpiree,
+      surOuvrirEmplacement: async (numero, cle, adresse) => {
+        navigationVersEmplacement = true;
+        await ficheAdresse.fermer();
+        fiche.ouvrir(numero, { libelle: adresse, surRetour: () => ficheAdresse.ouvrir(cle) });
+      },
+    });
+
+    // La clé du dossier ouvert : à la fermeture de la fiche d'adresse, le focus
+    // revient sur la suggestion qui l'a ouverte si elle existe encore (un geste
+    // a pu re-rendre la liste), sinon sur le champ de recherche.
+    let origineCle = null;
+    function ouvrirFiche(cle) {
+      origineCle = cle;
+      ficheAdresse.ouvrir(cle);
+    }
+
+    const elementFicheAdresse = document.getElementById('fiche-adresse');
+    elementFicheAdresse.addEventListener('wa-after-hide', (evenement) => {
+      if (evenement.target !== elementFicheAdresse) return;
+      if (navigationVersEmplacement) {
+        navigationVersEmplacement = false;
+        return;
+      }
+      if (!origineCle) return;
+      const cle = origineCle;
+      origineCle = null;
+      const suggestion = document.querySelector('.suggestion[data-cle="' + (window.CSS ? CSS.escape(cle) : cle) + '"]');
+      (suggestion || champRecherche).focus();
+    });
+
+    // --- La recherche : 100 % client, recalculée à chaque frappe (0023) ---
+    const champRecherche = document.getElementById('champ-recherche');
+    const zoneRepos = document.getElementById('etat-repos');
+    const zoneResultats = document.getElementById('zone-resultats');
+    const zoneAucun = document.getElementById('etat-aucun');
+    const listeSuggestions = document.getElementById('liste-suggestions');
+    const annonce = document.getElementById('annonce-resultats');
+    const modeleSuggestion = document.getElementById('modele-suggestion');
+
+    // La ligne d'appui d'une suggestion : l'adresse (sous le nom), ou « Contact
+    // non inscrit » quand l'adresse n'a pas de membre — plus la légende
+    // « · Emplacement N » quand le match vient d'un numéro (0023).
+    function texteAppui(resultat, avecNom) {
+      const legende = resultat.raison.cle === 'numero'
+        ? 'Emplacement ' + resultat.raison.numero : '';
+      if (avecNom) {
+        return legende ? resultat.adresse + ' · ' + legende : resultat.adresse;
+      }
+      return legende || 'Contact non inscrit';
+    }
+
+    function construireSuggestion(resultat, presel) {
+      const noeud = modeleSuggestion.content.cloneNode(true);
+      const bouton = noeud.querySelector('.suggestion');
+      bouton.dataset.cle = resultat.cle;
+      if (presel) bouton.classList.add('est-preselectionnee');
+      const nom = resultat.membre && String(resultat.membre.nom || '').trim();
+      // Nom en voix de titre s'il existe, sinon l'adresse porte l'identité.
+      bouton.querySelector('.suggestion-nom').textContent = nom || resultat.adresse;
+      // La pastille de santé (0023) : l'état le plus « à voir » du dossier,
+      // dérivé (jamais stocké) — pire d'abord, hors quota prioritaire.
+      const sante = santeDossier(resultat.cle, donnees.emplacements, donnees.membres);
+      const badge = bouton.querySelector('.suggestion-sante');
+      badge.setAttribute('variant', sante.variante);
+      badge.textContent = sante.libelle;
+      bouton.querySelector('.suggestion-adresse').textContent = texteAppui(resultat, Boolean(nom));
+      bouton.addEventListener('click', () => ouvrirFiche(resultat.cle));
+      return noeud;
+    }
+
+    let resultatsCourants = [];
+    function rendreRecherche() {
+      // wa-input.value vaut null tant que le champ est vide — on le neutralise.
+      const valeur = champRecherche.value || '';
+      const requete = valeur.trim();
+      resultatsCourants = chercherAdresses(valeur, index);
+
+      if (requete === '') {
+        zoneRepos.hidden = false;
+        zoneResultats.hidden = true;
+        zoneAucun.hidden = true;
+        annonce.textContent = '';
+        return;
+      }
+      if (resultatsCourants.length === 0) {
+        zoneRepos.hidden = true;
+        zoneResultats.hidden = true;
+        zoneAucun.hidden = false;
+        document.getElementById('aucun-texte').textContent =
+          'Aucune adresse ne correspond à « ' + requete + ' ». Vérifiez l\'orthographe, '
+          + 'ou l\'adresse n\'est peut-être pas encore inscrite.';
+        annonce.textContent = 'Aucune adresse ne correspond à votre recherche.';
+        return;
+      }
+      zoneRepos.hidden = true;
+      zoneAucun.hidden = true;
+      listeSuggestions.replaceChildren(
+        ...resultatsCourants.map((resultat, i) => construireSuggestion(resultat, i === 0)),
+      );
+      zoneResultats.hidden = false;
+      annonce.textContent = resultatsCourants.length === 1
+        ? '1 adresse trouvée.' : resultatsCourants.length + ' adresses trouvées.';
+    }
+
+    champRecherche.addEventListener('input', rendreRecherche);
+    // Entrée depuis le champ : ouvre la première suggestion (présélectionnée).
+    // Flèche bas : passe au clavier dans la liste des suggestions.
+    champRecherche.addEventListener('keydown', (evenement) => {
+      if (evenement.key === 'Enter' && resultatsCourants[0]) {
+        evenement.preventDefault();
+        ouvrirFiche(resultatsCourants[0].cle);
+      } else if (evenement.key === 'ArrowDown' && !zoneResultats.hidden) {
+        const premiere = listeSuggestions.querySelector('.suggestion');
+        if (premiere) {
+          evenement.preventDefault();
+          premiere.focus();
+        }
+      }
+    });
+    // Dans la liste : les flèches déplacent le focus de suggestion en suggestion
+    // (roving), Flèche haut depuis la première ramène au champ.
+    listeSuggestions.addEventListener('keydown', (evenement) => {
+      if (evenement.key !== 'ArrowDown' && evenement.key !== 'ArrowUp') return;
+      const boutons = [...listeSuggestions.querySelectorAll('.suggestion')];
+      const i = boutons.indexOf(document.activeElement);
+      if (i === -1) return;
+      evenement.preventDefault();
+      if (evenement.key === 'ArrowDown') {
+        (boutons[i + 1] || boutons[boutons.length - 1]).focus();
+      } else if (i === 0) {
+        champRecherche.focus();
+      } else {
+        boutons[i - 1].focus();
+      }
+    });
+
+    async function chargerInventaire(motDePasse) {
+      montrerEtat('chargement');
+      motDePasseActif = motDePasse;
+      try {
+        const resultat = await client.poster({ action: 'inventaire' });
+        if (resultat.accesRefuse) {
+          sessionExpiree();
+          return;
+        }
+        sessionStorage.setItem(CLE_SESSION, motDePasse);
+        rangerDonnees(resultat);
+        construireIndex();
+        montrerEtat('recherche');
+        rendreRecherche();
+        champRecherche.focus();
+      } catch (erreur) {
+        console.error('Chargement des adresses impossible :', erreur);
+        montrerErreur();
+      }
+    }
+
+    document.getElementById('formulaire-connexion').addEventListener('submit', async (evenement) => {
+      evenement.preventDefault();
+      await chargerInventaire(champMotDePasse.value);
+    });
+    document.getElementById('reessayer').addEventListener('click', () => {
+      chargerInventaire(sessionStorage.getItem(CLE_SESSION) || champMotDePasse.value);
+    });
+
+    // Hook de test (décision 0006) : ?etat=mot-de-passe|mdp-refuse|chargement|
+    // recherche|erreur fige la page dans un état pour les captures. En mode
+    // `recherche`, ?q= préremplit le champ (résultats / aucun-résultat) et
+    // ?adresse= ouvre directement un dossier. Inerte sans paramètre — sur le
+    // vrai site, `recherche` aboutit à l'écran de connexion (pas de session).
+    const paramsUrl = new URLSearchParams(location.search);
+    const etatForce = paramsUrl.get('etat');
+    if (etatForce === 'mot-de-passe') montrerConnexion(false);
+    else if (etatForce === 'mdp-refuse') montrerConnexion(true);
+    else if (etatForce === 'chargement') montrerEtat('chargement');
+    else if (etatForce === 'erreur') montrerErreur();
+    else if (etatForce === 'recherche') {
+      chargerInventaire('capture').then(() => {
+        const q = paramsUrl.get('q');
+        if (q) {
+          champRecherche.value = q;
+          rendreRecherche();
+        }
+        const cle = paramsUrl.get('adresse');
+        if (cle) ouvrirFiche(cle);
+      });
+    } else {
+      const motDePasse = sessionStorage.getItem(CLE_SESSION);
+      if (motDePasse) chargerInventaire(motDePasse);
+      else montrerConnexion(false);
+    }
+  </script>
+</body>
+</html>

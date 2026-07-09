@@ -30,6 +30,7 @@
       <nav class="wa-cluster wa-gap-l nav-comite" aria-label="Pages du comité">
         <a href="structures.html"><wa-icon name="table-cells"></wa-icon> Structures</a>
         <a href="a-traiter.html" aria-current="page"><wa-icon name="clipboard-list"></wa-icon> À traiter</a>
+        <a href="adresses.html"><wa-icon name="magnifying-glass"></wa-icon> Adresses</a>
       </nav>
     </div>
     <div class="houle">
@@ -112,8 +113,8 @@
 
       <!-- « Demandes » en PREMIÈRE position (décision 0020) : les membres qui
            attendent une place — la même équité qui met Hors quota avant les
-           files de terrain (0019). Lecture seule cette tranche ; la fiche de
-           traitement (accepter, refuser) vient à la tranche suivante. -->
+           files de terrain (0019). Toucher une demande ouvre la fiche d'adresse
+           de son adresse, où se fait le traitement (décision 0024, amende 0020). -->
       <section class="wa-stack wa-gap-m" aria-labelledby="titre-demandes">
         <div class="wa-stack wa-gap-2xs">
           <div class="wa-split wa-align-items-baseline">
@@ -218,7 +219,7 @@
 
   <!-- Modèle d'une demande nouvelle (rempli par textContent : jamais de HTML
        du membre — anti-XSS). Toute la rangée est le bouton qui ouvre la fiche
-       de traitement (décision 0020). -->
+       d'adresse de son adresse, où se fait le traitement (décision 0024). -->
   <template id="modele-rangee-demande">
     <li class="cas">
       <button type="button" class="rangee-cas rangee-demande">
@@ -279,9 +280,9 @@
   <script src="grille.js"></script>
   <script src="presentation.js"></script>
   <script src="client.js"></script>
+  <script src="blocs-fiche.js"></script>
   <script src="fiche.js"></script>
   <script src="fiche-adresse.js"></script>
-  <script src="fiche-demande.js"></script>
   <script type="module">
     // wa-textarea et wa-dialog ne sont plus dans le markup de la page : la
     // fiche partagée (fiche.js) injecte et attend les siens — les attendre ici
@@ -456,8 +457,8 @@
         : 'Reçue le ' + formatDate.format(date);
     }
 
-    // Une demande nouvelle : une rangée-galet cliquable qui ouvre la fiche de
-    // traitement (décision 0020).
+    // Une demande nouvelle : une rangée-galet cliquable qui ouvre la fiche
+    // d'adresse de son adresse, où se fait le traitement (décision 0024, amende 0020).
     function rangeeDemande(entree) {
       const { demande } = entree;
       const noeud = document.getElementById('modele-rangee-demande').content.cloneNode(true);
@@ -467,7 +468,7 @@
       noeud.querySelector('.demande-type').textContent = demande.type;
       noeud.querySelector('.demande-recue').textContent = dateRecue(demande);
       noeud.querySelector('.badge-mobilite').hidden = !estMobiliteReduite(demande);
-      bouton.addEventListener('click', () => ouvrirDemande(demande));
+      bouton.addEventListener('click', () => ouvrirDemandeEnAdresse(demande));
       return noeud;
     }
 
@@ -586,6 +587,15 @@
         afficherCas();
       },
       surSessionExpiree: sessionExpiree,
+      // « Fiche d'adresse » depuis un emplacement attribué (MIROIR de
+      // surOuvrirEmplacement) : REMPLACE le drawer par la fiche d'adresse (jamais
+      // deux empilés) ; la refermer — bouton retour, X ou échap — rouvre la fiche
+      // d'emplacement d'origine.
+      surOuvrirAdresse: async (cle, adresse, numero) => {
+        navigationVersAdresse = true;
+        await fiche.fermer();
+        ficheAdresse.ouvrir(cle, { libelle: 'Emplacement ' + numero, surRetour: () => fiche.ouvrir(numero) });
+      },
     });
 
     // La fiche d'adresse (0019) : le dossier d'un cas « Hors quota ». Toucher
@@ -607,20 +617,6 @@
       },
     });
 
-    // La fiche de demande (0020) : l'écran de décision. Tout geste (accepter,
-    // refuser, mettre à jour le contact) range l'état frais et re-rend le
-    // registre derrière la fiche restée ouverte — la demande décidée quitte les
-    // nouvelles et rejoint les traitées sous les yeux.
-    const ficheDemande = creerFicheDemande({
-      donnees: () => donnees,
-      motDePasse: () => sessionStorage.getItem(CLE_SESSION) || '',
-      surDonneesFraiches: (resultat) => {
-        rangerDonnees(resultat);
-        afficherCas();
-      },
-      surSessionExpiree: sessionExpiree,
-    });
-
     // L'origine de la fiche ouverte : tout geste re-rend le registre, donc la
     // rangée qui a ouvert la fiche est DÉTRUITE — le focus restauré par le
     // drawer viserait un nœud détaché. À la fermeture, on le pose nous-mêmes :
@@ -628,10 +624,12 @@
     // de la section d'où venait la rangée (cas libéré ou refermé).
     let ficheOrigine = null;
     let ficheAdresseOrigine = null;
-    let ficheDemandeOrigine = null;
     // Fermeture de la fiche d'adresse POUR ouvrir une fiche d'emplacement :
     // pas une sortie — le focus ne revient pas au registre à ce moment-là.
     let navigationVersEmplacement = false;
+    // Symétrique : fermeture de la fiche d'emplacement POUR ouvrir une fiche
+    // d'adresse (« Fiche d'adresse ») — pas une sortie non plus.
+    let navigationVersAdresse = false;
 
     function ouvrirCas(cas, avecAttribution) {
       ficheOrigine = {
@@ -641,21 +639,43 @@
       fiche.ouvrir(cas.numero);
     }
 
+    // Un cas « Hors quota » ouvre la fiche d'adresse : à la fermeture, le focus
+    // revient sur la rangée du cas si elle est encore en file, sinon sur le
+    // titre de la section « Hors quota ».
     function ouvrirCasAdresse(cas) {
-      ficheAdresseOrigine = { cle: cas.cle };
+      ficheAdresseOrigine = {
+        selecteur: '.rangee-cas[data-cle="' + cas.cle + '"]',
+        titre: 'titre-hors-quota',
+      };
       ficheAdresse.ouvrir(cas.cle);
     }
 
-    function ouvrirDemande(demande) {
-      ficheDemandeOrigine = { id: demande.id };
-      ficheDemande.ouvrir(demande.id);
+    // Une demande de la section « Demandes » ouvre la fiche d'adresse de son
+    // adresse (clé dérivée de numero + rue) : le traitement — attribuer une place
+    // suggérée, refuser, mettre à jour le contact — y vit désormais (décision
+    // 0024, amende 0020). À la fermeture, le focus revient sur la rangée-demande
+    // si elle existe encore, sinon sur le titre de la section « Demandes ».
+    function ouvrirDemandeEnAdresse(demande) {
+      const cle = cleAdresse({ numeroAdresse: demande.numero, rue: demande.rue });
+      ficheAdresseOrigine = {
+        selecteur: '.rangee-demande[data-id="' + demande.id + '"]',
+        titre: 'titre-demandes',
+      };
+      ficheAdresse.ouvrir(cle);
     }
 
     const elementFiche = document.getElementById('fiche-emplacement');
     elementFiche.addEventListener('wa-after-hide', (evenement) => {
       // Seule la fermeture du drawer lui-même compte — pas celle d'un
       // composant qui émettrait wa-after-hide depuis l'intérieur de la fiche.
-      if (evenement.target !== elementFiche || !ficheOrigine) return;
+      if (evenement.target !== elementFiche) return;
+      // Navigation vers la fiche d'adresse : pas une sortie, on ne restaure pas
+      // le focus au registre (l'emplacement se rouvrira au retour).
+      if (navigationVersAdresse) {
+        navigationVersAdresse = false;
+        return;
+      }
+      if (!ficheOrigine) return;
       const { numero, titre } = ficheOrigine;
       ficheOrigine = null;
       const rangee = document.querySelector('.rangee-cas[data-numero="' + numero + '"]');
@@ -670,23 +690,13 @@
         return;
       }
       if (!ficheAdresseOrigine) return;
-      const { cle } = ficheAdresseOrigine;
+      // La rangée qui a ouvert la fiche (cas « Hors quota » ou demande) a pu être
+      // détruite par un re-rendu : le focus revient dessus si elle existe encore,
+      // sinon sur le titre de sa section d'origine.
+      const { selecteur, titre } = ficheAdresseOrigine;
       ficheAdresseOrigine = null;
-      const rangee = document.querySelector('.rangee-cas[data-cle="' + cle + '"]');
-      (rangee || document.getElementById('titre-hors-quota')).focus();
-    });
-
-    // Fermeture de la fiche de demande : la rangée qui l'a ouverte a pu être
-    // détruite (geste → re-rendu ; une demande décidée quitte les nouvelles) —
-    // on repose le focus sur la rangée si elle existe encore, sinon sur le
-    // titre de la section « Demandes ».
-    const elementFicheDemande = document.getElementById('fiche-demande');
-    elementFicheDemande.addEventListener('wa-after-hide', (evenement) => {
-      if (evenement.target !== elementFicheDemande || !ficheDemandeOrigine) return;
-      const { id } = ficheDemandeOrigine;
-      ficheDemandeOrigine = null;
-      const rangee = document.querySelector('.rangee-demande[data-id="' + id + '"]');
-      (rangee || document.getElementById('titre-demandes')).focus();
+      const rangee = document.querySelector(selecteur);
+      (rangee || document.getElementById(titre)).focus();
     });
 
     async function chargerCas(motDePasse) {
@@ -732,14 +742,23 @@
     // liste|liste-vide|erreur fige la page dans un état pour les captures.
     // Inerte sans paramètre. `liste` passe par un vrai fetch (API mockée par
     // Playwright) ; sur le vrai site, il aboutit à l'écran de connexion.
-    const etatForce = new URLSearchParams(location.search).get('etat');
+    const paramsUrl = new URLSearchParams(location.search);
+    const etatForce = paramsUrl.get('etat');
     if (etatForce === 'mot-de-passe') montrerConnexion(false);
     else if (etatForce === 'mdp-refuse') montrerConnexion(true);
     else if (etatForce === 'chargement') montrerEtat('chargement');
     else if (etatForce === 'erreur') montrerErreur();
     else if (etatForce === 'liste-vide') afficherCas();
-    else if (etatForce === 'liste') chargerCas('capture');
-    else {
+    else if (etatForce === 'liste') {
+      // `?adresse=<clé>` (0006/0024) : après le chargement, ouvre directement la
+      // fiche d'adresse GÉNÉRALISÉE pour cette clé — le dossier s'ouvre pour
+      // n'importe quelle adresse (pas seulement hors quota), avant même la page
+      // Adresses qui en sera le vrai point d'entrée. Inerte sans le paramètre.
+      chargerCas('capture').then(() => {
+        const cle = paramsUrl.get('adresse');
+        if (cle) ouvrirCasAdresse({ cle });
+      });
+    } else {
       const motDePasse = sessionStorage.getItem(CLE_SESSION);
       if (motDePasse) chargerCas(motDePasse);
       else montrerConnexion(false);

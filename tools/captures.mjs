@@ -261,30 +261,6 @@ export const INVENTAIRE_FICHE_DEMANDE = {
   ],
 };
 
-// Après acceptation de fd-suggestions sur l'emplacement 10 : la demande est
-// acceptée, 10 attribué à 45 Rue du Pré — la fiche montre le résultat, ouverte.
-export const INVENTAIRE_FICHE_APRES_ACCEPT = structuredClone(INVENTAIRE_FICHE_DEMANDE);
-INVENTAIRE_FICHE_APRES_ACCEPT.demandes = INVENTAIRE_FICHE_APRES_ACCEPT.demandes.map(
-  (d) => (d.id === 'fd-suggestions' ? { ...d, numeroAttribue: 10, dateDecision: '2026-07-07T14:00:00.000Z' } : d));
-INVENTAIRE_FICHE_APRES_ACCEPT.emplacements = INVENTAIRE_FICHE_APRES_ACCEPT.emplacements.map(
-  (l) => (l.numero === 10 ? { ...l, numeroAdresse: 45, rue: 'Rue du Pré' } : l));
-
-// Après refus de fd-suggestions : date de décision posée, raison au Journal —
-// la fiche montre le résultat et le bouton « Écrire au membre ».
-export const INVENTAIRE_FICHE_APRES_REFUS = structuredClone(INVENTAIRE_FICHE_DEMANDE);
-INVENTAIRE_FICHE_APRES_REFUS.demandes = INVENTAIRE_FICHE_APRES_REFUS.demandes.map(
-  (d) => (d.id === 'fd-suggestions' ? { ...d, dateDecision: '2026-07-07T14:00:00.000Z' } : d));
-INVENTAIRE_FICHE_APRES_REFUS.journal.push({
-  date: '2026-07-07T14:00:00.000Z', action: 'refus', numero: '', adresse: '45 Rue du Pré',
-  demandeId: 'fd-suggestions', details: 'La liste d\'attente est pleine cette saison.',
-});
-
-// Après mise à jour du contact de fd-contact-diff : le membre porte désormais
-// les coordonnées de la demande — le diff disparaît, fiche ouverte.
-export const INVENTAIRE_FICHE_APRES_CONTACT = structuredClone(INVENTAIRE_FICHE_DEMANDE);
-INVENTAIRE_FICHE_APRES_CONTACT.membres = INVENTAIRE_FICHE_APRES_CONTACT.membres.map(
-  (m) => (Number(m.numeroAdresse) === 60 ? { ...m, nom: 'Paul Roy-Tremblay', telephone: '819 555-0001' } : m));
-
 // config.js simulé : les captures ne dépendent pas du vrai site/config.js
 // (courriel de contact factice mais présent, pour rendre la .phrase-contact visible).
 export const CONFIG_JS_MOCK = `window.OSL_CONFIG = {
@@ -313,49 +289,67 @@ export const CAPTURES = [
   { nom: 'structures-liste', page: 'structures.html', etat: 'liste', attendre: '.carte-structure' },
   { nom: 'structures-liste-defilee', page: 'structures.html', etat: 'liste', attendre: '.carte-structure', defiler: '.grille-structure' },
   { nom: 'structures-liste-vide', page: 'structures.html', etat: 'liste-vide', attendre: '#etat-vide:not([hidden])' },
-  // Fiche d'emplacement (décision 0018) : le drawer partagé, un scénario par
-  // statut sur l'onglet Observer (l'onglet de cette page). `pleinVue` : un
-  // <dialog> du top layer se rend mal en capture pleine page — viewport seul.
+  // Fiche d'emplacement unifiée (décision 0024) : coquille à plat, un scénario
+  // par statut. Un état SAIN se lit en ligne calme (statut-calme, teintée de la
+  // gravité) ; un état à PROBLÈME porte un callout avec ses remèdes. `pleinVue` :
+  // un drawer/dialog du top layer se rend mal en capture pleine page — viewport
+  // seul.
+  // À identifier : une anomalie (danger) — callout de sa gravité réelle, sans
+  // remède (rien à faire d'ici que d'aller l'observer). Jamais moins saillant
+  // que le warning « Attribué, libre » (design.md).
   { nom: 'structures-fiche-orphelin', page: 'structures.html', etat: 'liste',
-    cliquer: '.cellule-structure[data-numero="76"]', attendre: '.bouton-occupation', pleinVue: true },
+    cliquer: '.cellule-structure[data-numero="76"]',
+    attendre: '#fiche-statut[variant="danger"]', pleinVue: true },
   { nom: 'structures-fiche-conforme', page: 'structures.html', etat: 'liste',
-    cliquer: '.cellule-structure[data-numero="74"]', attendre: '.bouton-occupation', pleinVue: true },
+    cliquer: '.cellule-structure[data-numero="74"]',
+    attendre: '#fiche-statut-calme[data-variant="success"]', pleinVue: true },
+  // Attribué, libre : le seul état où « Relancer » et « Libérer » ont une raison
+  // — les remèdes vivent dans le callout warning du statut (0024).
   { nom: 'structures-fiche-attribue-libre', page: 'structures.html', etat: 'liste',
-    cliquer: '.cellule-structure[data-numero="75"]', attendre: '.bouton-occupation', pleinVue: true },
-  { nom: 'structures-fiche-disponible', page: 'structures.html', etat: 'liste',
-    cliquer: '.cellule-structure[data-numero="77"]', attendre: '.bouton-occupation', pleinVue: true },
-  { nom: 'structures-fiche-pas-observe', page: 'structures.html', etat: 'liste',
-    cliquer: '.cellule-structure[data-numero="90"]', attendre: '.bouton-occupation', pleinVue: true },
-  // L'onglet Traiter, accessible depuis la grille (0018) : journal, note et
-  // gestes selon le statut — avec membre (75, attribué) et sans (76, orphelin).
-  { nom: 'structures-fiche-traiter', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]'],
+    cliquer: '.cellule-structure[data-numero="75"]',
     attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
-  { nom: 'structures-fiche-traiter-a-identifier', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="76"]', '#fiche-onglets wa-tab[panel="traiter"]'],
-    attendre: '#fiche-journal .ligne-journal', pleinVue: true },
+  { nom: 'structures-fiche-disponible', page: 'structures.html', etat: 'liste',
+    cliquer: '.cellule-structure[data-numero="77"]',
+    attendre: '#fiche-statut-calme[data-variant="brand"]', pleinVue: true },
+  { nom: 'structures-fiche-pas-observe', page: 'structures.html', etat: 'liste',
+    cliquer: '.cellule-structure[data-numero="90"]',
+    attendre: '#fiche-statut-calme[data-variant="neutral"]', pleinVue: true },
+  // Emplacement sain mais dont l'ADRESSE dépasse son quota (82 → 501 Rue du Pré,
+  // 4 emplacements pour 2) : callout neutral « Adresse hors quota » portant
+  // « Libérer », le statut propre de l'emplacement dit calmement dessous (0024).
+  { nom: 'structures-fiche-hors-quota', page: 'structures.html', etat: 'liste',
+    cliquer: '.cellule-structure[data-numero="82"]',
+    attendre: '#fiche-statut[variant="neutral"]', pleinVue: true },
+  // « Sur place » est une action : elle révèle le relevé Occupé/Libre replié.
+  { nom: 'structures-fiche-sur-place', page: 'structures.html', etat: 'liste',
+    cliquer: ['.cellule-structure[data-numero="74"]', '#fiche-sur-place'],
+    attendre: '.bouton-occupation', pleinVue: true },
   // La légende explique ses termes au toucher (wa-popover ancré au jeton).
   // `presenceSeule` : c'est l'attribut [open] qui prouve l'ouverture — le host
   // wa-popover est « invisible » pour Playwright même ouvert.
   { nom: 'structures-legende-explication', page: 'structures.html', etat: 'liste',
     cliquer: '#legende-conflit', attendre: 'wa-popover[for="legende-conflit"][open]',
     presenceSeule: true, pleinVue: true },
+  // Échec d'observation : « Sur place » révèle le relevé, puis « libre » échoue —
+  // l'erreur vit dans le panneau du relevé.
   { nom: 'structures-fiche-erreur', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="76"]', '.bouton-occupation[data-occupation="libre"]'],
+    cliquer: ['.cellule-structure[data-numero="76"]', '#fiche-sur-place',
+      '.bouton-occupation[data-occupation="libre"]'],
     attendre: '#fiche-erreur-observer:not([hidden])', pleinVue: true,
     reponses: { observerEmplacement: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
   // Observation réussie : la fiche RESTE ouverte (0018) — le statut de 76
-  // bascule d'« À identifier » (danger) à « Disponible » (brand) sous les
-  // yeux, la grille derrière se recolore. `reponsesApres` : l'inventaire
+  // bascule d'« À identifier » (danger) à « Disponible » (brand, ligne calme)
+  // sous les yeux, la grille derrière se recolore. `reponsesApres` : l'inventaire
   // rechargé après le geste, pas celui du premier chargement.
   { nom: 'structures-observation-succes', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="76"]', '.bouton-occupation[data-occupation="libre"]'],
-    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    cliquer: ['.cellule-structure[data-numero="76"]', '#fiche-sur-place',
+      '.bouton-occupation[data-occupation="libre"]'],
+    attendre: '#fiche-statut-calme[data-variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
-  // Note ajoutée depuis la grille : fiche ouverte, journal enrichi (6e ligne
-  // pour 75), champ vidé.
+  // Note ajoutée depuis la grille : coquille à plat (journal toujours visible),
+  // fiche ouverte, journal enrichi (6e ligne pour 75), champ vidé.
   { nom: 'structures-fiche-note-succes', page: 'structures.html', etat: 'liste',
-    ouvrir: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]'],
+    ouvrir: '.cellule-structure[data-numero="75"]',
     remplir: { selecteur: '#fiche-champ-note textarea', valeur: 'Parlé au membre : il vide l\'emplacement d\'ici la fin du mois. — Jeremy' },
     cliquer: '#fiche-ajouter-note',
     attendre: '#fiche-journal .ligne-journal:nth-of-type(6)', pleinVue: true,
@@ -363,15 +357,15 @@ export const CAPTURES = [
   // La confirmation avant de libérer : aucun tap accidentel ne retire une
   // adresse. `presenceSeule` : host wa-dialog « invisible » pour Playwright.
   { nom: 'structures-fiche-confirmation-liberation', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]',
-      '#fiche-liberer'],
+    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-liberer'],
     attendre: '#fiche-dialogue-liberer[open]', presenceSeule: true, pleinVue: true },
   // Libération depuis la grille : confirmation, puis fiche TOUJOURS ouverte —
-  // le statut bascule à « Disponible » et la libération se lit au journal.
+  // le statut bascule à « Disponible » (ligne calme) et la libération se lit au
+  // journal.
   { nom: 'structures-fiche-liberation-succes', page: 'structures.html', etat: 'liste',
-    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-onglets wa-tab[panel="traiter"]',
-      '#fiche-liberer', '#fiche-dialogue-liberer-confirmer'],
-    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    cliquer: ['.cellule-structure[data-numero="75"]', '#fiche-liberer',
+      '#fiche-dialogue-liberer-confirmer'],
+    attendre: '#fiche-statut-calme[data-variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_LIBERATION } },
   { nom: 'structures-edition', page: 'structures.html', etat: 'liste', cliquer: '[data-structure="S02"] .bouton-modifier', attendre: '.mode-edition:not([hidden]) .apercu-grille .grille-emplacements' },
   // `:not([disabled])` : le bouton n'est cliquable qu'une fois le formulaire initialisé.
@@ -454,6 +448,14 @@ export const CAPTURES = [
     cliquer: '.demande-decidee[data-id="demo-4"] .demande-resume',
     attendre: '.demande-decidee[data-id="demo-4"][open]', presenceSeule: true, pleinVue: true,
     reponses: { inventaire: INVENTAIRE_DEMANDES_DECIDEES } },
+  // Toucher une demande ouvre la fiche d'ADRESSE de son adresse, où se fait le
+  // traitement (décision 0024, amende 0020 — l'écran de demande autonome a été
+  // retiré). demo-1 (234 Rue du Pré) est aussi hors quota : la fiche montre le
+  // callout « Hors quota » ET le bloc « Demande en cours » qui traite la demande
+  // inline (suggestions, contact, refus).
+  { nom: 'a-traiter-demande-vers-fiche-adresse', page: 'a-traiter.html', etat: 'liste',
+    cliquer: '.rangee-demande[data-id="demo-1"]',
+    attendre: '#fiche-adresse-demande:not([hidden])', pleinVue: true },
   // Section « Hors quota » (0019) : la fiche d'ADRESSE — fait, membre,
   // emplacements avec statut, journal du cas, note. Cas standard (Marie,
   // 3 emplacements, quota 2, une note d'adresse au journal).
@@ -489,28 +491,71 @@ export const CAPTURES = [
   { nom: 'a-traiter-fiche-adresse-vers-emplacement', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-cle="234 rue du pré"]', '.rangee-emplacement[data-numero="84"]'],
     attendre: '#fiche-retour-zone:not([hidden])', pleinVue: true },
-  // … et retour : la fiche d'adresse se rouvre, re-rendue.
+  // … et retour : la fiche d'adresse se rouvre, re-rendue (Marie est hors quota
+  // → le callout « Hors quota » reparaît).
   { nom: 'a-traiter-retour-fiche-adresse', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-cle="234 rue du pré"]', '.rangee-emplacement[data-numero="84"]',
       '#fiche-retour'],
-    attendre: '#fiche-adresse-fait', pleinVue: true },
-  // La fiche d'un cas attribué, onglet Traiter d'office : membre, journal, gestes.
+    attendre: '#fiche-adresse-statut:not([hidden])', pleinVue: true },
+  // Fiche d'adresse GÉNÉRALISÉE « dans le quota » (0024) : ouverte directement
+  // via le hook ?adresse= (la fiche s'ouvre pour n'importe quelle adresse, pas
+  // seulement hors quota). Louise, 12 Rue des Érables : 1 emplacement pour une
+  // exception à 3 → AUCUN callout, le calme signale l'absence de problème.
+  { nom: 'a-traiter-fiche-adresse-dans-quota', page: 'a-traiter.html', etat: 'liste',
+    adresse: '12 rue des érables',
+    attendre: '.rangee-emplacement', pleinVue: true },
+  // Fiche d'adresse avec une DEMANDE en cours (0024) : le bloc « Demande en
+  // cours » traite la demande INLINE. Inventaire dédié (INVENTAIRE_FICHE_DEMANDE) :
+  // 60 Rue du Pré a un membre (Paul Roy) et une demande au contact DIFFÉRENT
+  // (Paul Roy-Tremblay, nouveau téléphone) → un seul « Mettre à jour le contact »,
+  // les suggestions Kayak, le niveau montré avec le numéro.
+  { nom: 'a-traiter-fiche-adresse-demande-diff', page: 'a-traiter.html', etat: 'liste',
+    adresse: '60 rue du pré',
+    attendre: '#fiche-adresse-demande-maj-zone:not([hidden])', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // Adresse DEMANDE-SEULE (0024) : 70 Rue du Pré n'a ni membre ni emplacement —
+  // le contact vient de la demande (« nouveau contact — enregistré à
+  // l'acceptation »), pas de bloc Membre, pas de liste d'emplacements, pas de
+  // journal (rien où attacher une note tant que l'adresse n'existe pas).
+  { nom: 'a-traiter-fiche-adresse-demande-seule', page: 'a-traiter.html', etat: 'liste',
+    adresse: '70 rue du pré',
+    attendre: '#fiche-adresse-demande-contact-nouveau:not([hidden])', pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // La fiche unifiée d'un cas attribué-libre : callout warning portant les
+  // remèdes (Relancer, Libérer), membre, relevé replié, journal (0024). La barre
+  // utilitaire montre « Fiche d'adresse » (l'emplacement est attribué) — MIROIR
+  // de 0019, issue 06.
   { nom: 'a-traiter-fiche', page: 'a-traiter.html', etat: 'liste',
     cliquer: '.rangee-cas[data-numero="75"]',
     attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
-  // La ligne d'aide sous « Écrire au membre » (0019) vit en pied de drawer,
-  // sous le pli : `voir` la fait défiler dans la vue pour la capture.
-  { nom: 'a-traiter-fiche-aide-ecrire', page: 'a-traiter.html', etat: 'liste',
-    cliquer: '.rangee-cas[data-numero="75"]',
-    attendre: '#fiche-aide-ecrire:not([hidden])', voir: '#fiche-aide-ecrire', pleinVue: true },
-  // La fiche d'un « À identifier » : pas de membre, journal + note seulement.
+  // Navigation fiche d'emplacement → fiche d'adresse (MIROIR de 0019, issue 06) :
+  // « Fiche d'adresse » REMPLACE le drawer par le dossier de l'adresse attribuée
+  // (jamais deux empilés), qui porte le bouton retour « Retour à Emplacement 75 ».
+  // 75 = 12 Rue des Érables (Louise, exception à 3, 1 seul emplacement) : dossier
+  // « dans le quota » ouvert depuis un emplacement — aucun callout.
+  { nom: 'a-traiter-fiche-vers-adresse', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-vers-adresse'],
+    attendre: '#fiche-adresse-retour-zone:not([hidden])', pleinVue: true },
+  // … et retour : la fiche d'emplacement se rouvre (75 attribué-libre → le
+  // callout warning et ses remèdes reparaissent), re-rendue depuis l'état frais.
+  { nom: 'a-traiter-retour-fiche-emplacement', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-vers-adresse', '#fiche-adresse-retour'],
+    attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
+  // « Relancer le membre » ouvre l'aperçu du courriel pré-rédigé (objet + corps
+  // + « rien n'est envoyé automatiquement ») — jamais d'envoi auto (0003/0024).
+  // `presenceSeule` : host wa-dialog « invisible » pour Playwright même ouvert.
+  { nom: 'a-traiter-apercu-courriel', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-ecrire'],
+    attendre: '#apercu-courriel[open]', presenceSeule: true, pleinVue: true },
+  // La fiche d'un « À identifier » : statut calme (danger), pas de membre,
+  // journal + note seulement.
   { nom: 'a-traiter-fiche-a-identifier', page: 'a-traiter.html', etat: 'liste',
     cliquer: '.rangee-cas[data-numero="76"]',
     attendre: '#fiche-journal .ligne-journal', pleinVue: true },
-  // L'onglet Observer, accessible depuis le registre (0018) : vérifier ses
-  // cas sur le terrain avec la page À traiter ouverte.
-  { nom: 'a-traiter-fiche-observer', page: 'a-traiter.html', etat: 'liste',
-    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-onglets wa-tab[panel="observer"]'],
+  // « Sur place » (action de la barre utilitaire) révèle le relevé Occupé/Libre
+  // pour vérifier un cas sur le terrain, page À traiter ouverte (0024).
+  { nom: 'a-traiter-fiche-sur-place', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-sur-place'],
     attendre: '.bouton-occupation', pleinVue: true },
   // Note ajoutée : fiche TOUJOURS ouverte (0018), journal enrichi (6e ligne
   // pour 75), champ vidé — le registre derrière comptera 2 notes.
@@ -532,84 +577,34 @@ export const CAPTURES = [
   { nom: 'a-traiter-confirmation-liberation', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-liberer'],
     attendre: '#fiche-dialogue-liberer[open]', presenceSeule: true, pleinVue: true },
-  // Libération : fiche TOUJOURS ouverte, statut basculé à « Disponible » —
-  // au rechargement (reponsesApres), 75 a quitté le registre derrière.
+  // Libération : fiche TOUJOURS ouverte, statut basculé à « Disponible » (ligne
+  // calme) — au rechargement (reponsesApres), 75 a quitté le registre derrière.
   { nom: 'a-traiter-liberation-succes', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-liberer', '#fiche-dialogue-liberer-confirmer'],
-    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    attendre: '#fiche-statut-calme[data-variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_LIBERATION } },
-  // Observation qui referme le cas : depuis l'onglet Observer d'un
-  // « À identifier », « libre » fait basculer le statut ET sortir la rangée.
+  // Observation qui referme le cas : « Sur place » révèle le relevé, « libre »
+  // fait basculer le statut ET sortir la rangée derrière.
   { nom: 'a-traiter-observation-succes', page: 'a-traiter.html', etat: 'liste',
-    cliquer: ['.rangee-cas[data-numero="76"]', '#fiche-onglets wa-tab[panel="observer"]',
+    cliquer: ['.rangee-cas[data-numero="76"]', '#fiche-sur-place',
       '.bouton-occupation[data-occupation="libre"]'],
-    attendre: '#fiche-statut[variant="brand"]', pleinVue: true,
+    attendre: '#fiche-statut-calme[data-variant="brand"]', pleinVue: true,
     reponsesApres: { inventaire: INVENTAIRE_APRES_OBSERVATION } },
-  // Fiche de demande (décision 0020) : l'écran de décision. Inventaire dédié
-  // (INVENTAIRE_FICHE_DEMANDE) pour couvrir chaque état sans toucher au reste.
-  // Suggestions (tri normal), contact identique, sous quota, autre demande ouverte.
-  { nom: 'a-traiter-demande-fiche', page: 'a-traiter.html', etat: 'liste',
-    cliquer: '.rangee-demande[data-id="fd-suggestions"]',
-    attendre: '.suggestion-emplacement', voir: '#fiche-demande-attribuer', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
-  // Mobilité réduite : tri des suggestions inversé (les niveaux bas d'abord).
-  { nom: 'a-traiter-demande-pmr', page: 'a-traiter.html', etat: 'liste',
-    cliquer: '.rangee-demande[data-id="fd-pmr"]',
-    attendre: '.suggestion-emplacement', voir: '#fiche-demande-attribuer', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
-  // Contact différent du membre courant : le diff et le bouton de mise à jour.
-  { nom: 'a-traiter-demande-contact-diff', page: 'a-traiter.html', etat: 'liste',
-    cliquer: '.rangee-demande[data-id="fd-contact-diff"]',
-    attendre: '#fiche-demande-maj-zone:not([hidden])', voir: '#fiche-demande-maj-contact', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
-  // Contact absent de Membres : la fiche le dit calmement.
-  { nom: 'a-traiter-demande-contact-absent', page: 'a-traiter.html', etat: 'liste',
-    cliquer: '.rangee-demande[data-id="fd-contact-absent"]',
-    attendre: '#fiche-demande-contact-absent:not([hidden])', voir: '#fiche-demande-maj-contact', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
-  // Adresse au quota : l'acceptation est bloquée, la porte de sortie expliquée.
-  { nom: 'a-traiter-demande-quota-bloque', page: 'a-traiter.html', etat: 'liste',
-    cliquer: '.rangee-demande[data-id="fd-quota"]',
-    attendre: '#fiche-demande-quota-bloque:not([hidden])', voir: '#fiche-demande-quota-bloque', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
-  // Aucune place compatible libre : l'invitation à faire une tournée.
-  { nom: 'a-traiter-demande-suggestions-vide', page: 'a-traiter.html', etat: 'liste',
-    cliquer: '.rangee-demande[data-id="fd-vide"]',
-    attendre: '#fiche-demande-suggestions-vide:not([hidden])', voir: '#fiche-demande-suggestions-vide', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
-  // Un emplacement sélectionné : le bouton devient « Attribuer le n° X et accepter ».
-  { nom: 'a-traiter-demande-selection', page: 'a-traiter.html', etat: 'liste',
-    cliquer: ['.rangee-demande[data-id="fd-suggestions"]', '.suggestion-emplacement[data-numero="10"]'],
-    attendre: '.suggestion-emplacement[aria-pressed="true"]', presenceSeule: true,
-    voir: '#fiche-demande-accepter-zone', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
-  // Acceptation : la fiche RESTE ouverte, le résultat se lit (emplacement attribué).
-  { nom: 'a-traiter-demande-acceptee', page: 'a-traiter.html', etat: 'liste',
-    cliquer: ['.rangee-demande[data-id="fd-suggestions"]', '.suggestion-emplacement[data-numero="10"]', '#fiche-demande-accepter'],
-    attendre: '#fiche-demande-resultat[variant="success"]', presenceSeule: true,
-    voir: '#fiche-demande-resultat', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE },
-    reponsesApres: { inventaire: INVENTAIRE_FICHE_APRES_ACCEPT } },
-  // Refus : résultat + « Écrire au membre » (mailto pré-rempli, jamais d'envoi auto).
-  { nom: 'a-traiter-demande-refus', page: 'a-traiter.html', etat: 'liste',
-    ouvrir: '.rangee-demande[data-id="fd-suggestions"]',
-    remplir: { selecteur: '#fiche-demande-raison textarea', valeur: 'La liste d\'attente est pleine cette saison.' },
-    cliquer: '#fiche-demande-refuser',
-    attendre: '#fiche-demande-ecrire-zone:not([hidden])', voir: '#fiche-demande-ecrire', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE },
-    reponsesApres: { inventaire: INVENTAIRE_FICHE_APRES_REFUS } },
-  // Mise à jour du contact : le diff disparaît, la fiche reste ouverte.
-  { nom: 'a-traiter-demande-contact-maj', page: 'a-traiter.html', etat: 'liste',
-    cliquer: ['.rangee-demande[data-id="fd-contact-diff"]', '#fiche-demande-maj-contact'],
-    attendre: '#fiche-demande-maj-zone[hidden]', presenceSeule: true, voir: '#fiche-demande-contact', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE },
-    reponsesApres: { inventaire: INVENTAIRE_FICHE_APRES_CONTACT } },
-  // Échec serveur d'une acceptation : le texte reste, l'erreur vit dans la fiche.
-  { nom: 'a-traiter-demande-erreur', page: 'a-traiter.html', etat: 'liste',
-    cliquer: ['.rangee-demande[data-id="fd-suggestions"]', '.suggestion-emplacement[data-numero="10"]', '#fiche-demande-accepter'],
-    attendre: '#fiche-demande-erreur:not([hidden])', voir: '#fiche-demande-erreur', pleinVue: true,
-    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE, deciderDemande: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
   { nom: 'a-traiter-erreur', page: 'a-traiter.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
+  // Page « Adresses » (décision 0023) : recherche à autocomplétion menant à la
+  // fiche d'adresse. Tous les états pilotables par ?etat= ; `recherche` passe
+  // par un vrai fetch (mocké), `q` préremplit le champ (résultats / aucun).
+  { nom: 'adresses-connexion', page: 'adresses.html', attendre: '#etat-connexion:not([hidden])' },
+  { nom: 'adresses-mdp-refuse', page: 'adresses.html', etat: 'mdp-refuse', attendre: '#erreur-connexion:not([hidden])' },
+  { nom: 'adresses-chargement', page: 'adresses.html', etat: 'chargement', attendre: '#etat-chargement:not([hidden])' },
+  // Repos : rien n'est tapé — l'invitation calme et centrée à chercher.
+  { nom: 'adresses-repos', page: 'adresses.html', etat: 'recherche', attendre: '#etat-repos:not([hidden])' },
+  // Résultats : « pré » retrouve les adresses de la Rue du Pré — une avec membre
+  // (Marie Gagnon, présélectionnée), une sans (501, « Contact non inscrit »).
+  { nom: 'adresses-resultats', page: 'adresses.html', etat: 'recherche', q: 'pré', attendre: '.suggestion' },
+  // Aucun résultat : le message dit ce qui a été cherché et quoi faire ensuite.
+  { nom: 'adresses-aucun', page: 'adresses.html', etat: 'recherche', q: 'zzz', attendre: '#etat-aucun:not([hidden])' },
+  { nom: 'adresses-erreur', page: 'adresses.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
 ];
 
 // Motifs de bruit console tolérés (regex). Liste minimale : tout autre
@@ -630,5 +625,14 @@ export function estProblemeConsole(type, texte, motifsIgnores) {
 
 export function urlDeScenario(base, scenario) {
   const url = base + '/' + scenario.page;
-  return scenario.etat ? url + '?etat=' + scenario.etat : url;
+  const params = [];
+  if (scenario.etat) params.push('etat=' + scenario.etat);
+  // `adresse` : ouvre directement la fiche d'adresse généralisée (0024) — la
+  // page Adresses (à venir) sera le vrai point d'entrée ; ici, un hook de
+  // capture (0006) pour montrer un dossier « dans le quota » avant elle.
+  if (scenario.adresse) params.push('adresse=' + encodeURIComponent(scenario.adresse));
+  // `q` : préremplit le champ de recherche de la page Adresses (0023) — les
+  // états « résultats » et « aucun-résultat » se capturent sans frappe simulée.
+  if (scenario.q) params.push('q=' + encodeURIComponent(scenario.q));
+  return params.length ? url + '?' + params.join('&') : url;
 }
