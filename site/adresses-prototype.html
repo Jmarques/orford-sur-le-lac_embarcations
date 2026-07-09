@@ -1,0 +1,471 @@
+<!doctype html>
+<!--
+  PROTOTYPE UI JETABLE — page « Adresses ». QUATRE variantes structurellement
+  différentes, commutables par ?variant=A|B|C|D et par la barre flottante en bas.
+  Objectif : les REGARDER et comparer, pas lire une description.
+    A — Champ calme      : la page EST le champ ; résultats en rangées nues.
+    B — Autocomplétion   : listbox riche sous le champ, pastille de santé + présélection.
+    C — Annuaire         : liste de TOUTES les adresses (maître) filtrée en direct + détail.
+    D — Clone « À traiter »: squelette d'À traiter, champ au-dessus de rangées-cas.
+  window.fetch est stubé : AUCUNE écriture possible dans la vraie Sheet. Données
+  fictives. À SUPPRIMER une fois la variante choisie (garder = plier dans la vraie page).
+-->
+<html lang="fr" class="wa-theme-default wa-palette-default wa-light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>PROTOTYPE — Adresses (A/B/C/D)</title>
+  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.10.0/styles/webawesome.css">
+  <script type="module" src="https://ka-f.webawesome.com/webawesome@3.10.0/webawesome.loader.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=Yellowtail&display=swap">
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    /* Règles PROPRES au prototype (ruban, sélecteur, échafaudage de variantes).
+       Elles n'iront pas en prod — la vraie page n'aura que des tokens theme.css. */
+    .ruban-prototype {
+      position: fixed; inset-block-start: 0; inset-inline-end: 0; z-index: 1000;
+      background: var(--wa-color-warning-fill-loud); color: var(--wa-color-warning-on-loud);
+      font: var(--wa-font-weight-bold) 0.8rem var(--wa-font-family-body);
+      padding: var(--wa-space-2xs) var(--wa-space-s); border-end-start-radius: var(--wa-border-radius-m);
+      letter-spacing: 0.03em;
+    }
+    /* Barre de sélection de variante — volontairement HORS design (pilule sombre). */
+    .selecteur-proto {
+      position: fixed; inset-block-end: var(--wa-space-l); inset-inline: 0;
+      margin-inline: auto; width: max-content; z-index: 1000;
+      display: flex; align-items: center; gap: var(--wa-space-s);
+      background: #1c2b2b; color: #fff; border-radius: 999px;
+      padding: var(--wa-space-2xs) var(--wa-space-s); box-shadow: 0 6px 24px rgb(0 0 0 / 0.35);
+      font: var(--wa-font-weight-semibold) 0.9rem var(--wa-font-family-body);
+    }
+    .selecteur-proto button {
+      all: unset; cursor: pointer; width: 2rem; height: 2rem; border-radius: 999px;
+      display: grid; place-items: center; font-size: 1.1rem;
+    }
+    .selecteur-proto button:hover { background: rgb(255 255 255 / 0.15); }
+    .selecteur-proto .etiquette { min-width: 15ch; text-align: center; }
+
+    /* Échafaudage variante B : listbox sous le champ. */
+    .listbox-b { list-style: none; margin: 0; padding: 0; }
+    .listbox-b .option-b {
+      display: flex; align-items: center; justify-content: space-between; gap: var(--wa-space-s);
+      inline-size: 100%; text-align: start; cursor: pointer;
+    }
+    .listbox-b .option-b[aria-selected="true"] {
+      background: var(--wa-color-brand-fill-quiet);
+      box-shadow: inset 3px 0 0 var(--wa-color-brand-fill-loud);
+    }
+    /* Échafaudage variante C : maître-détail. */
+    .grille-annuaire { display: grid; gap: var(--wa-space-xl); }
+    @media (min-width: 820px) {
+      .grille-annuaire { grid-template-columns: minmax(0, 22rem) minmax(0, 1fr); align-items: start; }
+      .detail-annuaire { position: sticky; inset-block-start: var(--wa-space-l); }
+    }
+    .liste-annuaire { list-style: none; margin: 0; padding: 0; max-block-size: 60vh; overflow-y: auto; }
+    .detail-annuaire {
+      border: 1px dashed var(--wa-color-surface-border); border-radius: var(--wa-border-radius-l);
+      padding: var(--wa-space-xl); color: var(--wa-color-text-quiet); text-align: center;
+      min-block-size: 16rem; display: grid; place-content: center; gap: var(--wa-space-xs);
+    }
+  </style>
+</head>
+<body>
+  <div class="ruban-prototype">PROTOTYPE · données fictives</div>
+  <div class="liseret-marque"></div>
+
+  <header class="bande-lac">
+    <canvas class="eau-lac" aria-hidden="true"></canvas>
+    <div class="contenu wa-stack wa-gap-m">
+      <div class="wa-stack wa-gap-2xs">
+        <span class="wordmark-lac">Orford-sur-le-Lac</span>
+        <span class="wa-caption-m signature-lac surtitre-comite">Espace du comité</span>
+      </div>
+      <h1 class="wa-heading-xl wa-text-balance titre-lac">Adresses</h1>
+      <p class="wa-text-pretty sous-titre-lac">Retrouvez le dossier d'un membre —
+        par son nom, son adresse, ou un numéro d'emplacement.</p>
+      <nav class="wa-cluster wa-gap-l nav-comite" aria-label="Pages du comité">
+        <a href="structures.html"><wa-icon name="table-cells"></wa-icon> Structures</a>
+        <a href="a-traiter.html"><wa-icon name="clipboard-list"></wa-icon> À traiter</a>
+        <a href="adresses-prototype.html" aria-current="page"><wa-icon name="magnifying-glass"></wa-icon> Adresses</a>
+      </nav>
+    </div>
+    <div class="houle">
+      <svg class="vagues" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,32 C240,64 480,0 720,32 C960,64 1200,0 1440,32 L1440,60 L0,60 Z"
+              fill="var(--wa-color-surface-default)"></path>
+      </svg>
+    </div>
+  </header>
+
+  <!-- wa-input caché : force le loader WA à définir le composant (les champs de
+       recherche sont créés dynamiquement, donc absents du markup statique). -->
+  <wa-input hidden aria-hidden="true"></wa-input>
+
+  <main id="zone" class="contenu wa-stack wa-gap-xl"></main>
+
+  <footer class="pied wa-text-center">
+    Orford sur le Lac — Comité administratif · PROTOTYPE
+  </footer>
+
+  <div class="selecteur-proto" role="group" aria-label="Choisir la variante">
+    <button id="proto-prec" aria-label="Variante précédente">‹</button>
+    <span class="etiquette" id="proto-etiquette"></span>
+    <button id="proto-suiv" aria-label="Variante suivante">›</button>
+  </div>
+
+  <template id="modele-rangee">
+    <li class="cas">
+      <button type="button" class="rangee-cas">
+        <span class="rangee-texte">
+          <span class="rangee-titre"><span class="rangee-numero"></span> <span
+            class="rangee-structure wa-color-text-quiet"></span></span>
+          <span class="rangee-signal"></span>
+          <span class="rangee-meta wa-caption-m wa-color-text-quiet"></span>
+        </span>
+        <wa-icon class="rangee-chevron" name="chevron-right" aria-hidden="true"></wa-icon>
+      </button>
+    </li>
+  </template>
+
+  <script src="config.js"></script>
+  <script src="eau.js"></script>
+  <script src="grille.js"></script>
+  <script src="presentation.js"></script>
+  <script src="client.js"></script>
+  <script src="fiche.js"></script>
+  <script src="fiche-adresse.js"></script>
+  <script type="module">
+    // wa-drawer n'est PAS attendu ici : le loader ne le définit qu'après insertion
+    // de son markup (par les fiches, plus bas) — l'attendre bloquerait le module.
+    await Promise.all([
+      customElements.whenDefined('wa-input'),
+      customElements.whenDefined('wa-icon'),
+    ]);
+
+    // --- Données fictives (l'« état frais » que renverrait l'API) --------------
+    const donnees = {
+      structures: [],
+      emplacements: [
+        { numero: 141, numeroAdresse: '234', rue: 'Rue du Pré', occupationObservee: 'occupé' },
+        { numero: 142, numeroAdresse: '234', rue: 'Rue du Pré', occupationObservee: 'occupé' },
+        { numero: 205, numeroAdresse: '501', rue: 'Rue du Pré', occupationObservee: 'occupé' },
+        { numero: 206, numeroAdresse: '501', rue: 'Rue du Pré', occupationObservee: 'occupé' },
+        { numero: 207, numeroAdresse: '501', rue: 'Rue du Pré', occupationObservee: 'libre' },
+        { numero: 208, numeroAdresse: '501', rue: 'Rue du Pré', occupationObservee: '' },
+        { numero: 88,  numeroAdresse: '9',   rue: 'Rue des Bouleaux', occupationObservee: 'libre' },
+        { numero: 74,  numeroAdresse: '8',   rue: 'Chemin des Pins', occupationObservee: 'occupé' },
+        { numero: 75,  numeroAdresse: '8',   rue: 'Chemin des Pins', occupationObservee: 'occupé' },
+        { numero: 76,  numeroAdresse: '8',   rue: 'Chemin des Pins', occupationObservee: 'occupé' },
+        { numero: 300, numeroAdresse: '45',  rue: 'Rue du Quai', occupationObservee: 'occupé' },
+      ],
+      membres: [
+        { numeroAdresse: '234', rue: 'Rue du Pré', nom: 'Jean Tremblay', courriel: 'jean.tremblay@example.com', telephone: '819 555 0142' },
+        { numeroAdresse: '501', rue: 'Rue du Pré', nom: 'Luc Trépanier', courriel: 'luc.trepanier@example.com', telephone: '819 555 0501' },
+        { numeroAdresse: '9',   rue: 'Rue des Bouleaux', nom: 'Marie Roy', courriel: 'marie.roy@example.com', telephone: '' },
+        { numeroAdresse: '8',   rue: 'Chemin des Pins', nom: 'Paul Cormier', courriel: 'paul.cormier@example.com', telephone: '819 555 0088', quotaAccorde: '3' },
+        { numeroAdresse: '12',  rue: 'Rue des Cèdres', nom: 'Sophie Bergeron', courriel: 'sophie.bergeron@example.com', telephone: '819 555 0012' },
+      ],
+      journal: [
+        { date: '2026-05-02', action: 'note', details: 'Appel de M. Tremblay : garde ses deux places pour la saison.', adresse: '234 Rue du Pré', numero: '' },
+        { date: '2026-06-15', action: 'libération', details: 'Départ signalé du membre.', adresse: '', numero: 88 },
+      ],
+      demandes: [],
+    };
+
+    // --- window.fetch stubé : jamais d'écriture réelle ------------------------
+    const vraiFetch = window.fetch.bind(window);
+    window.fetch = async (url, params) => {
+      if (String(url).indexOf(window.OSL_CONFIG.apiUrl) !== 0) return vraiFetch(url, params);
+      const corps = params && params.body ? JSON.parse(params.body) : {};
+      return { json: async () => repondre(corps) };
+    };
+    function repondre(corps) {
+      if (corps.action === 'ajouterNote') {
+        donnees.journal.push({ date: aujourdhui(), action: 'note', details: corps.texte, adresse: corps.adresse, numero: '' });
+        return { ok: true };
+      }
+      return Object.assign({ ok: true }, donnees);
+    }
+    function aujourdhui() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    // --- Le correctif de données (« la seule brique neuve ») ------------------
+    const casAdresseOriginal = window.casAdresse;
+    window.casAdresse = function (cle, emplacements, membres) {
+      const cas = casAdresseOriginal(cle, emplacements, membres);
+      if (cas) return cas;
+      const membre = chercherMembreParCle(membres, cle);
+      if (!membre) return null;
+      return { cle, adresse: formatAdresse(membre.numeroAdresse, membre.rue), membre, quota: quotaLisible_(membre), nombre: 0, depassement: 0, emplacements: [] };
+    };
+
+    // --- L'index : union Emplacements ∪ Membres ------------------------------
+    function toutesLesAdresses_(emplacements, membres) {
+      const parCle = new Map();
+      groupesParAdresse_(emplacements).forEach((g) => {
+        parCle.set(g.cle, { cle: g.cle, adresse: g.adresse, membre: chercherMembreParCle(membres, g.cle), emplacements: g.emplacements });
+      });
+      (membres || []).forEach((m) => {
+        const cle = cleAdresse(m);
+        if (cle && !parCle.has(cle)) parCle.set(cle, { cle, adresse: formatAdresse(m.numeroAdresse, m.rue), membre: m, emplacements: [] });
+      });
+      return [...parCle.values()];
+    }
+    const index = toutesLesAdresses_(donnees.emplacements, donnees.membres);
+
+    const normaliser = (t) => String(t == null ? '' : t).trim().replace(/\s+/g, ' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const nomDe = (e) => (e.membre && String(e.membre.nom || '').trim()) || '';
+
+    function chercher(q) {
+      const requete = normaliser(q);
+      if (!requete) return { etat: 'repos', resultats: [] };
+      const chiffres = /^\d+$/.test(requete);
+      const resultats = [];
+      for (const e of index) {
+        let numeroMatch = null;
+        let match = normaliser(nomDe(e)).indexOf(requete) !== -1 || normaliser(e.adresse).indexOf(requete) !== -1;
+        if (chiffres) {
+          const emp = e.emplacements.find((l) => String(l.numero).indexOf(requete) === 0);
+          if (emp) { match = true; numeroMatch = emp.numero; }
+        }
+        if (match) resultats.push({ e, numeroMatch });
+      }
+      resultats.sort((a, b) => triClef(a.e).localeCompare(triClef(b.e)));
+      return { etat: resultats.length ? 'resultats' : 'aucun', resultats };
+    }
+    const triClef = (e) => normaliser(nomDe(e) || e.adresse);
+
+    // La santé d'un dossier (dérivée, worst-wins) — utilisée par B et C.
+    function santeDossier(e) {
+      if (!e.emplacements.length) return { libelle: 'Aucun emplacement', variante: 'neutral' };
+      const cas = window.casAdresse(e.cle, donnees.emplacements, donnees.membres);
+      if (cas && cas.depassement > 0) return { libelle: 'Hors quota', variante: 'neutral' };
+      const rang = { peutEtreALiberer: 3, pasObserve: 2, conforme: 1 };
+      let meilleur = 0, code = 'conforme';
+      for (const l of e.emplacements) {
+        const s = statutEmplacement(l);
+        if ((rang[s.code] || 0) > meilleur) { meilleur = rang[s.code]; code = s.code; }
+      }
+      const libelle = { peutEtreALiberer: 'Attribué, libre', pasObserve: 'Non observé', conforme: 'En ordre' }[code] || 'En ordre';
+      return { libelle, variante: apparenceStatut(code).variante };
+    }
+
+    // --- Les fiches (câblées comme a-traiter.html) ----------------------------
+    const fiche = creerFicheEmplacement({ ongletParDefaut: 'traiter', donnees: () => donnees, motDePasse: () => 'proto', surDonneesFraiches: () => {}, surSessionExpiree: () => {} });
+    let navEmpl = false;
+    const ficheAdresse = creerFicheAdresse({
+      donnees: () => donnees, motDePasse: () => 'proto', surDonneesFraiches: () => {}, surSessionExpiree: () => {},
+      surOuvrirEmplacement: async (numero, cle, adresse) => { navEmpl = true; await ficheAdresse.fermer(); fiche.ouvrir(numero, { libelle: adresse, surRetour: () => ficheAdresse.ouvrir(cle) }); },
+    });
+    const ouvrirFiche = (cle) => ficheAdresse.ouvrir(cle);
+
+    // --- Fabriques de rangées -------------------------------------------------
+    const modele = document.getElementById('modele-rangee');
+    function baseRangee(cle, onClick) {
+      const frag = modele.content.cloneNode(true);
+      const bouton = frag.querySelector('.rangee-cas');
+      bouton.dataset.cle = cle;
+      bouton.addEventListener('click', () => onClick(cle));
+      return { frag, bouton };
+    }
+    // Rangée NUE (A) : nom + adresse, + légende si match par numéro.
+    function rangeeNue(e, numeroMatch) {
+      const { frag, bouton } = baseRangee(e.cle, ouvrirFiche);
+      const nom = nomDe(e);
+      bouton.querySelector('.rangee-numero').textContent = nom || e.adresse;
+      let meta = nom ? e.adresse : 'Contact non inscrit';
+      if (numeroMatch) meta = (nom ? e.adresse + ' · ' : '') + 'Emplacement ' + numeroMatch;
+      bouton.querySelector('.rangee-meta').textContent = meta;
+      return frag;
+    }
+    // Rangée avec PASTILLE de santé (B, C) : nom + adresse + badge d'état.
+    function rangeeBadge(e, numeroMatch) {
+      const { frag, bouton } = baseRangee(e.cle, ouvrirFiche);
+      const nom = nomDe(e);
+      const titre = bouton.querySelector('.rangee-titre');
+      titre.textContent = '';
+      const nomEl = document.createElement('span'); nomEl.className = 'rangee-numero'; nomEl.textContent = nom || e.adresse;
+      const sante = santeDossier(e);
+      const badge = document.createElement('wa-badge');
+      badge.setAttribute('variant', sante.variante); badge.setAttribute('appearance', 'filled-outlined'); badge.setAttribute('pill', '');
+      badge.textContent = sante.libelle;
+      titre.append(nomEl, ' ', badge);
+      let meta = nom ? e.adresse : 'Contact non inscrit';
+      if (numeroMatch) meta = (nom ? e.adresse + ' · ' : '') + 'Emplacement ' + numeroMatch;
+      bouton.querySelector('.rangee-meta').textContent = meta;
+      return frag;
+    }
+    // Rangée façon « À traiter » (D) : adresse en titre, fait quota en signal.
+    function rangeeATraiter(e) {
+      const { frag, bouton } = baseRangee(e.cle, ouvrirFiche);
+      bouton.querySelector('.rangee-numero').textContent = e.adresse;
+      const cas = window.casAdresse(e.cle, donnees.emplacements, donnees.membres);
+      const n = cas ? cas.nombre : 0; const q = cas ? cas.quota : 2;
+      bouton.querySelector('.rangee-signal').textContent = n === 0 ? 'Aucun emplacement attribué'
+        : n + ' emplacement' + (n > 1 ? 's' : '') + ' — ' + (q === 2 ? 'le quota est de 2' : 'exception accordée à ' + q);
+      bouton.querySelector('.rangee-meta').textContent = nomDe(e) || 'Contact non inscrit';
+      return frag;
+    }
+
+    const zone = document.getElementById('zone');
+    function champRecherche(placeholder) {
+      const champ = document.createElement('wa-input');
+      champ.className = 'champ-plein'; champ.setAttribute('type', 'search'); champ.setAttribute('clearable', '');
+      champ.setAttribute('autofocus', ''); champ.setAttribute('label', 'Rechercher une adresse');
+      champ.setAttribute('placeholder', placeholder);
+      const icone = document.createElement('wa-icon'); icone.setAttribute('slot', 'start'); icone.setAttribute('name', 'magnifying-glass');
+      champ.appendChild(icone);
+      return champ;
+    }
+    function sectionVide(icone, texte) {
+      const d = document.createElement('div');
+      d.className = 'section-vide wa-stack wa-gap-2xs wa-align-items-center';
+      const i = document.createElement('wa-icon'); i.setAttribute('name', icone);
+      const p = document.createElement('p'); p.className = 'wa-text-pretty'; p.textContent = texte;
+      d.append(i, p); return d;
+    }
+
+    // ======================= VARIANTE A — Champ calme =========================
+    function rendreA() {
+      zone.className = 'contenu wa-stack wa-gap-xl';
+      const champ = champRecherche("Un nom, une adresse, ou un numéro d'emplacement…");
+      const repos = sectionVide('address-book', 'Tapez un nom (« Tremblay »), une adresse (« 234 Rue du Pré ») ou un numéro d\'emplacement (« 142 ») pour ouvrir un dossier.');
+      const aucun = sectionVide('circle-question', ''); aucun.hidden = true;
+      const liste = document.createElement('ul'); liste.className = 'liste-cas wa-stack wa-gap-s'; liste.hidden = true;
+      zone.replaceChildren(champ, repos, aucun, liste);
+      const rendre = () => {
+        const { etat, resultats } = chercher(champ.value);
+        repos.hidden = etat !== 'repos'; aucun.hidden = etat !== 'aucun'; liste.hidden = etat !== 'resultats';
+        if (etat === 'aucun') aucun.querySelector('p').textContent = 'Aucune adresse ne correspond à « ' + champ.value.trim() + ' ». Vérifiez l\'orthographe, ou l\'adresse n\'est peut-être pas encore inscrite.';
+        liste.replaceChildren(...(etat === 'resultats' ? resultats.slice(0, 8).map((r) => rangeeNue(r.e, r.numeroMatch)) : []));
+      };
+      champ.addEventListener('input', rendre); rendre();
+      return { champ, rendre };
+    }
+
+    // ==================== VARIANTE B — Autocomplétion =========================
+    function rendreB() {
+      zone.className = 'contenu wa-stack wa-gap-l';
+      const champ = champRecherche('Commencez à taper un nom…');
+      const hint = document.createElement('p'); hint.className = 'wa-color-text-quiet wa-text-pretty';
+      hint.textContent = 'La première suggestion est présélectionnée — Entrée ouvre son dossier.';
+      const box = document.createElement('ul'); box.className = 'listbox-b liste-cas wa-stack wa-gap-s'; box.setAttribute('role', 'listbox');
+      const repos = sectionVide('address-book', 'Tapez les premières lettres d\'un nom, d\'une adresse ou un numéro d\'emplacement.');
+      zone.replaceChildren(champ, hint, repos, box);
+      let courant = [];
+      const rendre = () => {
+        const { etat, resultats } = chercher(champ.value);
+        repos.hidden = etat !== 'repos';
+        courant = resultats;
+        box.replaceChildren(...resultats.slice(0, 8).map((r, i) => {
+          const li = rangeeBadge(r.e, r.numeroMatch);
+          const bouton = li.querySelector('.rangee-cas');
+          bouton.classList.add('option-b'); bouton.setAttribute('role', 'option');
+          bouton.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+          return li;
+        }));
+        if (etat === 'aucun') box.replaceChildren(sectionVideLi('Aucune adresse ne correspond à « ' + champ.value.trim() + ' ».'));
+      };
+      const sectionVideLi = (t) => { const li = document.createElement('li'); li.className = 'section-vide'; li.textContent = t; return li; };
+      champ.addEventListener('input', rendre);
+      champ.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && courant[0]) ouvrirFiche(courant[0].e.cle); });
+      rendre();
+      return { champ, rendre };
+    }
+
+    // ===================== VARIANTE C — Annuaire ==============================
+    function rendreC() {
+      zone.className = 'contenu contenu-structures wa-stack wa-gap-l';
+      const grille = document.createElement('div'); grille.className = 'grille-annuaire';
+      const gauche = document.createElement('div'); gauche.className = 'wa-stack wa-gap-m';
+      const champ = champRecherche('Filtrer par nom, adresse, numéro…');
+      const compteur = document.createElement('p'); compteur.className = 'wa-caption-m wa-color-text-quiet';
+      const liste = document.createElement('ul'); liste.className = 'liste-annuaire liste-cas wa-stack wa-gap-s';
+      gauche.append(champ, compteur, liste);
+      const detail = document.createElement('div'); detail.className = 'detail-annuaire';
+      const di = document.createElement('wa-icon'); di.setAttribute('name', 'address-card');
+      const dp = document.createElement('p'); dp.textContent = 'Choisissez une adresse dans la liste, ou tapez pour la trouver. (Le dossier s\'ouvre en fiche.)';
+      detail.append(di, dp);
+      grille.append(gauche, detail); zone.replaceChildren(grille);
+      const rendre = () => {
+        const q = normaliser(champ.value);
+        const entrees = q ? chercher(champ.value).resultats.map((r) => r.e) : [...index].sort((a, b) => triClef(a).localeCompare(triClef(b)));
+        compteur.textContent = q ? entrees.length + ' sur ' + index.length : index.length + ' adresses';
+        liste.replaceChildren(...entrees.map((e) => rangeeBadge(e, null)));
+      };
+      champ.addEventListener('input', rendre); rendre();
+      return { champ, rendre };
+    }
+
+    // ================ VARIANTE D — Clone « À traiter » ========================
+    function rendreD() {
+      zone.className = 'contenu wa-stack wa-gap-xl';
+      const champ = champRecherche("Chercher un nom, une adresse, un emplacement…");
+      const section = document.createElement('section'); section.className = 'wa-stack wa-gap-m';
+      const entete = document.createElement('div'); entete.className = 'wa-stack wa-gap-2xs';
+      const h3 = document.createElement('h3'); h3.className = 'wa-heading-m'; h3.textContent = 'Adresses';
+      const sous = document.createElement('p'); sous.className = 'wa-color-text-quiet wa-text-pretty'; sous.textContent = 'Tapez pour retrouver un dossier.';
+      entete.append(h3, sous);
+      const repos = sectionVide('address-book', 'Aucune adresse affichée — tapez pour chercher.'); repos.classList.add('section-vide');
+      const liste = document.createElement('ul'); liste.className = 'liste-cas wa-stack wa-gap-s'; liste.hidden = true;
+      section.append(entete, repos, liste);
+      zone.replaceChildren(champ, section);
+      const rendre = () => {
+        const { etat, resultats } = chercher(champ.value);
+        repos.hidden = etat === 'resultats'; liste.hidden = etat !== 'resultats';
+        if (etat === 'aucun') { repos.hidden = false; repos.querySelector('p').textContent = 'Aucune adresse ne correspond à « ' + champ.value.trim() + ' ».'; }
+        else if (etat === 'repos') repos.querySelector('p').textContent = 'Aucune adresse affichée — tapez pour chercher.';
+        liste.replaceChildren(...(etat === 'resultats' ? resultats.slice(0, 12).map((r) => rangeeATraiter(r.e)) : []));
+      };
+      champ.addEventListener('input', rendre); rendre();
+      return { champ, rendre };
+    }
+
+    // --- Sélecteur de variante -----------------------------------------------
+    const VARIANTES = [
+      { cle: 'A', nom: 'Champ calme', rendre: rendreA },
+      { cle: 'B', nom: 'Autocomplétion', rendre: rendreB },
+      { cle: 'C', nom: 'Annuaire maître-détail', rendre: rendreC },
+      { cle: 'D', nom: 'Clone « À traiter »', rendre: rendreD },
+    ];
+    const params = new URLSearchParams(location.search);
+    let actif = (params.get('variant') || 'A').toUpperCase();
+    let vue = null;
+
+    async function afficher(cle) {
+      const v = VARIANTES.find((x) => x.cle === cle) || VARIANTES[0];
+      actif = v.cle;
+      document.getElementById('proto-etiquette').textContent = v.cle + ' — ' + v.nom;
+      const url = new URL(location.href); url.searchParams.set('variant', v.cle);
+      history.replaceState(null, '', url);
+      vue = v.rendre();
+      // Préremplissage éventuel (?q=) pour les captures.
+      if (params.has('q') && vue.champ) {
+        if (vue.champ.updateComplete) await vue.champ.updateComplete;
+        vue.champ.value = params.get('q');
+        vue.rendre();
+      }
+    }
+    function cycler(pas) {
+      const i = VARIANTES.findIndex((x) => x.cle === actif);
+      afficher(VARIANTES[(i + pas + VARIANTES.length) % VARIANTES.length].cle);
+    }
+    document.getElementById('proto-prec').addEventListener('click', () => cycler(-1));
+    document.getElementById('proto-suiv').addEventListener('click', () => cycler(1));
+    document.addEventListener('keydown', (ev) => {
+      const t = document.activeElement && document.activeElement.tagName || '';
+      if (/INPUT|TEXTAREA/.test(t) || /WA-INPUT|WA-TEXTAREA/.test(t)) return;
+      if (ev.key === 'ArrowLeft') cycler(-1);
+      if (ev.key === 'ArrowRight') cycler(1);
+    });
+
+    await afficher(actif);
+    if (params.has('fiche')) ficheAdresse.ouvrir(params.get('fiche'));
+  </script>
+</body>
+</html>
