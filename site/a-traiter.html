@@ -733,14 +733,23 @@
     // liste|liste-vide|erreur fige la page dans un état pour les captures.
     // Inerte sans paramètre. `liste` passe par un vrai fetch (API mockée par
     // Playwright) ; sur le vrai site, il aboutit à l'écran de connexion.
-    const etatForce = new URLSearchParams(location.search).get('etat');
+    const paramsUrl = new URLSearchParams(location.search);
+    const etatForce = paramsUrl.get('etat');
     if (etatForce === 'mot-de-passe') montrerConnexion(false);
     else if (etatForce === 'mdp-refuse') montrerConnexion(true);
     else if (etatForce === 'chargement') montrerEtat('chargement');
     else if (etatForce === 'erreur') montrerErreur();
     else if (etatForce === 'liste-vide') afficherCas();
-    else if (etatForce === 'liste') chargerCas('capture');
-    else {
+    else if (etatForce === 'liste') {
+      // `?adresse=<clé>` (0006/0024) : après le chargement, ouvre directement la
+      // fiche d'adresse GÉNÉRALISÉE pour cette clé — le dossier s'ouvre pour
+      // n'importe quelle adresse (pas seulement hors quota), avant même la page
+      // Adresses qui en sera le vrai point d'entrée. Inerte sans le paramètre.
+      chargerCas('capture').then(() => {
+        const cle = paramsUrl.get('adresse');
+        if (cle) ouvrirCasAdresse({ cle });
+      });
+    } else {
       const motDePasse = sessionStorage.getItem(CLE_SESSION);
       if (motDePasse) chargerCas(motDePasse);
       else montrerConnexion(false);

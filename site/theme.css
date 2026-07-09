@@ -1273,11 +1273,13 @@ wa-callout::part(icon) {
 #fiche-adresse[placement='bottom'] {
   --size: fit-content;
 }
-/* Coquille unifiée à plat (0024) : la fiche porte plus de contenu en une seule
-   colonne (statut + membre + relevé + journal) — un peu plus large sur desktop
-   pour la laisser respirer. Sur mobile elle reste un drawer bas (fit-content). */
+/* Coquille unifiée à plat (0024) : les deux fiches portent plus de contenu en
+   une seule colonne (statut + membre + corps propre + journal) — un peu plus
+   larges sur desktop pour les laisser respirer, à la MÊME largeur (coquille
+   partagée). Sur mobile elles restent des drawers bas (fit-content). */
 @media (min-width: 641px) {
-  #fiche-emplacement {
+  #fiche-emplacement,
+  #fiche-adresse {
     --size: 37rem;
   }
 }
@@ -1394,6 +1396,17 @@ wa-callout::part(icon) {
   padding-block-start: var(--wa-space-s);
   border-block-start: var(--wa-border-width-s) solid
     color-mix(in oklab, currentColor 22%, transparent);
+}
+/* « Demander de libérer une place » porte un libellé long : sur le drawer
+   étroit d'un téléphone il se replie sur deux lignes plutôt que de déborder
+   (native.css fige sinon les <button> à une ligne unique, hauteur de contrôle). */
+#fiche-adresse-demander::part(label) {
+  white-space: normal;
+}
+#fiche-adresse-demander::part(base) {
+  block-size: auto;
+  min-block-size: var(--wa-form-control-height-m);
+  padding-block: var(--wa-space-xs);
 }
 
 /* Statut d'un état sain (ou statut propre de l'emplacement sous un callout

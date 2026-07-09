@@ -1,11 +1,20 @@
-// Fiche d'adresse (décision 0019) : le dossier d'un cas « Hors quota » — le
-// sujet est l'ADRESSE, pas un emplacement. Même patron que la fiche
-// d'emplacement (fiche.js, décision 0018) : composant sans build (0004) qui
-// injecte son markup et rend `ouvrir(cle)` ; tout vient de donnees(), posé par
-// textContent (anti-XSS) ; un geste laisse la fiche ouverte — le feedback est
-// le changement visible (0016). Les gestes d'emplacement (observer, libérer)
-// restent dans la fiche d'emplacement, ouverte depuis la liste avec retour.
-// Dépend de grille.js, chargé avant.
+// Fiche d'adresse (décisions 0019, généralisée 0024) : LE dossier d'une
+// ADRESSE — le sujet est l'adresse, pas un emplacement. Généralisée à
+// N'IMPORTE QUELLE adresse (plus seulement les cas « Hors quota ») via
+// casAdresse généralisé (04). Coquille unifiée avec la fiche d'emplacement
+// (fiche.js, 0024) : `[Sujet? · Membre · Emplacements de l'adresse · Journal]`,
+// les blocs Membre et Journal partagés (blocs-fiche.js).
+//
+//   · Le SUJET n'apparaît QUE pour un problème/exception : callout neutre
+//     « Hors quota » qui PORTE son remède (« Demander de libérer une place »,
+//     aperçu du courriel — rien n'est envoyé, 0003). AUCUN callout quand
+//     l'adresse est « dans le quota » : le calme signale l'absence de problème.
+//   · Chaque emplacement ouvre sa fiche d'emplacement (avec retour, 0019) ;
+//     la section est masquée quand l'adresse n'a aucun emplacement.
+// Composant sans build (0004) : injecte son markup et rend `ouvrir(cle)` ; tout
+// vient de donnees(), posé par textContent (anti-XSS) ; un geste laisse la fiche
+// ouverte — le feedback est le changement visible (0016). Dépend de grille.js /
+// presentation.js / blocs-fiche.js, chargés avant.
 //
 // options :
 //   donnees()          → { structures, emplacements, membres, journal } courants.
@@ -15,41 +24,48 @@
 //   surOuvrirEmplacement(numero, cle, adresse) — la page ferme cette fiche et
 //                      ouvre la fiche d'emplacement avec retour (0019).
 
-/* global statutEmplacement, casAdresse, journalDeCas, apparenceStatut, cartePositions, lienMailto,
-   creerBlocMembre, rendreBlocMembre, creerBlocJournal, rendreListeJournal, calerBlocJournal */
+/* global statutEmplacement, casAdresse, journalDeCas, apparenceStatut, cartePositions,
+   creerBlocMembre, rendreBlocMembre, creerBlocJournal, rendreListeJournal, calerBlocJournal,
+   ouvrirApercuCourriel */
 
 function creerFicheAdresse(options) {
   document.body.insertAdjacentHTML('beforeend', `
     <wa-drawer id="fiche-adresse" label="Adresse">
       <div class="corps-fiche-adresse wa-stack wa-gap-l">
-        <!-- Le fait qui justifie le cas — l'équivalent du callout de statut de
-             la fiche d'emplacement. Neutre : une règle de gestion, pas une
-             urgence de terrain (0019). -->
-        <wa-callout id="fiche-adresse-fait">
-          <wa-icon id="fiche-adresse-fait-icone" slot="icon" name="circle-info"></wa-icon>
+        <!-- SUJET — callout SEULEMENT pour un problème/exception (Hors quota) :
+             il porte alors son remède, rattaché au problème qu'il résout (0024).
+             Neutre : une règle de gestion, pas une urgence de terrain. Rien
+             « dans le quota » — le calme signale l'absence de problème. -->
+        <wa-callout id="fiche-adresse-statut" variant="neutral" hidden>
+          <wa-icon slot="icon" name="circle-info"></wa-icon>
           <div class="wa-stack wa-gap-2xs">
-            <strong id="fiche-adresse-fait-libelle"></strong>
-            <span id="fiche-adresse-fait-detail" class="detail-statut"></span>
+            <strong id="fiche-adresse-statut-libelle"></strong>
+            <span id="fiche-adresse-statut-detail" class="detail-statut"></span>
+            <!-- Remède DANS le callout, séparé du texte par un filet : ce qu'il
+                 résout se lit à côté du problème (0024). L'aperçu du courriel
+                 porte la réassurance « rien n'est envoyé » (0003). -->
+            <div id="fiche-adresse-remedes" class="remedes" hidden>
+              <wa-button id="fiche-adresse-demander" variant="brand" appearance="accent" size="m">
+                <wa-icon slot="start" name="envelope"></wa-icon>
+                Demander de libérer une place
+              </wa-button>
+            </div>
           </div>
         </wa-callout>
+
+        <!-- MEMBRE (bloc partagé, 0024) : contact courant de l'adresse. -->
         ${creerBlocMembre({ prefixe: 'fiche-adresse', avecAdresse: false, avecQuota: false, conteneurCache: false, nomCache: true })}
-        <div class="wa-stack wa-gap-s">
+
+        <!-- CORPS PROPRE — les emplacements de l'adresse, chacun ouvrant sa
+             fiche. Section masquée quand l'adresse n'a aucun emplacement (0024). -->
+        <div id="fiche-adresse-section-emplacements" class="wa-stack wa-gap-s">
           <h3 class="wa-heading-s">Les emplacements de l'adresse</h3>
           <ul id="fiche-adresse-emplacements" class="liste-emplacements-adresse wa-stack wa-gap-xs"></ul>
         </div>
+
+        <!-- JOURNAL (bloc partagé, 0024) : événements + ajout de note. -->
         <div class="wa-stack wa-gap-s">
           ${creerBlocJournal({ prefixe: 'fiche-adresse', sujet: 'l\'adresse', amorce: 'ex. : toléré à 3 jusqu\'au printemps — Jeremy', erreurId: 'fiche-adresse-erreur' })}
-          <div class="wa-cluster wa-gap-s">
-            <wa-button id="fiche-adresse-ecrire" appearance="outlined" hidden>
-              <wa-icon slot="start" name="envelope"></wa-icon>
-              Écrire au membre
-            </wa-button>
-          </div>
-          <!-- On ne s'attend pas à un brouillon préparé : le dire est du
-               procédural rassurant, pas du bruit (0016/0019). -->
-          <p id="fiche-adresse-aide-ecrire" class="wa-caption-m wa-color-text-quiet wa-text-pretty" hidden>Un courriel
-            déjà rédigé s'ouvrira dans votre messagerie — relisez-le et ajustez-le
-            avant de l'envoyer.</p>
         </div>
       </div>
     </wa-drawer>
@@ -127,11 +143,26 @@ function creerFicheAdresse(options) {
     };
   }
 
+  // Le fait du dépassement + l'effet du remède, en une phrase — jamais son
+  // impératif : « demandez de libérer » vit sur le bouton, pas dans le texte
+  // (un seul foyer, 0016 ; et rien à contredire quand aucun membre n'est
+  // inscrit). Le dépassement est dit en toutes lettres : le lecteur n'a pas à
+  // calculer que 4 > 3 (public aîné). Même tournure que la fiche d'emplacement.
+  function detailHorsQuota(cas) {
+    const nombres = ['un', 'deux', 'trois', 'quatre'];
+    const enPlus = nombres[cas.depassement - 1] || String(cas.depassement);
+    const regle = cas.quota === 2 ? 'le quota de 2' : 'l\'exception accordée à ' + cas.quota;
+    const pluriel = cas.nombre > 1 ? 's' : '';
+    const liberer = cas.depassement > 1 ? 'En libérer ' + enPlus + ' ramènerait' : 'En libérer un ramènerait';
+    return cas.nombre + ' emplacement' + pluriel + ' attribué' + pluriel + ', '
+      + enPlus + ' de plus que ' + regle + '. ' + liberer + ' l\'adresse dans le quota.';
+  }
+
   // Le courriel pré-rempli n'est JAMAIS envoyé par l'app (0003) : le membre du
-  // comité l'ajuste et l'envoie depuis son propre client mail. Ton factuel et
-  // rassurant — la fiche parle d'un membre de la communauté, pas d'un fautif.
-  function hrefEcrire(cas) {
-    const sujet = 'Vos emplacements d\'embarcation — Orford sur le Lac';
+  // comité le relit et l'envoie depuis son propre client mail (via l'aperçu
+  // partagé, blocs-fiche.js). Ton factuel et rassurant — la fiche parle d'un
+  // membre de la communauté, pas d'un fautif. Offert seulement hors quota.
+  function courrielRelance(cas) {
     const numeros = cas.emplacements.map((l) => l.numero).join(', ');
     const regle = cas.quota === 2
       ? 'La règle de la communauté est de 2 emplacements par adresse.'
@@ -148,7 +179,11 @@ function creerFicheAdresse(options) {
       'Merci,',
       'Le comité administratif — Orford sur le Lac',
     ].join('\n');
-    return lienMailto({ courriel: cas.membre.courriel, sujet, corps });
+    return {
+      courriel: cas.membre.courriel,
+      sujet: 'Vos emplacements d\'embarcation — Orford sur le Lac',
+      corps,
+    };
   }
 
   // --- Rendu : tout se recalcule depuis donnees(), la fiche se remplit en place ---
@@ -161,55 +196,51 @@ function creerFicheAdresse(options) {
       drawer.setAttribute('label', adresseCourante);
     }
 
-    // Le fait : hors quota (neutre — règle de gestion), ou réglé sous les yeux
-    // (brand) quand une libération vient de refermer le cas, fiche ouverte.
-    const fait = el('fiche-adresse-fait');
-    const icone = el('fiche-adresse-fait-icone');
-    const nombre = cas ? cas.nombre : 0;
-    const quota = cas ? cas.quota : 2;
-    const horsQuota = cas && cas.depassement > 0;
-    const variante = horsQuota ? 'neutral' : 'brand';
-    if (fait.getAttribute('variant') !== variante) fait.setAttribute('variant', variante);
-    const nomIcone = horsQuota ? 'circle-info' : 'circle-check';
-    if (icone.getAttribute('name') !== nomIcone) icone.setAttribute('name', nomIcone);
-    el('fiche-adresse-fait-libelle').textContent = horsQuota ? 'Hors quota' : 'Dans le quota';
-    // Le dépassement est dit en toutes lettres — le lecteur n'a pas à
-    // calculer que 4 > 3 (revue UI, public aîné).
-    const enLettres = ['un', 'deux', 'trois', 'quatre'][
-      (cas ? cas.depassement : 0) - 1] || String(cas ? cas.depassement : 0);
-    const regle = quota === 2 ? 'le quota de 2' : 'l\'exception accordée à ' + quota;
-    const pluriel = nombre > 1 ? 's' : '';
-    el('fiche-adresse-fait-detail').textContent = nombre === 0
-      ? 'Plus aucun emplacement attribué à cette adresse.'
-      : horsQuota
-        ? nombre + ' emplacement' + pluriel + ' attribué' + pluriel + ', '
-          + enLettres + ' de plus que ' + regle + '.'
-        : nombre + ' emplacement' + pluriel + ' attribué' + pluriel + ' — '
-          + (quota === 2 ? 'le quota est de 2' : 'exception accordée à ' + quota) + '.';
+    // --- Sujet : callout SEULEMENT hors quota ; rien « dans le quota » (0024) ---
+    // Le calme signale lui-même l'absence de problème. Une libération qui
+    // referme le cas fait simplement disparaître le callout, fiche ouverte : la
+    // liste d'emplacements rétrécit et le journal la raconte — c'est le feedback.
+    const membre = cas ? cas.membre : undefined;
+    const horsQuota = !!(cas && cas.depassement > 0);
+    const callout = el('fiche-adresse-statut');
+    const peutDemander = horsQuota && !!(membre && String(membre.courriel || '').trim());
+    if (horsQuota) {
+      el('fiche-adresse-statut-libelle').textContent = 'Hors quota';
+      el('fiche-adresse-statut-detail').textContent = detailHorsQuota(cas);
+      el('fiche-adresse-remedes').hidden = !peutDemander;
+      callout.hidden = false;
+    } else {
+      callout.hidden = true;
+      el('fiche-adresse-remedes').hidden = true;
+    }
 
     // Le membre : contact courant de l'adresse (0010), mention calme sinon —
-    // bloc partagé (0024). `membre` sert aussi au geste « Écrire » plus bas.
-    const membre = cas ? cas.membre : undefined;
+    // bloc partagé (0024).
     rendreBlocMembre('fiche-adresse', membre);
 
-    // Les emplacements du dossier : le choix décisif — lequel libérer ? Le
-    // statut de chacun se lit en toutes lettres, le tap ouvre sa fiche.
+    // Les emplacements du dossier : le statut de chacun se lit en toutes lettres,
+    // le tap ouvre sa fiche. Section masquée quand l'adresse n'en a aucun (0024).
     const liste = el('fiche-adresse-emplacements');
-    const positions = cartePositions(options.donnees().structures);
-    liste.replaceChildren(...(cas ? cas.emplacements : [])
-      .map((ligne) => rangeeEmplacement(ligne, positions)));
+    const emplacements = cas ? cas.emplacements : [];
+    const positions = cartePositions(donnees.structures);
+    liste.replaceChildren(...emplacements.map((ligne) => rangeeEmplacement(ligne, positions)));
+    el('fiche-adresse-section-emplacements').hidden = emplacements.length === 0;
 
     // Le journal du dossier : notes d'adresse + libérations des emplacements.
-    const numeros = (cas ? cas.emplacements : []).map((l) => Number(l.numero));
+    const numeros = emplacements.map((l) => Number(l.numero));
     const evenements = journalDeCas(donnees.journal, cleCourante, numeros);
     rendreListeJournal('fiche-adresse', evenements, decrireEvenement);
-
-    const ecrire = el('fiche-adresse-ecrire');
-    const peutEcrire = !!(cas && membre && String(membre.courriel || '').trim());
-    ecrire.hidden = !peutEcrire;
-    el('fiche-adresse-aide-ecrire').hidden = !peutEcrire;
-    if (peutEcrire) ecrire.setAttribute('href', hrefEcrire(cas));
   }
+
+  // « Demander de libérer une place » : ouvre l'aperçu du courriel pré-rédigé
+  // (rien n'est envoyé — 0003). Offert seulement quand l'adresse dépasse et que
+  // le membre a un courriel — le rendu masque sinon le remède.
+  el('fiche-adresse-demander').addEventListener('click', () => {
+    const cas = donneesCas();
+    if (cas && cas.depassement > 0 && cas.membre && String(cas.membre.courriel || '').trim()) {
+      ouvrirApercuCourriel(courrielRelance(cas));
+    }
+  });
 
   // Cale le journal sur l'événement le plus récent (bloc partagé, voir fiche.js).
   function calerJournal() {
@@ -313,7 +344,7 @@ function creerFicheAdresse(options) {
 
   // Ouvre la fiche d'un cas par sa clé d'adresse normalisée (fileHorsQuota).
   async function ouvrir(cle) {
-    await Promise.all(['wa-drawer', 'wa-textarea', 'wa-button', 'wa-callout', 'wa-badge']
+    await Promise.all(['wa-drawer', 'wa-dialog', 'wa-textarea', 'wa-button', 'wa-callout', 'wa-badge']
       .map((nom) => customElements.whenDefined(nom)));
     cleCourante = cle;
     const cas = donneesCas();
