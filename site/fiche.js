@@ -1,13 +1,26 @@
-// Fiche d'emplacement (décision 0018) : LA vue détaillée d'un emplacement — la
-// même quelle que soit la page qui l'ouvre (grille des Structures, registre
-// À traiter). Composant partagé sans build (décision 0004) : ce script expose
-// creerFicheEmplacement(), qui injecte le markup de la fiche et rend
-// `ouvrir(numero)`. Les gestes suivent le STATUT, jamais la page ; tout geste
-// laisse la fiche ouverte — le feedback est le changement visible (statut,
-// journal), pas un message (0016). Dépend de grille.js, chargé avant.
+// Fiche d'emplacement (décisions 0018, unifiée 0024) : LA vue détaillée d'un
+// emplacement — la même quelle que soit la page qui l'ouvre (grille des
+// Structures, registre À traiter). Composant partagé sans build (décision
+// 0004) : ce script expose creerFicheEmplacement(), qui injecte le markup de la
+// fiche et rend `ouvrir(numero)`.
+//
+// Coquille unifiée à PLAT (0024) : plus d'onglets Observer/Traiter — tout
+// défile dans une colonne `[Sujet (statut) · Membre · Corps propre · Journal]`.
+//   · Le SUJET porte le statut. Un état à problème (Attribué-libre, ou adresse
+//     hors quota) s'affiche en callout QUI PORTE ses remèdes (Relancer, Libérer
+//     — gating resserré de gestesEmplacement) ; un état sain s'affiche en ligne
+//     calme, sans callout ni geste.
+//   · « Sur place » (consigner l'occupation Occupé/Libre) est une ACTION de la
+//     barre utilitaire qui révèle un panneau replié — plus une section
+//     permanente.
+//   · « Relancer le membre » ouvre l'aperçu du courriel pré-rédigé (blocs
+//     partagés) : rien n'est envoyé automatiquement (0003).
+// Tout geste laisse la fiche ouverte — le feedback est le changement visible
+// (statut, journal), pas un message (0016). Dépend de grille.js / presentation.js
+// / blocs-fiche.js, chargés avant.
 //
 // options :
-//   ongletParDefaut    'observer' | 'traiter' — l'onglet montré à l'ouverture.
+//   ongletParDefaut    accepté pour compatibilité, sans effet (plus d'onglets).
 //   donnees()          → { structures, emplacements, membres, journal } courants.
 //   motDePasse()       → le mot de passe du comité (session).
 //   surDonneesFraiches(inventaire) — la page range l'état frais et re-rend
@@ -15,11 +28,11 @@
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
 
 /* global statutEmplacement, gestesEmplacement, historiqueEmplacement,
-   serieLibreObservee, depassementQuota,
+   serieLibreObservee, depassementQuota, casAdresse,
    cleAdresse, ETATS_OCCUPATION, apparenceStatut, proseSignal, formatAdresse,
    chercherMembreParCle, positionParNumero, lienMailto,
    creerBlocMembre, rendreBlocMembre, creerBlocJournal, rendreListeJournal,
-   calerBlocJournal */
+   calerBlocJournal, ouvrirApercuCourriel */
 
 function creerFicheEmplacement(options) {
   // Markup constant (aucune donnée) : tout ce qui vient de la Sheet est posé
@@ -36,7 +49,11 @@ function creerFicheEmplacement(options) {
             <span id="fiche-retour-texte">Retour</span>
           </wa-button>
         </div>
-        <wa-callout id="fiche-statut">
+
+        <!-- SUJET — le statut. Callout SEULEMENT pour un problème/exception
+             (Attribué-libre ; adresse hors quota) : il porte alors ses remèdes,
+             rattachés au problème qu'ils résolvent (0024). -->
+        <wa-callout id="fiche-statut" hidden>
           <wa-icon id="fiche-statut-icone" slot="icon" name="circle-info"></wa-icon>
           <div class="wa-stack wa-gap-2xs">
             <strong id="fiche-statut-libelle"></strong>
@@ -45,66 +62,76 @@ function creerFicheEmplacement(options) {
                  la classe locale ne règle que la taille, la couleur vient du
                  variant du callout. -->
             <span id="fiche-statut-detail" class="detail-statut"></span>
+            <!-- Remèdes DANS le callout, séparés du texte par un filet : ce que
+                 chaque bouton résout se lit à côté du problème (0024). -->
+            <div id="fiche-remedes" class="remedes" hidden>
+              <wa-button id="fiche-ecrire" variant="brand" appearance="accent" size="m" hidden>
+                <wa-icon slot="start" name="envelope"></wa-icon>
+                Relancer le membre
+              </wa-button>
+              <wa-button id="fiche-liberer" appearance="outlined" size="m" hidden>
+                <wa-icon slot="start" name="unlock"></wa-icon>
+                Libérer l'emplacement
+              </wa-button>
+            </div>
           </div>
         </wa-callout>
+        <!-- Statut d'un état SAIN, ou statut propre de l'emplacement quand le
+             callout parle de l'adresse (hors quota) : une ligne calme, teintée
+             de la gravité réelle, jamais un gros callout. -->
+        <p id="fiche-statut-calme" class="statut-calme" hidden>
+          <wa-icon id="fiche-statut-calme-icone" name="circle-info"></wa-icon>
+          <span class="statut-calme-texte">
+            <strong id="fiche-statut-calme-libelle" class="statut-calme-libelle"></strong>
+            <span id="fiche-statut-calme-detail" class="wa-color-text-quiet wa-text-pretty"></span>
+          </span>
+        </p>
+
+        <!-- MEMBRE (bloc partagé) : nom, adresse, pastille hors quota, contact. -->
         ${creerBlocMembre({ prefixe: 'fiche', avecAdresse: true, avecQuota: true, conteneurCache: true })}
         <p id="fiche-note-comite" class="note-membre wa-text-pretty" hidden></p>
-        <wa-tab-group id="fiche-onglets">
-          <wa-tab panel="observer">Observer</wa-tab>
-          <wa-tab panel="traiter">Traiter</wa-tab>
-          <wa-tab-panel name="observer">
-            <div class="wa-stack wa-gap-s">
-              <!-- L'état courant (un fait) reste au-dessus des boutons qui le changent. -->
-              <p id="fiche-observation-date" class="wa-caption-m wa-color-text-quiet"></p>
-              <h3 class="wa-heading-s">Qu'observez-vous sur place ?</h3>
-              <!-- Deux réponses seulement : sur place, on voit une embarcation ou pas. -->
-              <div class="boutons-occupation">
-                <wa-button class="bouton-occupation" data-occupation="occupé" appearance="outlined" size="m">Occupé</wa-button>
-                <wa-button class="bouton-occupation" data-occupation="libre" appearance="outlined" size="m">Libre</wa-button>
-              </div>
-              <wa-callout id="fiche-erreur-observer" variant="danger" role="alert" tabindex="-1" hidden>
-                <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
-                <span id="fiche-erreur-observer-texte"></span>
-              </wa-callout>
-            </div>
-          </wa-tab-panel>
-          <wa-tab-panel name="traiter">
-            <div class="wa-stack wa-gap-s">
-              ${creerBlocJournal({ prefixe: 'fiche', sujet: 'l\'emplacement', amorce: 'ex. : courriel envoyé — Jeremy', erreurId: 'fiche-erreur-traiter' })}
-              <!-- L'aide colle au bouton qu'elle explique (revue UI) : on ne
-                   s'attend pas à un brouillon préparé — le dire est du
-                   procédural rassurant, pas du bruit (0016/0019). -->
-              <div class="wa-stack wa-gap-2xs">
-                <div class="wa-cluster wa-gap-s">
-                  <wa-button id="fiche-ecrire" appearance="outlined" hidden>
-                    <wa-icon slot="start" name="envelope"></wa-icon>
-                    Écrire au membre
-                  </wa-button>
-                </div>
-                <p id="fiche-aide-ecrire" class="wa-caption-m wa-color-text-quiet wa-text-pretty" hidden>Un courriel
-                  déjà rédigé s'ouvrira dans votre messagerie — relisez-le et ajustez-le
-                  avant de l'envoyer.</p>
-              </div>
-              <div class="wa-cluster wa-gap-s">
-                <wa-button id="fiche-liberer" appearance="outlined" hidden>
-                  <wa-icon slot="start" name="unlock"></wa-icon>
-                  Libérer l'emplacement
-                </wa-button>
-              </div>
-            </div>
-          </wa-tab-panel>
-        </wa-tab-group>
+
+        <!-- BARRE UTILITAIRE : les actions non liées à un problème. « Sur place »
+             révèle le relevé replié ; « Fiche d'adresse » (navigation) viendra
+             ici à la tranche suivante. -->
+        <div class="barre-utilitaire wa-cluster wa-gap-s">
+          <wa-button id="fiche-sur-place" appearance="outlined" size="m"
+                     aria-expanded="false" aria-controls="fiche-sur-place-panneau">
+            <wa-icon slot="start" name="binoculars"></wa-icon>
+            Sur place
+          </wa-button>
+        </div>
+        <!-- Relevé « Sur place » (observation Occupé/Libre) : replié par défaut,
+             révélé par l'action. Sur place, on voit une embarcation ou pas. -->
+        <div id="fiche-sur-place-panneau" class="panneau-sur-place wa-stack wa-gap-s" hidden>
+          <!-- L'état courant (un fait) reste au-dessus des boutons qui le changent. -->
+          <p id="fiche-observation-date" class="wa-caption-m wa-color-text-quiet"></p>
+          <h3 class="wa-heading-s">Qu'observez-vous sur place ?</h3>
+          <div class="boutons-occupation">
+            <wa-button class="bouton-occupation" data-occupation="occupé" appearance="outlined" size="m">Occupé</wa-button>
+            <wa-button class="bouton-occupation" data-occupation="libre" appearance="outlined" size="m">Libre</wa-button>
+          </div>
+          <wa-callout id="fiche-erreur-observer" variant="danger" role="alert" tabindex="-1" hidden>
+            <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+            <span id="fiche-erreur-observer-texte"></span>
+          </wa-callout>
+        </div>
+
+        <!-- JOURNAL (bloc partagé) : événements + ajout de note. -->
+        <div class="wa-stack wa-gap-s">
+          ${creerBlocJournal({ prefixe: 'fiche', sujet: 'l\'emplacement', amorce: 'ex. : courriel envoyé — Jeremy', erreurId: 'fiche-erreur-traiter' })}
+        </div>
       </div>
     </wa-drawer>
     <!-- Confirmation avant de libérer : aucun tap accidentel ne retire une adresse. -->
     <wa-dialog id="fiche-dialogue-liberer" label="Libérer l'emplacement ?">
       <p id="fiche-dialogue-liberer-texte" class="wa-text-pretty"></p>
-      <wa-button id="fiche-dialogue-liberer-confirmer" slot="footer" variant="danger" data-dialog="close">
+      <wa-button id="fiche-dialogue-liberer-confirmer" slot="footer" variant="danger" size="m" data-dialog="close">
         Libérer l'emplacement
       </wa-button>
       <!-- La sortie sûre est un vrai bouton, aussi facile à viser que l'action
            (public aîné) — pas un lien texte. -->
-      <wa-button slot="footer" appearance="outlined" data-dialog="close">Annuler</wa-button>
+      <wa-button slot="footer" appearance="outlined" size="m" data-dialog="close">Annuler</wa-button>
     </wa-dialog>
   `);
 
@@ -155,6 +182,15 @@ function creerFicheEmplacement(options) {
     return proseSignal(ligne, options.donnees().journal, 'fiche') || statut.explication;
   }
 
+  // Le fait du dépassement de quota d'une adresse, en une phrase — le remède
+  // « Libérer » qui l'accompagne dit ce qu'il résout.
+  function detailHorsQuota(cas) {
+    const enTrop = cas.nombre - cas.quota;
+    return cas.adresse + ' a ' + cas.nombre + ' emplacements pour un quota de ' + cas.quota
+      + '. En libérer ' + (enTrop > 1 ? enTrop + ' ramènerait' : 'un ramènerait')
+      + ' l\'adresse dans le quota.';
+  }
+
   // Icône et libellé de chaque type d'événement du journal. L'observation
   // reprend l'icône de la tournée (list-check) : c'est elle qui l'a écrite.
   const EVENEMENTS_JOURNAL = {
@@ -186,33 +222,52 @@ function creerFicheEmplacement(options) {
   }
 
   // Le courriel pré-rempli n'est JAMAIS envoyé par l'app (0003) : le membre du
-  // comité l'ajuste et l'envoie depuis son propre client mail. Le corps ne
-  // parle d'emplacement libre que si c'est le fait établi (« Attribué, libre »)
-  // — sinon il reste à écrire, seule la signature est posée.
-  function hrefEcrire(membre, ligne, statut) {
-    const sujet = 'Votre emplacement ' + ligne.numero + ' — Orford sur le Lac';
-    const signature = ['Merci,', 'Le comité administratif — Orford sur le Lac'];
-    let corps;
-    if (statut.code === 'peutEtreALiberer') {
-      const serie = serieLibreObservee(ligne, options.donnees().journal);
-      corps = [
-        'Bonjour ' + membre.nom + ',',
-        '',
-        'En passant près des structures, le comité a remarqué que l\'emplacement ' + ligne.numero
-          + ' (attribué au ' + adresseLisible(ligne) + ') est libre'
-          + (serie.debut ? ' depuis le ' + formatDate.format(serie.debut) : '') + '.',
-        '',
-        'Utilisez-vous encore cet emplacement cette saison ? Si vous n\'en avez plus besoin, '
-          + 'dites-le-nous : un autre membre de la communauté pourra en profiter.',
-        '',
-      ].concat(signature).join('\n');
-    } else {
-      corps = ['Bonjour ' + membre.nom + ',', '', '', ''].concat(signature).join('\n');
-    }
-    return lienMailto({ courriel: membre.courriel, sujet, corps });
+  // comité le relit et l'envoie depuis son propre client mail (via l'aperçu
+  // partagé). « Relancer » n'est offert que sur « Attribué, libre » (le seul
+  // état où écrire a une raison, 0024) : le corps parle donc toujours d'un
+  // emplacement observé libre.
+  function courrielRelance(membre, ligne) {
+    const serie = serieLibreObservee(ligne, options.donnees().journal);
+    const corps = [
+      'Bonjour ' + membre.nom + ',',
+      '',
+      'En passant près des structures, le comité a remarqué que l\'emplacement ' + ligne.numero
+        + ' (attribué au ' + adresseLisible(ligne) + ') est libre'
+        + (serie.debut ? ' depuis le ' + formatDate.format(serie.debut) : '') + '.',
+      '',
+      'Utilisez-vous encore cet emplacement cette saison ? Si vous n\'en avez plus besoin, '
+        + 'dites-le-nous : un autre membre de la communauté pourra en profiter.',
+      '',
+      'Merci,',
+      'Le comité administratif — Orford sur le Lac',
+    ].join('\n');
+    return {
+      courriel: membre.courriel,
+      sujet: 'Votre emplacement ' + ligne.numero + ' — Orford sur le Lac',
+      corps,
+    };
   }
 
   // --- Rendu : tout se recalcule depuis donnees(), la fiche se remplit en place ---
+
+  // N'écrire un attribut que s'il change : re-poser la même valeur fait
+  // re-rendre le shadow DOM du composant, et le contenu slotté disparaît le
+  // temps d'une frame (callout écrasé pendant un re-rendu après un geste —
+  // visible sur API lente, flagrant en capture).
+  const poserAttribut = (element, nom, valeur) => {
+    if (element.getAttribute(nom) !== valeur) element.setAttribute(nom, valeur);
+  };
+
+  // La ligne de statut calme : icône teintée de la gravité réelle (data-variant
+  // pilote la couleur en CSS), libellé, détail.
+  function rendreCalme(apparence, statut, ligne) {
+    const calme = el('fiche-statut-calme');
+    poserAttribut(calme, 'data-variant', apparence.variante);
+    poserAttribut(el('fiche-statut-calme-icone'), 'name', apparence.icone);
+    el('fiche-statut-calme-libelle').textContent = statut.libelle;
+    el('fiche-statut-calme-detail').textContent = detailStatut(statut, ligne);
+    calme.hidden = false;
+  }
 
   function rendre() {
     const ligne = lignePourNumero(numeroCourant);
@@ -225,43 +280,71 @@ function creerFicheEmplacement(options) {
         + (position.niveau !== '' ? ' · Niveau ' + position.niveau : '') : '');
     if (drawer.getAttribute('label') !== libelle) drawer.setAttribute('label', libelle);
 
-    // N'écrire l'attribut que s'il change : re-poser la même valeur fait
-    // re-rendre le shadow DOM du composant, et le contenu slotté disparaît
-    // le temps d'une frame (callout écrasé à l'écran pendant un re-rendu
-    // après un geste — visible sur API lente, flagrant en capture).
-    const poserAttribut = (element, nom, valeur) => {
-      if (element.getAttribute(nom) !== valeur) element.setAttribute(nom, valeur);
-    };
-    poserAttribut(el('fiche-statut'), 'variant', apparence.variante);
-    poserAttribut(el('fiche-statut-icone'), 'name', apparence.icone);
-    el('fiche-statut-libelle').textContent = statut.libelle;
-    el('fiche-statut-detail').textContent = detailStatut(statut, ligne);
-
-    // Le membre (si attribué) et les gestes de la fiche, dérivés du statut et du
-    // contexte quota (0024) — depuis l'inventaire complet, comme depassementQuota.
-    // L'attribution commande l'affichage du bloc membre ; elle ne se lit plus sur
-    // `liberer` (resserré : un En ordre dans les règles n'offre plus aucun geste)
-    // mais sur la clé d'adresse, même règle qu'estAttribue_ (grille.js).
+    // Le membre (si attribué), les gestes et le contexte quota — dérivés du
+    // statut et de l'inventaire complet (0024), comme depassementQuota.
     const membre = ligne ? chercherMembre(ligne) : undefined;
     const gestes = gestesEmplacement(ligne, options.donnees().emplacements, options.donnees().membres);
     const attribue = !!(ligne && cleAdresse(ligne));
+    const cas = attribue ? casAdresse(cleAdresse(ligne), options.donnees().emplacements, options.donnees().membres) : null;
+    const horsQuota = !!(cas && cas.depassement > 0);
+
+    // --- Sujet : callout pour un PROBLÈME/exception, sinon ligne calme (0024) ---
+    // Un état à problème (Attribué-libre, À identifier) s'affiche en callout de
+    // sa gravité réelle (warning / danger) — l'anomalie ne doit jamais être
+    // moins saillante que le warning (design.md). Le callout porte ses remèdes
+    // quand il y en a. Une adresse hors quota est une exception : callout neutre
+    // portant « Libérer », le statut propre de l'emplacement (sain) dit calmement
+    // dessous. Le callout parle du dépassement SEULEMENT quand le statut n'est
+    // pas déjà un problème — sinon le dépassement reste sur la pastille du
+    // membre : un seul foyer (0016).
+    const calloutQuota = horsQuota && !statut.probleme;
+    const callout = el('fiche-statut');
+    const calme = el('fiche-statut-calme');
+    if (statut.probleme) {
+      // Le callout EST le statut (warning ou danger), avec ses remèdes.
+      poserAttribut(callout, 'variant', apparence.variante);
+      poserAttribut(el('fiche-statut-icone'), 'name', apparence.icone);
+      el('fiche-statut-libelle').textContent = statut.libelle;
+      el('fiche-statut-detail').textContent = detailStatut(statut, ligne);
+      callout.hidden = false;
+      calme.hidden = true;
+    } else if (horsQuota) {
+      // Le callout parle de l'ADRESSE qui dépasse ; le statut propre de
+      // l'emplacement (sain) reste dit calmement en dessous.
+      poserAttribut(callout, 'variant', 'neutral');
+      poserAttribut(el('fiche-statut-icone'), 'name', 'circle-info');
+      el('fiche-statut-libelle').textContent = 'Adresse hors quota';
+      el('fiche-statut-detail').textContent = detailHorsQuota(cas);
+      callout.hidden = false;
+      rendreCalme(apparence, statut, ligne);
+    } else {
+      // État sain : pas de callout, juste la ligne calme.
+      callout.hidden = true;
+      rendreCalme(apparence, statut, ligne);
+    }
+
+    // Remèdes DANS le callout : montrés selon le gating (0024), toujours masqués
+    // quand il n'y a pas de callout (état sain → aucun geste).
+    const ecrire = el('fiche-ecrire');
+    const liberer = el('fiche-liberer');
+    ecrire.hidden = callout.hidden || !gestes.ecrire;
+    liberer.hidden = callout.hidden || !gestes.liberer;
+    el('fiche-remedes').hidden = ecrire.hidden && liberer.hidden;
+
+    // --- Membre (bloc partagé) : nom, adresse, pastille quota, contact ---
     const blocMembre = el('fiche-membre');
     blocMembre.hidden = !attribue;
     if (!blocMembre.hidden) {
       el('fiche-membre-adresse').textContent = adresseLisible(ligne);
-      // Pastille quota (0019) : seulement quand l'adresse dépasse — le membre
-      // du comité qui ouvre un emplacement depuis la grille découvre le
-      // contexte du dossier ; rien quand l'adresse est dans les règles. Le
-      // libellé nomme l'état (« Hors quota », la section qui le traite) —
-      // le nombre seul ne dirait pas que c'est un dossier (revue UI).
-      const quota = depassementQuota(ligne, options.donnees().emplacements, options.donnees().membres);
+      // Pastille quota (0019) : quand l'adresse dépasse ET que le callout ne
+      // porte pas déjà le dépassement (cas « Attribué, libre » hors quota) — le
+      // dépassement a toujours un seul foyer (0016). Le libellé nomme l'état
+      // (« Hors quota »), le nombre seul ne dirait pas que c'est un dossier.
       const pastilleQuota = el('fiche-membre-quota');
-      pastilleQuota.hidden = !quota;
-      if (quota) pastilleQuota.textContent = 'Hors quota — ' + quota.nombre + ' emplacements à cette adresse';
+      pastilleQuota.hidden = !(horsQuota && !calloutQuota);
+      if (!pastilleQuota.hidden) pastilleQuota.textContent = 'Hors quota — ' + cas.nombre + ' emplacements à cette adresse';
     }
     // Nom, contact tappable et mention « aucun membre » : bloc partagé (0024).
-    // `membre` est undefined quand l'emplacement n'est pas attribué (bloc replié
-    // au-dessus) — les liens restent masqués sous le conteneur caché.
     rendreBlocMembre('fiche', membre);
 
     // Note du comité de la ligne d'emplacement (annotation durable, non datée).
@@ -269,9 +352,7 @@ function creerFicheEmplacement(options) {
     note.hidden = !(ligne && String(ligne.note || '').trim());
     if (!note.hidden) note.textContent = 'Note du comité : ' + ligne.note;
 
-    // Onglet Observer : l'état courant = seul bouton plein (brand) + coche ;
-    // il est aussi dit en toutes lettres au-dessus — la couleur ne porte
-    // jamais seule.
+    // --- Sur place : l'état courant au-dessus des boutons qui le changent ---
     const occupation = ligne ? ligne.occupationObservee : '';
     const valeurCourante = ETATS_OCCUPATION.includes(occupation) ? occupation : null;
     for (const bouton of drawer.querySelectorAll('.bouton-occupation')) {
@@ -299,38 +380,47 @@ function creerFicheEmplacement(options) {
         + (dateValide ? ', le ' + formatDate.format(date) : ' (date inconnue)') + '.'
       : 'Jamais observé pour l\'instant.';
 
-    // Onglet Traiter : journal complet (défilé au plus récent) + gestes.
+    // --- Journal complet (défilé au plus récent) ---
     const historique = historiqueEmplacement(options.donnees().journal, numeroCourant);
     rendreListeJournal('fiche', historique, decrireEvenement);
-
-    el('fiche-liberer').hidden = !gestes.liberer;
-    const ecrire = el('fiche-ecrire');
-    ecrire.hidden = !gestes.ecrire;
-    el('fiche-aide-ecrire').hidden = !gestes.ecrire;
-    if (gestes.ecrire) ecrire.setAttribute('href', hrefEcrire(membre, ligne, statut));
   }
 
   // Cale le journal sur l'événement le plus récent. Sans effet tant que le
-  // panneau est masqué (scrollHeight nul, drawer fermé ou onglet Observer
-  // actif) : rappelé à l'ouverture du drawer et à l'affichage de l'onglet —
-  // au frame suivant, une fois le panneau réellement mesurable (wa-tab-show
-  // part avant que le contenu soit visible).
+  // panneau est masqué (scrollHeight nul, drawer fermé) : rappelé à l'ouverture
+  // du drawer — au frame suivant, une fois le panneau réellement mesurable.
   function calerJournal() {
     calerBlocJournal('fiche');
   }
   drawer.addEventListener('wa-after-show', calerJournal);
-  el('fiche-onglets').addEventListener('wa-tab-show', calerJournal);
 
-  // --- Erreurs : dans l'onglet du geste qui a échoué, jamais un état à part ---
+  // « Sur place » : révèle / replie le relevé d'occupation (panneau replié par
+  // défaut). L'état de l'aria le dit aux lecteurs d'écran.
+  el('fiche-sur-place').addEventListener('click', () => {
+    const panneau = el('fiche-sur-place-panneau');
+    const revele = panneau.hasAttribute('hidden');
+    panneau.hidden = !revele;
+    el('fiche-sur-place').setAttribute('aria-expanded', String(revele));
+  });
+
+  // « Relancer le membre » : ouvre l'aperçu du courriel (rien n'est envoyé — 0003).
+  el('fiche-ecrire').addEventListener('click', () => {
+    const ligne = lignePourNumero(numeroCourant);
+    const membre = ligne ? chercherMembre(ligne) : undefined;
+    if (membre && String(membre.courriel || '').trim()) {
+      ouvrirApercuCourriel(courrielRelance(membre, ligne));
+    }
+  });
+
+  // --- Erreurs : à l'endroit du geste qui a échoué, jamais un état à part ---
 
   function cacherErreurs() {
     el('fiche-erreur-observer').hidden = true;
     el('fiche-erreur-traiter').hidden = true;
   }
 
-  function montrerErreur(onglet, message) {
-    const callout = el('fiche-erreur-' + onglet);
-    el('fiche-erreur-' + onglet + '-texte').textContent = message;
+  function montrerErreur(zone, message) {
+    const callout = el('fiche-erreur-' + zone);
+    el('fiche-erreur-' + zone + '-texte').textContent = message;
     callout.hidden = false;
     callout.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     callout.focus();
@@ -383,7 +473,7 @@ function creerFicheEmplacement(options) {
   // et re-rend derrière, la fiche se re-rend en place — et RESTE ouverte
   // (0018). Si le rechargement échoue, le geste est acquis : l'erreur le dit
   // sans accuser le geste.
-  async function rafraichir(onglet) {
+  async function rafraichir(zone) {
     try {
       const resultat = await client.poster({ action: 'inventaire' });
       if (!(await sessionEncoreValide(resultat))) return;
@@ -394,7 +484,7 @@ function creerFicheEmplacement(options) {
       // prévenu dans la fiche, et la boucle de captures échoue sur toute
       // console.error.
       console.info('Rechargement après geste impossible :', erreurRecharge.message || erreurRecharge);
-      montrerErreur(onglet, 'Le geste est bien enregistré, mais la fiche n\'a pas pu se recharger. '
+      montrerErreur(zone, 'Le geste est bien enregistré, mais la fiche n\'a pas pu se recharger. '
         + 'Fermez-la puis rouvrez-la pour voir l\'état à jour.');
     }
   }
@@ -517,14 +607,13 @@ function creerFicheEmplacement(options) {
     retour.surRetour();
   });
 
-  // Ouvre la fiche d'un numéro sur l'onglet de la page. Attend l'upgrade des
-  // composants injectés : poser une propriété (value, loading) sur un élément
-  // pas encore upgradé la ferait disparaître à l'upgrade.
-  // `retour` (0019, ouverture depuis une fiche d'adresse) : { libelle,
-  // surRetour } — affiche « Retour à <libelle> » et rejoue surRetour à la
-  // fermeture du drawer.
+  // Ouvre la fiche d'un numéro. Attend l'upgrade des composants injectés :
+  // poser une propriété (value, loading) sur un élément pas encore upgradé la
+  // ferait disparaître à l'upgrade. `retour` (0019, ouverture depuis une fiche
+  // d'adresse) : { libelle, surRetour } — affiche « Retour à <libelle> » et
+  // rejoue surRetour à la fermeture du drawer.
   async function ouvrir(numero, retour) {
-    await Promise.all(['wa-drawer', 'wa-tab-group', 'wa-textarea', 'wa-button', 'wa-callout']
+    await Promise.all(['wa-drawer', 'wa-dialog', 'wa-textarea', 'wa-button', 'wa-callout']
       .map((nom) => customElements.whenDefined(nom)));
     numeroCourant = numero;
     retourCourant = retour || null;
@@ -533,16 +622,19 @@ function creerFicheEmplacement(options) {
       el('fiche-retour-texte').textContent = 'Retour à ' + retourCourant.libelle;
     }
     // Contenant selon l'écran AU MOMENT de l'ouverture : la fiche monte du bas
-    // sur téléphone (la grille reste visible au-dessus), glisse du côté sur
+    // sur téléphone (le contexte reste visible au-dessus), glisse du côté sur
     // grand écran — même contenu (0018). Seuil distinct du 480px de theme.css :
     // ici on choisit le CONTENANT (une tablette étroite préfère le bas), là-bas
     // on condense les espacements des seuls vrais téléphones.
     drawer.setAttribute('placement', matchMedia('(max-width: 640px)').matches ? 'bottom' : 'end');
+    // Le relevé « Sur place » repart replié à chaque ouverture : la fiche reste
+    // épurée, l'observation est un geste explicite.
+    el('fiche-sur-place-panneau').hidden = true;
+    el('fiche-sur-place').setAttribute('aria-expanded', 'false');
     el('fiche-champ-note').value = '';
     el('fiche-ajouter-note').loading = false;
     el('fiche-liberer').loading = false;
     cacherErreurs();
-    el('fiche-onglets').setAttribute('active', options.ongletParDefaut || 'observer');
     rendre();
     drawer.setAttribute('open', '');
   }
