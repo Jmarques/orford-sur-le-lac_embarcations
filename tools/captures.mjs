@@ -605,6 +605,13 @@ export const CAPTURES = [
   // Aucun résultat : le message dit ce qui a été cherché et quoi faire ensuite.
   { nom: 'adresses-aucun', page: 'adresses.html', etat: 'recherche', q: 'zzz', attendre: '#etat-aucun:not([hidden])' },
   { nom: 'adresses-erreur', page: 'adresses.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
+  // PROTOTYPE jetable (ticket 03, carte gabarits-courriels) : trois pistes
+  // d'édition du modèle de courriel, pilotées par ?etat= — à retirer avec la page.
+  { nom: 'gabarits-prototype-jetons', page: 'gabarits-prototype.html', etat: 'jetons', attendre: '#variante-jetons:not([hidden]) .val-exemple' },
+  { nom: 'gabarits-prototype-jetons-erreur', page: 'gabarits-prototype.html', etat: 'jetons-erreur', attendre: '#erreur-jetons:not([hidden])' },
+  { nom: 'gabarits-prototype-blocs', page: 'gabarits-prototype.html', etat: 'blocs', attendre: '#variante-blocs:not([hidden]) .bloc-verrouille' },
+  { nom: 'gabarits-prototype-puces', page: 'gabarits-prototype.html', etat: 'puces', attendre: '#variante-puces:not([hidden]) .puce' },
+  { nom: 'gabarits-prototype-puces-manque', page: 'gabarits-prototype.html', etat: 'puces-manque', attendre: '#manque-puces:not([hidden])' },
 ];
 
 // Motifs de bruit console tolérés (regex). Liste minimale : tout autre
