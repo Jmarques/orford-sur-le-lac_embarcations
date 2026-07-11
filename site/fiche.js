@@ -17,11 +17,13 @@
 //     partagés) : rien n'est envoyé automatiquement (0003).
 // Tout geste laisse la fiche ouverte — le feedback est le changement visible
 // (statut, journal), pas un message (0016). Dépend de grille.js / presentation.js
-// / blocs-fiche.js, chargés avant.
+// / modeles-courriel.js / blocs-fiche.js, chargés avant.
 //
 // options :
 //   ongletParDefaut    accepté pour compatibilité, sans effet (plus d'onglets).
-//   donnees()          → { structures, emplacements, membres, journal } courants.
+//   donnees()          → { structures, emplacements, membres, journal, gabarits }
+//                      courants (gabarits : les Modèles de courriel effectifs
+//                      de l'inventaire — la relance se compose d'eux).
 //   motDePasse()       → le mot de passe du comité (session).
 //   surDonneesFraiches(inventaire) — la page range l'état frais et re-rend
 //                      derrière la fiche (grille recolorée, registre re-trié).
@@ -39,7 +41,7 @@
    cleAdresse, ETATS_OCCUPATION, apparenceStatut, proseSignal, formatAdresse,
    chercherMembreParCle, positionParNumero, lienMailto,
    creerBlocMembre, rendreBlocMembre, creerBlocJournal, rendreListeJournal,
-   calerBlocJournal, ouvrirApercuCourriel */
+   calerBlocJournal, ouvrirApercuCourriel, rendreModele, gabaritParId */
 
 function creerFicheEmplacement(options) {
   // Markup constant (aucune donnée) : tout ce qui vient de la Sheet est posé
@@ -238,26 +240,26 @@ function creerFicheEmplacement(options) {
   // comité le relit et l'envoie depuis son propre client mail (via l'aperçu
   // partagé). « Relancer » n'est offert que sur « Attribué, libre » (le seul
   // état où écrire a une raison, 0024) : le corps parle donc toujours d'un
-  // emplacement observé libre.
+  // emplacement observé libre. Le texte vient du Modèle de courriel effectif
+  // de l'inventaire (PRD gabarits-courriels) — la fiche ne fournit que les
+  // valeurs des informations, au point d'usage (ticket 07). Sans gabarit
+  // (backend pas encore à jour), null : jamais un courriel troué.
   function courrielRelance(membre, ligne) {
+    const modele = gabaritParId(options.donnees().gabarits, 'relanceEmplacement');
+    if (!modele) return null;
     const serie = serieLibreObservee(ligne, options.donnees().journal);
-    const corps = [
-      'Bonjour ' + membre.nom + ',',
-      '',
-      'En passant près des structures, le comité a remarqué que l\'emplacement ' + ligne.numero
-        + ' (attribué au ' + adresseLisible(ligne) + ') est libre'
-        + (serie.debut ? ' depuis le ' + formatDate.format(serie.debut) : '') + '.',
-      '',
-      'Utilisez-vous encore cet emplacement cette saison ? Si vous n\'en avez plus besoin, '
-        + 'dites-le-nous : un autre membre de la communauté pourra en profiter.',
-      '',
-      'Merci,',
-      'Le comité administratif — Orford sur le Lac',
-    ].join('\n');
+    const valeurs = {
+      nom: membre.nom,
+      'numéro': ligne.numero,
+      adresse: adresseLisible(ligne),
+      // Optionnel : vide quand la série n'a pas de début — le jeton disparaît
+      // du rendu, ponctuation refermée (piste C, ticket 03).
+      'depuis quand': serie.debut ? 'depuis le ' + formatDate.format(serie.debut) : '',
+    };
     return {
       courriel: membre.courriel,
-      sujet: 'Votre emplacement ' + ligne.numero + ' — Orford sur le Lac',
-      corps,
+      sujet: rendreModele(modele.sujet, valeurs),
+      corps: rendreModele(modele.corps, valeurs),
     };
   }
 
@@ -438,9 +440,15 @@ function creerFicheEmplacement(options) {
   el('fiche-ecrire').addEventListener('click', () => {
     const ligne = lignePourNumero(numeroCourant);
     const membre = ligne ? chercherMembre(ligne) : undefined;
-    if (membre && String(membre.courriel || '').trim()) {
-      ouvrirApercuCourriel(courrielRelance(membre, ligne));
+    if (!membre || !String(membre.courriel || '').trim()) return;
+    const courriel = courrielRelance(membre, ligne);
+    // Sans gabarit dans l'inventaire (backend pas à jour) : pas d'aperçu — et
+    // la console le dit à qui débogue, comme le mode dégradé de structures.html.
+    if (!courriel) {
+      console.info('L\'API ne renvoie pas les gabarits — backend à redéployer (npm run deploy).');
+      return;
     }
+    ouvrirApercuCourriel(courriel);
   });
 
   // --- Erreurs : à l'endroit du geste qui a échoué, jamais un état à part ---

@@ -173,6 +173,7 @@
   <script src="grille.js"></script>
   <script src="presentation.js"></script>
   <script src="client.js"></script>
+  <script src="modeles-courriel.js"></script>
   <script src="blocs-fiche.js"></script>
   <script src="fiche.js"></script>
   <script src="fiche-adresse.js"></script>
@@ -249,7 +250,7 @@
     }
 
     // L'état courant renvoyé par l'API (0002 : toujours l'état frais de la Sheet).
-    let donnees = { structures: [], emplacements: [], membres: [], journal: [], demandes: [] };
+    let donnees = { structures: [], emplacements: [], membres: [], journal: [], demandes: [], gabarits: [] };
 
     function rangerDonnees(resultat) {
       donnees = {
@@ -258,6 +259,7 @@
         membres: resultat.membres || [],
         journal: resultat.journal || [],
         demandes: resultat.demandes || [],
+        gabarits: resultat.gabarits || [],
       };
     }
 

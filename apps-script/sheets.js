@@ -43,6 +43,15 @@ var ENTETES_MEMBRES = ['numeroAdresse', 'rue', 'nom', 'courriel', 'telephone', '
 var ONGLET_JOURNAL = 'Journal';
 var ENTETES_JOURNAL = ['date', 'action', 'numero', 'adresse', 'demandeId', 'details'];
 
+// Modèles de courriel du comité (PRD gabarits-courriels) : une ligne par
+// courriel que l'app prépare, texte à jetons `{…}` lisible à la main (0002).
+// Créé et semé par setup() depuis le registre GABARITS_DEFAUT (gabarits.js) ;
+// l'app est la seule surface d'édition documentée, la Sheet reste
+// l'échappatoire manuelle. Jamais dans Config (ticket 02 : forme des données,
+// mot de passe voisin, onglet écrit par l'app).
+var ONGLET_GABARITS = 'Gabarits';
+var ENTETES_GABARITS = ['id', 'sujet', 'corps'];
+
 function ongletRequis_(nom) {
   var feuille = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nom);
   if (!feuille) {
@@ -128,7 +137,17 @@ function lireInventaire() {
     membres: objetsDepuisLignes(ongletRequis_(ONGLET_MEMBRES).getDataRange().getValues()),
     journal: objetsDepuisLignes(ongletRequis_(ONGLET_JOURNAL).getDataRange().getValues()),
     demandes: lireDemandes(),
+    gabarits: gabaritsEffectifs(lireLignesGabarits_()),
   };
+}
+
+// Les lignes de l'onglet Gabarits, [] s'il n'existe pas encore (Sheet d'avant
+// la fonctionnalité, setup() pas relancé) : contrairement aux autres onglets
+// (ongletRequis_ crashe), la lecture retombe alors sur les défauts du registre
+// — le pire cas est le texte d'origine, jamais une page morte (ticket 05).
+function lireLignesGabarits_() {
+  var feuille = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ONGLET_GABARITS);
+  return feuille ? objetsDepuisLignes(feuille.getDataRange().getValues()) : [];
 }
 
 // Écrit la ligne d'une structure (retrouvée par id) et crée les lignes
@@ -313,6 +332,19 @@ function setup() {
   ongletAvecEntetes_(classeur, ONGLET_EMPLACEMENTS, ENTETES_EMPLACEMENTS);
   ongletAvecEntetes_(classeur, ONGLET_MEMBRES, ENTETES_MEMBRES);
   ongletAvecEntetes_(classeur, ONGLET_JOURNAL, ENTETES_JOURNAL);
+
+  // Sème les gabarits manquants avec leurs textes d'origine (registre
+  // gabarits.js) : la Sheet est lisible et éditable à la main dès le départ
+  // (0002). Seed par id absent SEULEMENT — relancer setup() ne réécrit jamais
+  // un modèle personnalisé par le comité (ticket 05).
+  var gabarits = ongletAvecEntetes_(classeur, ONGLET_GABARITS, ENTETES_GABARITS);
+  var idsPresents = objetsDepuisLignes(gabarits.getDataRange().getValues())
+    .map(function (ligne) { return String(ligne.id).trim(); });
+  GABARITS_DEFAUT.forEach(function (defaut) {
+    if (idsPresents.indexOf(defaut.id) === -1) {
+      appendObjet_(gabarits, { id: defaut.id, sujet: defaut.sujet, corps: defaut.corps });
+    }
+  });
 
   var config = classeur.getSheetByName(ONGLET_CONFIG);
   if (!config) {

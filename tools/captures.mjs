@@ -1,6 +1,14 @@
 // Scénarios de capture d'écran (décision 0006) : déclaratifs — ajouter une page
 // ou un état = ajouter une entrée ici, le runner ne change pas.
 
+import { createRequire } from 'node:module';
+
+// Les Modèles de courriel du mock viennent du registre serveur (une seule
+// vérité des textes — ticket 07) : gabaritsEffectifs([]) = les défauts, comme
+// une Sheet fraîchement semée par setup().
+const require = createRequire(import.meta.url);
+const { gabaritsEffectifs } = require('../apps-script/gabarits.js');
+
 export const VIEWPORTS = {
   desktop: { width: 1280, height: 900 },
   mobile: { width: 390, height: 844 },
@@ -127,6 +135,7 @@ export const REPONSES_MOCK = {
       { date: '2026-05-15T09:30:00.000Z', action: 'refus', numero: '', adresse: '', demandeId: 'demo-4', details: 'Un seul emplacement par embarcation, et l\'adresse a déjà atteint son quota de 2. — Diane' },
     ],
     demandes: DEMANDES_MOCK,
+    gabarits: gabaritsEffectifs([]),
   },
   // Réponses aux écritures admin (les captures n'écrivent rien de réel).
   sauverStructure: { ok: true, structure: {} },

@@ -368,6 +368,7 @@
   <script src="grille.js"></script>
   <script src="presentation.js"></script>
   <script src="client.js"></script>
+  <script src="modeles-courriel.js"></script>
   <script src="blocs-fiche.js"></script>
   <script src="fiche.js"></script>
   <script type="module">
@@ -874,7 +875,8 @@
       motDePasse: () => sessionStorage.getItem(CLE_SESSION) || '',
       surDonneesFraiches: (inventaire) => {
         afficherInventaire(inventaire.structures || [], inventaire.emplacements || [],
-          donneesCourantes.types, inventaire.membres || [], inventaire.journal || []);
+          donneesCourantes.types, inventaire.membres || [], inventaire.journal || [],
+          inventaire.gabarits || []);
       },
       surSessionExpiree: () => {
         sessionStorage.removeItem(CLE_SESSION);
@@ -1022,7 +1024,8 @@
       const id = tourneeCourante.structure;
       tourneeCourante = null;
       afficherInventaire(donneesCourantes.structures, donneesCourantes.emplacements,
-        donneesCourantes.types, donneesCourantes.membres, donneesCourantes.journal);
+        donneesCourantes.types, donneesCourantes.membres, donneesCourantes.journal,
+        donneesCourantes.gabarits);
       const bouton = document.querySelector('wa-card[data-structure="' + id + '"] .bouton-tournee');
       if (bouton) focusComposant(bouton);
     }
@@ -1160,7 +1163,8 @@
     // bouton Modifier de la carte quittée (clavier, lecteurs d'écran).
     function fermerEditions(idRefocus) {
       afficherInventaire(donneesCourantes.structures, donneesCourantes.emplacements,
-        donneesCourantes.types, donneesCourantes.membres, donneesCourantes.journal);
+        donneesCourantes.types, donneesCourantes.membres, donneesCourantes.journal,
+        donneesCourantes.gabarits);
       if (idRefocus) {
         const bouton = document.querySelector('wa-card[data-structure="' + idRefocus + '"] .bouton-modifier');
         if (bouton) focusComposant(bouton);
@@ -1374,9 +1378,9 @@
     // L'état courant de l'inventaire : la base des aperçus d'édition (les
     // conflits se calculent toujours contre les autres structures) et de la
     // fiche d'emplacement (membre et journal, décision 0018).
-    let donneesCourantes = { structures: [], emplacements: [], types: [], membres: [], journal: [] };
+    let donneesCourantes = { structures: [], emplacements: [], types: [], membres: [], journal: [], gabarits: [] };
 
-    function afficherInventaire(lignesStructures, lignesEmplacements, typesConfig, membres, journal) {
+    function afficherInventaire(lignesStructures, lignesEmplacements, typesConfig, membres, journal, gabarits) {
       editionCourante = null; // tout rendu complet détruit les formulaires ouverts
       donneesCourantes = {
         structures: lignesStructures,
@@ -1384,6 +1388,7 @@
         types: typesConfig,
         membres: membres || [],
         journal: journal || [],
+        gabarits: gabarits || [],
       };
       if (lignesStructures.length === 0) {
         montrerEtat('vide');
@@ -1460,7 +1465,7 @@
           console.info('L\'API ne renvoie pas journal/membres — backend à redéployer (npm run deploy).');
         }
         afficherInventaire(reponseInventaire.structures, reponseInventaire.emplacements, typesConfig,
-          reponseInventaire.membres, reponseInventaire.journal);
+          reponseInventaire.membres, reponseInventaire.journal, reponseInventaire.gabarits);
         const succes = document.getElementById('message-succes');
         succes.hidden = !messageSucces;
         if (messageSucces) {

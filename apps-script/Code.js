@@ -36,6 +36,10 @@ function doPost(e) {
         membres: inventaire.membres,
         journal: inventaire.journal,
         demandes: inventaire.demandes,
+        // Chaque gabarit voyage avec son texte effectif ET son défaut (ticket
+        // 07) : les fiches composent leurs courriels du premier, « Revenir au
+        // texte d'origine » (page à venir) du second.
+        gabarits: inventaire.gabarits,
       });
     }
     if (corps.action === 'sauverStructure') {
