@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { GABARITS_DEFAUT, gabaritsEffectifs } = require('../apps-script/gabarits.js');
+const { GABARITS_DEFAUT, gabaritsEffectifs, preparerMajGabarit } = require('../apps-script/gabarits.js');
 
 // Le registre déclare les deux relances, avec leurs jetons — le contrat de
 // données complet de chaque courriel (PRD gabarits-courriels).
@@ -81,4 +81,49 @@ test('l\'appariement par id tolère les espaces d\'une édition manuelle (0002)'
   ]);
   assert.equal(gabarit.sujet, 'Objet ajusté');
   assert.equal(gabarit.corps, 'Corps ajusté');
+});
+
+// --- Validation de l'écriture majGabarit (ticket 06/11) : minimale — id connu
+// du registre, textes non vides, taille plafonnée. Pas de validation des
+// jetons : l'éditeur à puces n'en produit pas d'inconnus, et la lecture
+// tolérante protège le rendu de toute façon. ---
+
+test('un id inconnu du registre est refusé en le nommant — jamais de gabarit fantôme écrit', () => {
+  assert.throws(() => preparerMajGabarit({ id: 'inconnu', sujet: 'x', corps: 'y' }), /inconnu/);
+  assert.throws(() => preparerMajGabarit({ sujet: 'x', corps: 'y' }), /[Mm]odèle/);
+});
+
+test('un objet ou un message vide est refusé en nommant le champ', () => {
+  assert.throws(
+    () => preparerMajGabarit({ id: 'relanceEmplacement', sujet: '   ', corps: 'y' }),
+    /objet/i,
+  );
+  assert.throws(
+    () => preparerMajGabarit({ id: 'relanceEmplacement', sujet: 'x', corps: '' }),
+    /message/i,
+  );
+});
+
+test('un texte au-delà du plafond est refusé — la Sheet ne reçoit jamais un roman', () => {
+  assert.throws(
+    () => preparerMajGabarit({ id: 'relanceEmplacement', sujet: 'x'.repeat(301), corps: 'y' }),
+    /objet/i,
+  );
+  assert.throws(
+    () => preparerMajGabarit({ id: 'relanceEmplacement', sujet: 'x', corps: 'y'.repeat(5001) }),
+    /message/i,
+  );
+});
+
+test('une écriture valide prépare la ligne telle quelle (id épuré, textes intacts, jetons non validés)', () => {
+  const prepare = preparerMajGabarit({
+    id: ' relanceEmplacement ',
+    sujet: 'Objet avec {jeton inconnu}',
+    corps: 'Bonjour {nom},\n\nMon texte à moi.',
+  });
+  assert.deepEqual(prepare.ligne, {
+    id: 'relanceEmplacement',
+    sujet: 'Objet avec {jeton inconnu}',
+    corps: 'Bonjour {nom},\n\nMon texte à moi.',
+  });
 });

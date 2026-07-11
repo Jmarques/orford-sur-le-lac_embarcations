@@ -80,6 +80,46 @@ function gabaritsEffectifs(lignes) {
   });
 }
 
+// Plafonds d'écriture (ticket 06) : large marge sur les textes réels (~400
+// caractères), mais jamais un roman dans une cellule — la Sheet reste lisible
+// à la main (0002).
+var PLAFOND_SUJET = 300;
+var PLAFOND_CORPS = 5000;
+
+// Valide une écriture `majGabarit` { id, sujet, corps } et prépare la ligne à
+// écrire. Validation MINIMALE (ticket 06) : id connu du registre, textes non
+// vides, taille plafonnée. Pas de validation des jetons — l'éditeur à puces
+// n'en produit pas d'inconnus, la Sheet reste éditable à la main, et la
+// lecture tolérante protège le rendu de toute façon.
+function preparerMajGabarit(corps) {
+  var id = String(corps.id === undefined || corps.id === null ? '' : corps.id).trim();
+  var connu = GABARITS_DEFAUT.some(function (defaut) { return defaut.id === id; });
+  if (!connu) {
+    throw new Error('Modèle de courriel inconnu : "' + id + '" — seuls les modèles du registre s\'enregistrent.');
+  }
+  var sujet = String(corps.sujet === undefined || corps.sujet === null ? '' : corps.sujet);
+  var texte = String(corps.corps === undefined || corps.corps === null ? '' : corps.corps);
+  if (sujet.trim() === '') {
+    throw new Error('L\'objet du courriel est vide — écrire un objet avant d\'enregistrer le modèle.');
+  }
+  if (texte.trim() === '') {
+    throw new Error('Le message du courriel est vide — écrire un message avant d\'enregistrer le modèle.');
+  }
+  if (sujet.length > PLAFOND_SUJET) {
+    throw new Error('L\'objet du courriel dépasse ' + PLAFOND_SUJET + ' caractères — le raccourcir avant d\'enregistrer.');
+  }
+  if (texte.length > PLAFOND_CORPS) {
+    throw new Error('Le message du courriel dépasse ' + PLAFOND_CORPS + ' caractères — le raccourcir avant d\'enregistrer.');
+  }
+  // Les textes s'écrivent TELS QUELS (pas de trim) : les retours à la ligne et
+  // espaces du comité font partie du modèle.
+  return { ligne: { id: id, sujet: sujet, corps: texte } };
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { GABARITS_DEFAUT: GABARITS_DEFAUT, gabaritsEffectifs: gabaritsEffectifs };
+  module.exports = {
+    GABARITS_DEFAUT: GABARITS_DEFAUT,
+    gabaritsEffectifs: gabaritsEffectifs,
+    preparerMajGabarit: preparerMajGabarit,
+  };
 }

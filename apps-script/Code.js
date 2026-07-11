@@ -63,6 +63,11 @@ function doPost(e) {
     if (corps.action === 'majContactDemande') {
       return reponseJson_({ ok: true, contact: majContactDemande(corps) });
     }
+    if (corps.action === 'majGabarit') {
+      // L'état frais des gabarits revient avec l'écriture (0002) : la page
+      // « Modèles de courriels » confirme sur ce qu'elle relit, sans second appel.
+      return reponseJson_({ ok: true, gabarits: majGabarit(corps) });
+    }
     throw new Error('Action inconnue : "' + corps.action + '".');
   } catch (err) {
     var reponse = { ok: false, erreur: String((err && err.message) || err) };

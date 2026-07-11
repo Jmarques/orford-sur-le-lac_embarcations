@@ -139,6 +139,7 @@ export const REPONSES_MOCK = {
   },
   // Réponses aux écritures admin (les captures n'écrivent rien de réel).
   sauverStructure: { ok: true, structure: {} },
+  majGabarit: { ok: true, gabarits: gabaritsEffectifs([]) },
   observerEmplacement: { ok: true, observation: {} },
   observerLot: { ok: true, lot: { compte: 1 } },
   ajouterNote: { ok: true, note: {} },
@@ -146,6 +147,19 @@ export const REPONSES_MOCK = {
   deciderDemande: { ok: true, decision: {} },
   majContactDemande: { ok: true, contact: {} },
 };
+
+// Inventaire où la relance d'emplacement a été PERSONNALISÉE par le comité :
+// la liste des modèles montre le début du texte effectif (pas le défaut), et
+// « Revenir au texte d'origine » a quelque chose à restaurer — le corps
+// personnalisé n'utilise pas {depuis quand}, sa puce ne revient qu'au retour
+// au défaut (le `attendre` du scénario s'appuie dessus).
+export const INVENTAIRE_GABARIT_PERSONNALISE = structuredClone(REPONSES_MOCK.inventaire);
+INVENTAIRE_GABARIT_PERSONNALISE.gabarits = gabaritsEffectifs([{
+  id: 'relanceEmplacement',
+  sujet: 'Des nouvelles de votre emplacement {numéro}',
+  corps: 'Bonjour {nom},\n\nUtilisez-vous encore l\'emplacement {numéro} ({adresse}) '
+    + 'cette saison ? Dites-le-nous.\n\nMerci !\nLe comité — Orford sur le Lac',
+}]);
 
 // Inventaire tel qu'il serait APRÈS l'observation « 76 libre » : la capture du
 // succès montre la cellule passée à « Disponible », cohérente avec le message.
@@ -614,6 +628,40 @@ export const CAPTURES = [
   // Aucun résultat : le message dit ce qui a été cherché et quoi faire ensuite.
   { nom: 'adresses-aucun', page: 'adresses.html', etat: 'recherche', q: 'zzz', attendre: '#etat-aucun:not([hidden])' },
   { nom: 'adresses-erreur', page: 'adresses.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
+  // Page « Modèles de courriels » (PRD gabarits-courriels, ticket 11) : liste
+  // des modèles en rangées, éditeur à puces (piste C absorbée du prototype),
+  // aperçu vivant — tous les états, y compris ceux de l'écriture.
+  { nom: 'modeles-connexion', page: 'modeles-courriels.html', attendre: '#etat-connexion:not([hidden])' },
+  { nom: 'modeles-mdp-refuse', page: 'modeles-courriels.html', etat: 'mdp-refuse', attendre: '#erreur-connexion:not([hidden])' },
+  { nom: 'modeles-chargement', page: 'modeles-courriels.html', etat: 'chargement', attendre: '#etat-chargement:not([hidden])' },
+  { nom: 'modeles-erreur', page: 'modeles-courriels.html', etat: 'erreur', attendre: '#etat-erreur:not([hidden])' },
+  { nom: 'modeles-liste', page: 'modeles-courriels.html', etat: 'liste', attendre: '.rangee-modele' },
+  // L'éditeur pré-ouvert par ?modele= — le chemin du lien contextuel de
+  // l'aperçu (ticket 12) : puces dans le texte, palette, aperçu vivant.
+  { nom: 'modeles-edition', page: 'modeles-courriels.html', etat: 'liste', modele: 'relanceEmplacement',
+    attendre: '#etat-edition:not([hidden]) .puce' },
+  // Ouvert depuis la liste (flux réel) : la relance hors quota — ses jetons
+  // CALCULÉS (règle du quota, nombre, numéros) en puces et en palette.
+  { nom: 'modeles-edition-hors-quota', page: 'modeles-courriels.html', etat: 'liste',
+    cliquer: '.rangee-modele[data-modele="relanceHorsQuota"]',
+    attendre: '#etat-edition:not([hidden]) .puce' },
+  // Information requise retirée (hook manque-requis : semé sans {nom}) →
+  // callout warning contre l'éditeur, réinsertion par la palette.
+  { nom: 'modeles-manque-requis', page: 'modeles-courriels.html', etat: 'manque-requis',
+    attendre: '#manque-requis:not([hidden])' },
+  // Enregistrement réussi : confirmation contre les actions, état frais.
+  { nom: 'modeles-enregistre', page: 'modeles-courriels.html', etat: 'liste', modele: 'relanceEmplacement',
+    cliquer: '#enregistrer', attendre: '#confirmation-enregistre:not([hidden])' },
+  // Échec d'écriture : le texte saisi est conservé, l'erreur contre les actions.
+  { nom: 'modeles-erreur-ecriture', page: 'modeles-courriels.html', etat: 'liste', modele: 'relanceEmplacement',
+    cliquer: '#enregistrer', attendre: '#erreur-enregistrer:not([hidden])',
+    reponses: { majGabarit: { ok: false, erreur: 'Échec simulé pour les captures.' } } },
+  // « Revenir au texte d'origine » sur un modèle PERSONNALISÉ : l'éditeur se
+  // re-remplit avec le défaut, rien ne s'écrit — la puce « depuis quand »
+  // (absente du texte personnalisé) prouve le re-semis.
+  { nom: 'modeles-retour-origine', page: 'modeles-courriels.html', etat: 'liste', modele: 'relanceEmplacement',
+    cliquer: '#retour-origine', attendre: '#etat-edition:not([hidden]) [data-jeton="depuis quand"]',
+    reponses: { inventaire: INVENTAIRE_GABARIT_PERSONNALISE } },
   // PROTOTYPE jetable (ticket 03, carte gabarits-courriels) : trois pistes
   // d'édition du modèle de courriel, pilotées par ?etat= — à retirer avec la page.
   { nom: 'gabarits-prototype-jetons', page: 'gabarits-prototype.html', etat: 'jetons', attendre: '#variante-jetons:not([hidden]) .val-exemple' },
@@ -650,5 +698,8 @@ export function urlDeScenario(base, scenario) {
   // `q` : préremplit le champ de recherche de la page Adresses (0023) — les
   // états « résultats » et « aucun-résultat » se capturent sans frappe simulée.
   if (scenario.q) params.push('q=' + encodeURIComponent(scenario.q));
+  // `modele` : pré-ouvre l'éditeur d'un Modèle de courriel (ticket 11) — le
+  // chemin du lien contextuel de l'aperçu « Courriel pré-rédigé » (ticket 12).
+  if (scenario.modele) params.push('modele=' + encodeURIComponent(scenario.modele));
   return params.length ? url + '?' + params.join('&') : url;
 }

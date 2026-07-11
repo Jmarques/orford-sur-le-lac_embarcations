@@ -150,6 +150,20 @@ function lireLignesGabarits_() {
   return feuille ? objetsDepuisLignes(feuille.getDataRange().getValues()) : [];
 }
 
+// Enregistre un Modèle de courriel personnalisé (ticket 06) : maj par clé id,
+// création si la ligne est absente (onglet créé au besoin — une Sheet d'avant
+// setup() n'empêche pas d'enregistrer). Dernier écrit gagne ; pas de trace au
+// journal (hors périmètre — rollback = versions Google Sheets). Renvoie l'état
+// frais des gabarits (0002) : la page confirme sur ce qu'elle relit.
+function majGabarit(corps) {
+  var prepare = preparerMajGabarit(corps);
+  var feuille = ongletAvecEntetes_(SpreadsheetApp.getActiveSpreadsheet(), ONGLET_GABARITS, ENTETES_GABARITS);
+  if (!majLigneParCle_(feuille, 'id', prepare.ligne.id, prepare.ligne)) {
+    appendObjet_(feuille, prepare.ligne);
+  }
+  return gabaritsEffectifs(objetsDepuisLignes(feuille.getDataRange().getValues()));
+}
+
 // Écrit la ligne d'une structure (retrouvée par id) et crée les lignes
 // Emplacements des numéros nouveaux — jamais de suppression (décision 0009).
 // Action consignée au Journal (décision 0002).

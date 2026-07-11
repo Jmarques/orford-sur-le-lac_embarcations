@@ -76,6 +76,18 @@ var MODELES_COURRIEL = {
       { cle: 'adresse', libelle: 'Adresse du membre', requis: true },
       { cle: 'depuis quand', libelle: 'Depuis quand (si connue)', requis: false },
     ],
+    // L'exemple réel nommé de l'aperçu vivant (US 6) : des valeurs fictives
+    // réalistes, TOUTES remplies — l'aperçu montre le résultat, pas le
+    // mécanisme. L'adresse suit la forme du site (0012).
+    exemple: {
+      nom: 'Marie Gagnon',
+      valeurs: {
+        nom: 'Marie Gagnon',
+        'numéro': '14',
+        adresse: '234 Rue du Pré',
+        'depuis quand': 'depuis le 12 juin',
+      },
+    },
   },
   relanceHorsQuota: {
     libelle: 'Relance — hors quota',
@@ -88,6 +100,16 @@ var MODELES_COURRIEL = {
       { cle: 'numéros', libelle: 'Numéros des emplacements', requis: false },
       { cle: 'règle du quota', libelle: 'Règle du quota', requis: false },
     ],
+    exemple: {
+      nom: 'Marie Gagnon',
+      valeurs: {
+        nom: 'Marie Gagnon',
+        adresse: '234 Rue du Pré',
+        'nombre d\'emplacements': '3 emplacements',
+        'numéros': '12, 14, 17',
+        'règle du quota': 'La règle de la communauté est de 2 emplacements par adresse.',
+      },
+    },
   },
 };
 

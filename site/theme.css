@@ -1506,6 +1506,133 @@ wa-callout::part(icon) {
   }
 }
 
+/* --- Page « Modèles de courriels » (PRD gabarits-courriels) ----------------
+   L'atelier d'édition absorbe la piste C du prototype validé
+   (gabarits-prototype) : les informations de l'app sont des puces insécables
+   dans le texte libre, l'aperçu vivant montre un exemple réel nommé. */
+
+/* La colonne s'élargit pour poser l'édition et l'aperçu côte à côte en
+   desktop — capée (jamais bord-à-bord), en multiple de l'échelle, comme
+   .contenu-structures. Seul l'état édition a besoin de cette largeur : les
+   autres états gardent la colonne des pages sœurs. */
+.contenu-modeles {
+  max-width: calc(14 * var(--wa-space-5xl));
+}
+.contenu-modeles > :not(#etat-edition) {
+  inline-size: 100%;
+  max-inline-size: 65ch;
+  margin-inline: auto;
+}
+
+/* L'atelier : mobile empilé édition → aperçu → palette/actions — l'aperçu ne
+   passe JAMAIS sous « Enregistrer » (on n'enregistre pas ce qu'on n'a pas
+   vu) ; desktop côte à côte, l'aperçu suit le défilement de l'édition. */
+.atelier {
+  display: grid;
+  gap: var(--wa-space-l);
+  align-items: start;
+  grid-template-areas: 'edition' 'apercu' 'suite';
+}
+.zone-edition {
+  grid-area: edition;
+}
+.panneau-apercu {
+  grid-area: apercu;
+}
+.zone-suite {
+  grid-area: suite;
+}
+@media (min-width: 900px) {
+  .atelier {
+    grid-template-columns: 1.2fr 1fr;
+    grid-template-areas: 'edition apercu' 'suite apercu';
+  }
+}
+
+/* Panneau d'aperçu : la forme de l'aperçu « Courriel pré-rédigé » que le
+   comité connaît déjà (blocs-fiche.js) — surface levée, ligne d'eau brand. */
+.panneau-apercu {
+  background: var(--wa-color-surface-raised);
+  border-radius: var(--wa-border-radius-l);
+  padding: var(--wa-space-l);
+  box-shadow: var(--wa-shadow-s);
+  border-block-start: var(--wa-border-width-m) solid var(--wa-color-brand-fill-loud);
+}
+
+/* Valeur d'exemple dans l'aperçu : teinte brand douce — on voit d'un coup
+   d'œil ce que l'app remplit. */
+.val-exemple {
+  background: var(--wa-color-brand-fill-quiet);
+  color: var(--wa-color-brand-on-quiet);
+  border-radius: var(--wa-border-radius-s);
+  padding-inline: var(--wa-space-3xs);
+}
+
+/* Jeton inconnu (Sheet éditée à la main — 0002) : il RESTE visible tel quel
+   dans l'aperçu, souligné en warning — jamais perdu, jamais un trou. */
+.jeton-inconnu {
+  background: var(--wa-color-warning-fill-quiet);
+  color: var(--wa-color-warning-on-quiet);
+  border-radius: var(--wa-border-radius-s);
+  padding-inline: var(--wa-space-3xs);
+  text-decoration: underline wavy var(--wa-color-warning-border-normal);
+}
+
+/* Puce d'information : insécable (contenteditable=false), à l'apparence
+   d'étiquette — elle se déplace ou se retire d'un bloc, jamais lettre par
+   lettre. user-select: all : un tap la sélectionne entière. */
+.puce {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--wa-space-3xs);
+  background: var(--wa-color-brand-fill-quiet);
+  color: var(--wa-color-brand-on-quiet);
+  border: var(--wa-border-width-s) solid var(--wa-color-brand-border-normal);
+  border-radius: var(--wa-border-radius-pill);
+  padding: 0 var(--wa-space-xs);
+  font-weight: var(--wa-font-weight-semibold);
+  white-space: nowrap;
+  user-select: all;
+}
+
+/* Les éditeurs à puces (objet une ligne, message multi-lignes) : l'apparence
+   d'un champ de formulaire, le focus du site. */
+.editeur-objet,
+.editeur-puces {
+  background: var(--wa-color-surface-default);
+  border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+  border-radius: var(--wa-border-radius-m);
+  white-space: pre-wrap;
+}
+.editeur-objet {
+  padding: var(--wa-space-xs) var(--wa-space-m);
+}
+.editeur-puces {
+  padding: var(--wa-space-m);
+  min-block-size: 14rem;
+  line-height: 1.6;
+}
+.editeur-objet:focus-visible,
+.editeur-puces:focus-visible {
+  outline: var(--wa-focus-ring);
+  outline-offset: var(--wa-focus-ring-offset);
+}
+
+/* Étiquette d'un éditeur : le rôle d'un label de formulaire, même poids. */
+.etiquette-champ {
+  font-weight: var(--wa-font-weight-semibold);
+}
+
+/* Début du texte effectif dans la rangée d'un modèle : deux lignes au plus,
+   coupées proprement — la rangée reste scannable. */
+.debut-modele {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
 /* Animation d'entrée — une seule, sobre : fondu + léger glissement vers le haut,
    en cascade (en-tête puis carte). Désactivée si l'utilisateur préfère réduire
    les animations. Durées/décalages exclusivement en tokens --wa-transition-*. */

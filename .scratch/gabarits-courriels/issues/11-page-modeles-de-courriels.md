@@ -8,13 +8,18 @@ Démo : personnaliser un modèle dans l'app → toutes les relances suivantes (f
 
 **Blocked by:** 09 — La relance d'emplacement se compose depuis le modèle. (10 n'est pas bloquant — parallélisable.)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human — implémenté, à valider sur le vrai site (`npm run deploy`, page atteinte par URL directe `modeles-courriels.html` en attendant le lien du ticket 12)
 
-- [ ] Page protégée (connexion, mdp refusé, chargement, erreur) ; liste des modèles en rangées ; éditeur en place avec retour ; `?modele=` pré-ouvre
-- [ ] Éditeur à puces conforme au prototype : insertion au curseur, puces insécables, aperçu vivant, requis manquant → callout contre l'éditeur + réinsertion, optionnel signalé « (si connue) »
-- [ ] « Enregistrer le modèle » écrit par l'action dédiée (mot de passe en corps), renvoie l'état frais, confirme ; échec → erreur qui conserve le texte
-- [ ] « Revenir au texte d'origine » re-remplit avec le défaut reçu, sans écrire
-- [ ] Validation d'écriture testée au seam apps-script (id inconnu, textes vides, plafond)
-- [ ] Sérialisation puces → texte à jetons testée au seam du module pur (aller-retour parse/sérialise)
-- [ ] Scénarios de captures : tous les états ci-dessus, desktop + mobile (ordre édition → aperçu → palette → actions), console propre
-- [ ] `npm run verify` passe ; captures nouvelles committées ; revue subagent du delta faite
+- [x] Page protégée (connexion, mdp refusé, chargement, erreur) ; liste des modèles en rangées (libellé + début du texte effectif rendu avec l'exemple) ; éditeur en place avec retour ; `?modele=` pré-ouvre
+- [x] Éditeur à puces conforme au prototype : insertion au curseur (objet ET message), puces insécables, aperçu vivant « ce que recevra Marie Gagnon », requis manquant → callout contre l'éditeur + réinsertion, optionnel signalé « (si connue) » ; jeton inconnu d'une Sheet éditée à la main conservé en texte brut et souligné warning dans l'aperçu — jamais perdu
+- [x] « Enregistrer le modèle » écrit par `majGabarit` (mot de passe en corps, 0008), renvoie l'état frais des gabarits, confirme (callout success) ; échec → erreur qui conserve le texte
+- [x] « Revenir au texte d'origine » re-remplit avec le défaut reçu de l'inventaire, sans écrire
+- [x] Validation d'écriture testée au seam apps-script (`preparerMajGabarit` : id inconnu, textes vides, plafonds 300/5000)
+- [x] Sérialisation puces → texte à jetons testée au seam du module pur (aller-retour parse/sérialise, accolades orphelines comprises)
+- [x] Scénarios de captures : 11 scénarios × desktop + mobile (ordre mobile édition → aperçu → palette → actions vérifié en capture), console propre
+- [x] `npm run verify` passe ; 22 captures nouvelles committées ; revue subagent du delta faite
+
+## Comments
+
+- Revue UI subagent (lecture seule, sur captures fraîches) : aucun bloquant ; correction appliquée — le callout « information manquante » disait « les boutons sous l'aperçu », faux en desktop (palette sous l'édition) → « les boutons d'insertion ». Non retenu : masquer le « Détail : … » de l'erreur d'écriture — c'est le pattern des fiches, et le détail ErreurApi est le seul canal qui explique un refus de validation serveur (le texte « Échec simulé » n'existe que dans le mock des captures).
+- Styles absorbés dans `theme.css` (0004) : `.contenu-modeles` (pattern `.contenu-structures`), `.atelier`, `.panneau-apercu`, `.puce`, `.editeur-*`, `.val-exemple`, `.jeton-inconnu`, `.debut-modele`. Le prototype garde son `<style>` local jusqu'à sa suppression (ticket 12).

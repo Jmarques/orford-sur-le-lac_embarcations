@@ -131,7 +131,18 @@ test('chaque gabarit du registre serveur a son entrée au registre UI, et ses je
     for (const jeton of modele.jetons) {
       assert.ok(String(jeton.libelle || '').trim(), `${gabarit.id} : jeton {${jeton.cle}} sans libellé`);
       assert.equal(typeof jeton.requis, 'boolean', `${gabarit.id} : jeton {${jeton.cle}} sans requis`);
+      // L'aperçu vivant de la page « Modèles de courriels » rend l'exemple :
+      // un jeton sans valeur d'exemple s'y montrerait en {…} inconnu.
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(modele.exemple.valeurs, jeton.cle),
+        `${gabarit.id} : jeton {${jeton.cle}} sans valeur d'exemple`,
+      );
+      assert.ok(
+        String(modele.exemple.valeurs[jeton.cle]).trim(),
+        `${gabarit.id} : valeur d'exemple vide pour {${jeton.cle}} — l'aperçu doit montrer le résultat`,
+      );
     }
+    assert.ok(String(modele.exemple.nom || '').trim(), `${gabarit.id} : exemple sans nom (« ce que recevra … »)`);
   }
 });
 

@@ -1,0 +1,627 @@
+<!doctype html>
+<!--
+  Page « Modèles de courriels » (PRD gabarits-courriels, ticket 11).
+
+  DESIGN BRIEF
+  · Audience : membres du comité, aînés, peu technophiles — ils arrivent ici
+    depuis l'aperçu « Courriel pré-rédigé » (ticket 12) au moment où une
+    formulation cloche ; pas d'entrée au menu (décision PRD : du bruit).
+  · Ton : calme et rassurant — on peut tout essayer (« Revenir au texte
+    d'origine » toujours à portée), rien ne s'envoie jamais (0003), rien ne
+    s'enregistre avant « Enregistrer le modèle ».
+  · Hiérarchie : 1. la zone d'édition (le texte, leur ton), 2. l'aperçu vivant
+    (l'exemple réel nommé — on juge le résultat, pas le mécanisme), 3. la
+    palette et les actions. Mobile : édition → aperçu → palette → actions —
+    l'aperçu ne passe jamais sous « Enregistrer ».
+  · États : connexion (0008) / mdp refusé / chargement / erreur / liste /
+    éditeur (remplace la liste EN PLACE, retour en tête — 0018) ; dans
+    l'éditeur : information requise manquante (callout warning contre
+    l'éditeur, réinsertion par la palette), erreur d'écriture (texte conservé),
+    confirmation d'enregistrement.
+  · Référence visuelle : piste C du prototype gabarits-prototype (validée par
+    revue) — puces insécables dans le texte libre, objet inclus ; styles
+    absorbés dans theme.css (0004).
+-->
+<html lang="fr" class="wa-theme-default wa-palette-default wa-light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Orford sur le Lac — Modèles de courriels</title>
+  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.10.0/styles/webawesome.css">
+  <script type="module" src="https://ka-f.webawesome.com/webawesome@3.10.0/webawesome.loader.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=Yellowtail&display=swap">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="liseret-marque"></div>
+
+  <header class="bande-lac">
+    <canvas class="eau-lac" aria-hidden="true"></canvas>
+    <div class="contenu wa-stack wa-gap-m">
+      <div class="wa-stack wa-gap-2xs">
+        <span class="wordmark-lac">Orford-sur-le-Lac</span>
+        <span class="wa-caption-m signature-lac surtitre-comite">Espace du comité</span>
+      </div>
+      <h1 class="wa-heading-xl wa-text-balance titre-lac">Modèles de courriels</h1>
+      <p class="wa-text-pretty sous-titre-lac">Le texte des courriels que l'app prépare,
+        ajustable à votre façon de parler — rien n'est jamais envoyé automatiquement.</p>
+      <!-- La page n'a pas d'entrée au menu (PRD) : on y arrive par l'aperçu
+           d'un courriel. Sa nav offre le retour vers les pages du comité. -->
+      <nav class="wa-cluster wa-gap-l nav-comite" aria-label="Pages du comité">
+        <a href="structures.html"><wa-icon name="table-cells"></wa-icon> Structures</a>
+        <a href="a-traiter.html"><wa-icon name="clipboard-list"></wa-icon> À traiter</a>
+        <a href="adresses.html"><wa-icon name="magnifying-glass"></wa-icon> Adresses</a>
+      </nav>
+    </div>
+    <div class="houle">
+      <svg class="vagues" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,32 C240,64 480,0 720,32 C960,64 1200,0 1440,32 L1440,60 L0,60 Z"
+              fill="var(--wa-color-surface-default)"></path>
+      </svg>
+    </div>
+  </header>
+
+  <main class="contenu contenu-modeles wa-stack wa-gap-xl">
+    <!-- État : connexion (mot de passe du comité, 0008) -->
+    <wa-card id="etat-connexion" hidden>
+      <form id="formulaire-connexion" class="wa-stack wa-gap-l">
+        <div class="wa-stack wa-gap-xs">
+          <h2 class="wa-heading-l">Page réservée au comité</h2>
+          <p class="wa-color-text-quiet wa-text-pretty">Entrez le mot de passe du comité pour
+            modifier les modèles de courriels. Il est le même pour tous les membres du comité.</p>
+        </div>
+        <wa-callout id="erreur-connexion" variant="danger" role="alert" hidden>
+          <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+          <!-- Texte injecté au moment du refus : une live region démasquée sans
+               changement de contenu n'est pas annoncée par les lecteurs d'écran. -->
+          <span id="erreur-connexion-texte"></span>
+        </wa-callout>
+        <wa-input id="champ-mot-de-passe" name="motDePasse" class="champ-plein" label="Mot de passe du comité"
+                  type="password" password-toggle autocomplete="current-password" required>
+          <wa-icon slot="start" name="lock"></wa-icon>
+        </wa-input>
+        <wa-button id="entrer" class="bouton-plein" type="submit" variant="brand" size="m">
+          <wa-icon slot="start" name="unlock"></wa-icon>
+          Entrer
+        </wa-button>
+      </form>
+    </wa-card>
+
+    <!-- État : chargement — le squelette pré-dessine la liste des modèles
+         (consigne puis rangées) pour éviter tout saut de mise en page. -->
+    <div id="etat-chargement" class="wa-stack wa-gap-l" role="status" aria-busy="true" hidden>
+      <wa-skeleton class="squelette-ligne tiers" effect="sheen"></wa-skeleton>
+      <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+      <wa-skeleton class="squelette-rangee" effect="sheen"></wa-skeleton>
+      <p class="wa-visually-hidden">Chargement des modèles de courriels…</p>
+    </div>
+
+    <!-- État : erreur de chargement -->
+    <div id="etat-erreur" class="wa-stack wa-gap-m" hidden>
+      <wa-callout variant="danger" role="alert">
+        <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+        <span id="erreur-texte"></span><span
+          class="phrase-contact" hidden> Vous pouvez aussi nous écrire à <a class="lien-comite" href=""></a>.</span>
+      </wa-callout>
+      <div class="wa-cluster">
+        <wa-button id="reessayer" variant="brand" size="m">
+          <wa-icon slot="start" name="rotate-right"></wa-icon>
+          Réessayer
+        </wa-button>
+      </div>
+    </div>
+
+    <!-- État : la liste des modèles — une rangée-bouton par courriel préparé
+         (libellé français + début du texte effectif). Choisir un modèle
+         REMPLACE la liste par l'éditeur (0018), jamais d'empilement. -->
+    <div id="etat-liste" class="wa-stack wa-gap-m" hidden>
+      <h2 class="wa-visually-hidden">Les modèles de courriels</h2>
+      <!-- La seule consigne de la page, dite une fois (0016). -->
+      <p class="wa-color-text-quiet wa-text-pretty">Touchez un modèle pour ajuster son texte.
+        Les informations que l'app remplit (nom du membre, numéro…) sont des étiquettes
+        déplaçables dans le texte : votre formulation change, jamais les informations.</p>
+      <p id="liste-vide" class="section-vide-neutre" hidden>
+        <wa-icon name="envelope"></wa-icon> Aucun modèle de courriel disponible pour l'instant.
+      </p>
+      <ul id="liste-modeles" class="liste-cas wa-stack wa-gap-s"></ul>
+    </div>
+
+    <!-- État : l'éditeur d'un modèle (piste C) — remplace la liste en place,
+         bouton retour en tête (jamais deux surfaces empilées, 0018). -->
+    <div id="etat-edition" class="wa-stack wa-gap-l" hidden>
+      <div class="wa-cluster">
+        <wa-button id="retour-liste" appearance="plain">
+          <wa-icon slot="start" name="arrow-left"></wa-icon>
+          Retour aux modèles
+        </wa-button>
+      </div>
+      <div class="wa-stack wa-gap-2xs">
+        <h2 id="titre-modele" class="wa-heading-m" tabindex="-1"></h2>
+        <p class="wa-color-text-quiet wa-text-pretty">Rien ne s'enregistre avant
+          « Enregistrer le modèle » — vous pouvez essayer librement.</p>
+      </div>
+
+      <div class="atelier">
+        <div class="zone-edition wa-stack wa-gap-m">
+          <div class="wa-stack wa-gap-2xs">
+            <span class="etiquette-champ" id="etiquette-objet">Objet du courriel</span>
+            <div id="editeur-objet" class="editeur-objet" contenteditable="true" role="textbox"
+                 aria-labelledby="etiquette-objet"></div>
+          </div>
+          <div class="wa-stack wa-gap-2xs">
+            <span class="etiquette-champ" id="etiquette-corps">Message</span>
+            <div id="editeur-corps" class="editeur-puces" contenteditable="true" role="textbox"
+                 aria-multiline="true" aria-labelledby="etiquette-corps"></div>
+          </div>
+          <!-- L'avertissement vit CONTRE l'éditeur ; la palette qui répare est
+               en dessous (mobile : sous l'aperçu). N'empêche pas d'enregistrer :
+               un modèle sans le nom est incomplet, pas cassé. -->
+          <wa-callout id="manque-requis" variant="warning" role="status" hidden>
+            <wa-icon slot="icon" name="triangle-exclamation"></wa-icon>
+            <span id="manque-requis-texte"></span>
+          </wa-callout>
+        </div>
+
+        <!-- L'aperçu vivant : l'exemple réel nommé, valeurs surlignées — on
+             juge le résultat, pas le mécanisme (US 6). -->
+        <aside class="panneau-apercu wa-stack wa-gap-m" aria-label="Aperçu du courriel">
+          <div class="wa-stack wa-gap-2xs">
+            <h3 id="apercu-titre" class="wa-heading-s"></h3>
+            <span class="wa-caption-m wa-color-text-quiet">L'aperçu se met à jour pendant que vous écrivez.</span>
+          </div>
+          <div class="wa-stack wa-gap-2xs">
+            <span class="wa-caption-m wa-color-text-quiet">Objet</span>
+            <strong id="apercu-objet" class="wa-text-pretty"></strong>
+          </div>
+          <div class="wa-stack wa-gap-2xs">
+            <span class="wa-caption-m wa-color-text-quiet">Message</span>
+            <div id="apercu-message" class="apercu-corps wa-text-pretty"></div>
+          </div>
+        </aside>
+
+        <div class="zone-suite wa-stack wa-gap-m">
+          <div class="wa-stack wa-gap-xs">
+            <span class="wa-caption-m wa-color-text-quiet">Insérer une information à l'endroit du curseur :</span>
+            <div id="palette" class="wa-cluster wa-gap-xs"></div>
+          </div>
+          <!-- La confirmation (US 10) et l'erreur d'écriture (US 12) vivent à
+               l'endroit du geste : contre la barre d'actions. -->
+          <wa-callout id="confirmation-enregistre" variant="success" role="status" hidden>
+            <wa-icon slot="icon" name="circle-check"></wa-icon>
+            Le modèle est enregistré — toutes les prochaines relances utiliseront ce texte.
+          </wa-callout>
+          <wa-callout id="erreur-enregistrer" variant="danger" role="alert" tabindex="-1" hidden>
+            <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+            <span id="erreur-enregistrer-texte"></span>
+          </wa-callout>
+          <div class="wa-cluster wa-gap-s">
+            <wa-button id="enregistrer" variant="brand" appearance="accent" size="m">
+              <wa-icon slot="start" name="check"></wa-icon>
+              Enregistrer le modèle
+            </wa-button>
+            <wa-button id="retour-origine" appearance="outlined" size="m">
+              <wa-icon slot="start" name="rotate-left"></wa-icon>
+              Revenir au texte d'origine
+            </wa-button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="pied wa-text-center">
+    Orford sur le Lac — Comité administratif<span class="phrase-contact" hidden> ·
+      <a class="lien-comite" href=""></a></span>
+  </footer>
+
+  <!-- Modèle d'une rangée de la liste (remplie par textContent : jamais de
+       HTML de la Sheet — anti-XSS). Toute la rangée est le bouton. -->
+  <template id="modele-rangee-modele">
+    <li>
+      <button type="button" class="rangee-cas rangee-modele">
+        <span class="rangee-texte">
+          <span class="rangee-titre modele-libelle"></span>
+          <span class="rangee-meta wa-caption-m wa-color-text-quiet debut-modele"></span>
+        </span>
+        <wa-icon class="rangee-chevron" name="chevron-right" aria-hidden="true"></wa-icon>
+      </button>
+    </li>
+  </template>
+
+  <script src="config.js"></script>
+  <script src="eau.js"></script>
+  <script src="client.js"></script>
+  <script src="modeles-courriel.js"></script>
+  <script type="module">
+    await Promise.all([
+      customElements.whenDefined('wa-button'),
+      customElements.whenDefined('wa-input'),
+      customElements.whenDefined('wa-card'),
+      customElements.whenDefined('wa-callout'),
+    ]);
+
+    // Filet de sécurité : liens de contact du comité, si configurés.
+    const courrielComite = window.OSL_CONFIG.courrielComite;
+    if (courrielComite) {
+      for (const lien of document.querySelectorAll('.lien-comite')) {
+        lien.href = 'mailto:' + courrielComite;
+        lien.textContent = courrielComite;
+      }
+      for (const phrase of document.querySelectorAll('.phrase-contact')) phrase.hidden = false;
+    }
+
+    const el = (id) => document.getElementById(id);
+
+    const etats = {
+      connexion: el('etat-connexion'),
+      chargement: el('etat-chargement'),
+      erreur: el('etat-erreur'),
+      liste: el('etat-liste'),
+      edition: el('etat-edition'),
+    };
+
+    function montrerEtat(nom) {
+      for (const [cle, element] of Object.entries(etats)) element.hidden = cle !== nom;
+    }
+
+    const CLE_SESSION = 'oslMotDePasseComite';
+
+    // Le mot de passe utilisé pour le chargement : la session, ou la valeur
+    // tentée à la connexion. Le client (client.js) le lit frais à chaque appel
+    // — text/plain sans preflight (0001), mot de passe en corps (0008).
+    let motDePasseActif = sessionStorage.getItem(CLE_SESSION) || '';
+    const client = creerClient({
+      fetch: (url, params) => window.fetch(url, params),
+      apiUrl: window.OSL_CONFIG.apiUrl,
+      motDePasse: () => motDePasseActif,
+    });
+
+    function sessionExpiree() {
+      sessionStorage.removeItem(CLE_SESSION);
+      motDePasseActif = '';
+      montrerConnexion(true);
+    }
+    const erreurConnexion = el('erreur-connexion');
+    const champMotDePasse = el('champ-mot-de-passe');
+
+    function montrerConnexion(refuse) {
+      erreurConnexion.hidden = !refuse;
+      if (refuse) {
+        el('erreur-connexion-texte').textContent =
+          'Ce mot de passe n\'est pas le bon. Vérifiez-le auprès du comité, puis réessayez.';
+      }
+      montrerEtat('connexion');
+      champMotDePasse.focus();
+    }
+
+    function montrerErreur() {
+      el('erreur-texte').textContent =
+        'Impossible de charger les modèles de courriels. Vérifiez votre connexion Internet, puis réessayez.';
+      montrerEtat('erreur');
+    }
+
+    // Les gabarits de l'inventaire : texte EFFECTIF + défaut, par id (ticket 07).
+    let gabarits = [];
+    // Le modèle ouvert dans l'éditeur : { id, ui (registre client), gabarit }.
+    let modeleCourant = null;
+
+    // --- La liste : une rangée-bouton par modèle -----------------------------
+
+    function afficherListe() {
+      const liste = el('liste-modeles');
+      liste.replaceChildren();
+      for (const gabarit of gabarits) {
+        const ui = MODELES_COURRIEL[gabarit.id];
+        // Un gabarit serveur inconnu de ce client (versions décalées) n'a ni
+        // libellé ni palette : rien d'éditable ici — il n'apparaît pas.
+        if (!ui) continue;
+        const noeud = document.getElementById('modele-rangee-modele').content.cloneNode(true);
+        const bouton = noeud.querySelector('.rangee-modele');
+        bouton.dataset.modele = gabarit.id;
+        noeud.querySelector('.modele-libelle').textContent = ui.libelle;
+        // Le début du texte EFFECTIF, rendu avec l'exemple (jamais de syntaxe
+        // {…} dans la liste) — coupé à deux lignes par le CSS.
+        noeud.querySelector('.debut-modele').textContent =
+          rendreModele(gabarit.corps, ui.exemple.valeurs);
+        bouton.addEventListener('click', () => ouvrirEditeur(gabarit.id));
+        liste.appendChild(noeud);
+      }
+      el('liste-vide').hidden = liste.children.length > 0;
+    }
+
+    // --- L'éditeur à puces (piste C) -----------------------------------------
+
+    const editeurObjet = el('editeur-objet');
+    const editeurCorps = el('editeur-corps');
+
+    function jetonParCle(cle) {
+      return modeleCourant.ui.jetons.find((jeton) => jeton.cle === cle) || null;
+    }
+
+    // Une puce insécable : contenteditable=false — elle se déplace ou se
+    // retire d'un bloc, jamais lettre par lettre.
+    function creerPuce(jeton) {
+      const puce = document.createElement('span');
+      puce.className = 'puce';
+      puce.contentEditable = 'false';
+      puce.dataset.jeton = jeton.cle;
+      puce.textContent = jeton.libelle.toLowerCase();
+      return puce;
+    }
+
+    // Sème un éditeur depuis le texte à jetons : jeton connu → puce ; jeton
+    // inconnu (Sheet éditée à la main — 0002) → il RESTE en texte brut {…},
+    // jamais perdu ; texte → nœuds texte avec <br> aux retours à la ligne.
+    // `exclure` sert au hook de capture « information requise manquante ».
+    function semerEditeur(editeur, texte, exclure) {
+      editeur.textContent = '';
+      for (const segment of decouperModele(texte)) {
+        const jeton = segment.jeton !== undefined ? jetonParCle(segment.jeton.trim()) : null;
+        if (jeton && jeton.cle !== exclure) {
+          editeur.appendChild(creerPuce(jeton));
+        } else if (segment.jeton !== undefined && jeton === null) {
+          editeur.appendChild(document.createTextNode('{' + segment.jeton + '}'));
+        } else if (segment.texte !== undefined) {
+          segment.texte.split('\n').forEach((ligne, i) => {
+            if (i > 0) editeur.appendChild(document.createElement('br'));
+            if (ligne) editeur.appendChild(document.createTextNode(ligne));
+          });
+        }
+      }
+    }
+
+    // La marche DOM → segments (l'inverse du semis) : le texte à jetons se
+    // resérialise par le module pur. Les DIV/P viennent de contenteditable
+    // (Entrée) — chacun ouvre une ligne.
+    function segmentsDe(noeud) {
+      const segments = [];
+      for (const enfant of noeud.childNodes) {
+        if (enfant.nodeType === Node.TEXT_NODE) segments.push({ texte: enfant.data });
+        else if (enfant.nodeName === 'BR') segments.push({ texte: '\n' });
+        else if (enfant.dataset && enfant.dataset.jeton) segments.push({ jeton: enfant.dataset.jeton });
+        else {
+          if (enfant.nodeName === 'DIV' || enfant.nodeName === 'P') segments.push({ texte: '\n' });
+          segments.push(...segmentsDe(enfant));
+        }
+      }
+      return segments;
+    }
+
+    function textesCourants() {
+      return {
+        sujet: serialiserModele(segmentsDe(editeurObjet)),
+        corps: serialiserModele(segmentsDe(editeurCorps)),
+      };
+    }
+
+    // Rend un texte à jetons dans l'aperçu : valeurs d'exemple surlignées,
+    // jeton inconnu laissé tel quel en warning (jamais un trou). Les valeurs
+    // d'exemple sont toutes remplies (registre) : pas de ponctuation orpheline.
+    function rendreApercuDans(conteneur, texte) {
+      conteneur.textContent = '';
+      for (const segment of decouperModele(texte)) {
+        if (segment.texte !== undefined) {
+          conteneur.appendChild(document.createTextNode(segment.texte.replace(/ +([.,])/g, '$1')));
+          continue;
+        }
+        const cle = segment.jeton.trim();
+        const portee = document.createElement('span');
+        if (Object.prototype.hasOwnProperty.call(modeleCourant.ui.exemple.valeurs, cle)) {
+          portee.className = 'val-exemple';
+          portee.textContent = modeleCourant.ui.exemple.valeurs[cle];
+        } else {
+          portee.className = 'jeton-inconnu';
+          portee.textContent = '{' + segment.jeton + '}';
+        }
+        conteneur.appendChild(portee);
+      }
+    }
+
+    function cacherVerdicts() {
+      el('confirmation-enregistre').hidden = true;
+      el('erreur-enregistrer').hidden = true;
+    }
+
+    // Après chaque frappe : aperçu à jour, informations requises vérifiées
+    // (avertissement contre l'éditeur, réinsertion par la palette — US 8), et
+    // la confirmation d'un enregistrement passé ne décrit plus le texte → cachée.
+    function majEditeur() {
+      const textes = textesCourants();
+      rendreApercuDans(el('apercu-objet'), textes.sujet);
+      rendreApercuDans(el('apercu-message'), textes.corps);
+      const manquants = modeleCourant.ui.jetons.filter((jeton) => jeton.requis
+        && !editeurObjet.querySelector('[data-jeton="' + jeton.cle + '"]')
+        && !editeurCorps.querySelector('[data-jeton="' + jeton.cle + '"]'));
+      const alerte = el('manque-requis');
+      alerte.hidden = manquants.length === 0;
+      if (manquants.length > 0) {
+        // « boutons d'insertion » sans repère géographique : la palette est
+        // sous l'ÉDITION en desktop mais sous l'APERÇU en mobile (revue UI).
+        el('manque-requis-texte').textContent = 'Le courriel n\'utilise plus : '
+          + manquants.map((jeton) => jeton.libelle.toLowerCase()).join(', ')
+          + '. Utilisez les boutons d\'insertion pour remettre l\'information.';
+      }
+      el('confirmation-enregistre').hidden = true;
+    }
+    editeurObjet.addEventListener('input', majEditeur);
+    editeurCorps.addEventListener('input', majEditeur);
+
+    // La palette : un bouton par information du modèle, insertion à l'endroit
+    // du curseur (objet ou message) — aucune syntaxe à retenir (US 5).
+    function construirePalette() {
+      const palette = el('palette');
+      palette.replaceChildren();
+      for (const jeton of modeleCourant.ui.jetons) {
+        const bouton = document.createElement('wa-button');
+        bouton.setAttribute('size', 's');
+        bouton.setAttribute('appearance', 'outlined');
+        const icone = document.createElement('wa-icon');
+        icone.setAttribute('slot', 'start');
+        icone.setAttribute('name', 'tag');
+        bouton.appendChild(icone);
+        bouton.appendChild(document.createTextNode(jeton.libelle));
+        bouton.addEventListener('click', () => {
+          const selection = window.getSelection();
+          const puce = creerPuce(jeton);
+          const dansEditeur = selection.rangeCount > 0
+            && (editeurCorps.contains(selection.anchorNode) || editeurObjet.contains(selection.anchorNode));
+          if (dansEditeur) {
+            const plage = selection.getRangeAt(0);
+            plage.deleteContents();
+            plage.insertNode(puce);
+            plage.setStartAfter(puce);
+            plage.collapse(true);
+          } else {
+            // Sans curseur dans un éditeur : la puce rejoint la fin du message.
+            editeurCorps.appendChild(document.createTextNode(' '));
+            editeurCorps.appendChild(puce);
+          }
+          majEditeur();
+        });
+        palette.appendChild(bouton);
+      }
+    }
+
+    // Ouvre l'éditeur d'un modèle — REMPLACE la liste (0018). `exclure` :
+    // hook de capture (état « information requise manquante »).
+    function ouvrirEditeur(id, exclure) {
+      const gabarit = gabaritParId(gabarits, id);
+      const ui = MODELES_COURRIEL[id];
+      if (!gabarit || !ui) return;
+      modeleCourant = { id, ui, gabarit };
+      el('titre-modele').textContent = ui.libelle;
+      el('apercu-titre').textContent = 'Aperçu — ce que recevra ' + ui.exemple.nom;
+      construirePalette();
+      semerEditeur(editeurObjet, gabarit.sujet);
+      semerEditeur(editeurCorps, gabarit.corps, exclure);
+      cacherVerdicts();
+      majEditeur();
+      montrerEtat('edition');
+      el('titre-modele').focus();
+    }
+
+    // Retour à la liste : re-rendue depuis l'état courant (un enregistrement a
+    // pu changer le début du texte), focus sur la rangée du modèle quitté.
+    el('retour-liste').addEventListener('click', () => {
+      const id = modeleCourant && modeleCourant.id;
+      modeleCourant = null;
+      afficherListe();
+      montrerEtat('liste');
+      const rangee = document.querySelector('.rangee-modele[data-modele="' + id + '"]');
+      if (rangee) rangee.focus();
+    });
+
+    // « Revenir au texte d'origine » : re-remplit avec le DÉFAUT reçu de
+    // l'inventaire — rien ne s'écrit avant « Enregistrer » (ticket 05).
+    el('retour-origine').addEventListener('click', () => {
+      semerEditeur(editeurObjet, modeleCourant.gabarit.defaut.sujet);
+      semerEditeur(editeurCorps, modeleCourant.gabarit.defaut.corps);
+      cacherVerdicts();
+      majEditeur();
+    });
+
+    // « Enregistrer le modèle » : l'action majGabarit (mot de passe en corps,
+    // 0008), l'état frais en retour (0002). Un échec CONSERVE le texte saisi.
+    el('enregistrer').addEventListener('click', async () => {
+      const bouton = el('enregistrer');
+      if (bouton.loading) return; // pas de double envoi
+      cacherVerdicts();
+      bouton.loading = true;
+      try {
+        const textes = textesCourants();
+        const resultat = await client.poster({
+          action: 'majGabarit', id: modeleCourant.id, sujet: textes.sujet, corps: textes.corps,
+        });
+        if (resultat.accesRefuse) {
+          sessionExpiree();
+          return;
+        }
+        gabarits = resultat.gabarits || gabarits;
+        modeleCourant.gabarit = gabaritParId(gabarits, modeleCourant.id) || modeleCourant.gabarit;
+        el('confirmation-enregistre').hidden = false;
+      } catch (erreurEnvoi) {
+        // Une erreur métier est montrée à l'utilisateur : info en console,
+        // pas error (la boucle de captures échoue sur toute console.error).
+        if (erreurEnvoi instanceof ErreurApi) console.info('Enregistrement refusé :', erreurEnvoi.message);
+        else console.error('Enregistrement impossible :', erreurEnvoi);
+        el('erreur-enregistrer-texte').textContent =
+          'Impossible d\'enregistrer le modèle — votre texte est conservé. '
+          + 'Vérifiez votre connexion Internet, puis réessayez.'
+          + (erreurEnvoi instanceof ErreurApi ? ' Détail : ' + erreurEnvoi.message : '');
+        const callout = el('erreur-enregistrer');
+        callout.hidden = false;
+        callout.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        callout.focus();
+      } finally {
+        bouton.loading = false;
+      }
+    });
+
+    // --- Chargement ----------------------------------------------------------
+
+    const paramsUrl = new URLSearchParams(location.search);
+
+    async function chargerModeles(motDePasse) {
+      montrerEtat('chargement');
+      motDePasseActif = motDePasse;
+      try {
+        const resultat = await client.poster({ action: 'inventaire' });
+        if (resultat.accesRefuse) {
+          sessionExpiree();
+          return;
+        }
+        sessionStorage.setItem(CLE_SESSION, motDePasse);
+        if (!resultat.gabarits) {
+          console.info('L\'API ne renvoie pas les gabarits — backend à redéployer (npm run deploy).');
+        }
+        gabarits = resultat.gabarits || [];
+        afficherListe();
+        montrerEtat('liste');
+        // `?modele=<id>` (ticket 12) : le lien de l'aperçu « Courriel
+        // pré-rédigé » pré-ouvre l'éditeur du bon modèle. Inerte sans lui.
+        const modele = paramsUrl.get('modele');
+        if (modele) ouvrirEditeur(modele);
+      } catch (erreur) {
+        console.error('Chargement des modèles impossible :', erreur);
+        montrerErreur();
+      }
+    }
+
+    document.getElementById('formulaire-connexion').addEventListener('submit', async (evenement) => {
+      evenement.preventDefault();
+      await chargerModeles(champMotDePasse.value);
+      // Après la connexion, le focus quitte le formulaire disparu : sur la
+      // première rangée de la liste (clavier et lecteurs d'écran).
+      const rangee = document.querySelector('.rangee-modele');
+      if (!etats.liste.hidden && rangee) rangee.focus();
+    });
+    el('reessayer').addEventListener('click', () => {
+      chargerModeles(sessionStorage.getItem(CLE_SESSION) || champMotDePasse.value);
+    });
+
+    // Hook de test (décision 0006) : ?etat=mot-de-passe|mdp-refuse|chargement|
+    // erreur|liste|manque-requis fige la page dans un état pour les captures.
+    // Inerte sans paramètre. `liste` passe par un vrai fetch (API mockée par
+    // Playwright) ; sur le vrai site, il aboutit à l'écran de connexion.
+    const etatForce = paramsUrl.get('etat');
+    if (etatForce === 'mot-de-passe') montrerConnexion(false);
+    else if (etatForce === 'mdp-refuse') montrerConnexion(true);
+    else if (etatForce === 'chargement') montrerEtat('chargement');
+    else if (etatForce === 'erreur') montrerErreur();
+    else if (etatForce === 'manque-requis') {
+      // L'état « information requise manquante » : le modèle s'ouvre semé sans
+      // la puce {nom} — le callout warning et la palette de rattrapage se voient.
+      chargerModeles('capture').then(() => ouvrirEditeur('relanceEmplacement', 'nom'));
+    } else if (etatForce === 'liste') {
+      chargerModeles('capture');
+    } else {
+      const motDePasse = sessionStorage.getItem(CLE_SESSION);
+      if (motDePasse) chargerModeles(motDePasse);
+      else montrerConnexion(false);
+    }
+  </script>
+</body>
+</html>
