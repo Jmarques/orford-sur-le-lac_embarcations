@@ -14,7 +14,7 @@
 // Composant sans build (0004) : injecte son markup et rend `ouvrir(cle)` ; tout
 // vient de donnees(), posé par textContent (anti-XSS) ; un geste laisse la fiche
 // ouverte — le feedback est le changement visible (0016). Dépend de grille.js /
-// presentation.js / blocs-fiche.js, chargés avant.
+// presentation.js / modeles-courriel.js / blocs-fiche.js, chargés avant.
 //
 // Quand l'adresse a une DEMANDE en cours (décision 0024, amende 0020), la fiche
 // la traite INLINE : un callout « Demande en cours » porte son remède (attribuer
@@ -25,7 +25,9 @@
 // note tant que l'adresse n'existe pas.
 //
 // options :
-//   donnees()          → { structures, emplacements, membres, journal, demandes } courants.
+//   donnees()          → { structures, emplacements, membres, journal, demandes,
+//                      gabarits } courants (gabarits : les Modèles de courriel
+//                      effectifs de l'inventaire — la relance se compose d'eux).
 //   motDePasse()       → le mot de passe du comité (session).
 //   surDonneesFraiches(inventaire) — la page range l'état frais et re-rend.
 //   surSessionExpiree() — la fiche s'est fermée, la page montre la connexion.
@@ -40,7 +42,7 @@
    demandeEnCoursAdresse, diffContact, suggestionsEmplacements, situationAttribution,
    estMobiliteReduite, chercherMembreParCle, formatAdresse,
    creerBlocMembre, rendreBlocMembre, creerBlocJournal, rendreListeJournal, calerBlocJournal,
-   ouvrirApercuCourriel */
+   ouvrirApercuCourriel, rendreModele, gabaritParId, valeursRelanceHorsQuota */
 
 function creerFicheAdresse(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -282,29 +284,19 @@ function creerFicheAdresse(options) {
 
   // Le courriel pré-rempli n'est JAMAIS envoyé par l'app (0003) : le membre du
   // comité le relit et l'envoie depuis son propre client mail (via l'aperçu
-  // partagé, blocs-fiche.js). Ton factuel et rassurant — la fiche parle d'un
-  // membre de la communauté, pas d'un fautif. Offert seulement hors quota.
+  // partagé, blocs-fiche.js). Offert seulement hors quota. Le texte vient du
+  // Modèle de courriel effectif de l'inventaire (ticket 10) ; les phrases
+  // conditionnelles (règle du quota, pluriel, liste des numéros) sont des
+  // jetons calculés par valeursRelanceHorsQuota (modeles-courriel.js). Sans
+  // gabarit (backend pas à jour), null : jamais un courriel troué.
   function courrielRelance(cas) {
-    const numeros = cas.emplacements.map((l) => l.numero).join(', ');
-    const regle = cas.quota === 2
-      ? 'La règle de la communauté est de 2 emplacements par adresse.'
-      : 'Votre adresse a une exception accordée à ' + cas.quota + ' emplacements.';
-    const corps = [
-      'Bonjour ' + String(cas.membre.nom || '').trim() + ',',
-      '',
-      'Votre adresse (' + cas.adresse + ') a actuellement ' + cas.nombre
-        + ' emplacements d\'embarcation : ' + numeros + '. ' + regle,
-      '',
-      'Utilisez-vous encore chacun d\'eux ? Si vous pouvez en libérer un, '
-        + 'dites-le-nous : d\'autres membres de la communauté attendent une place.',
-      '',
-      'Merci,',
-      'Le comité administratif — Orford sur le Lac',
-    ].join('\n');
+    const modele = gabaritParId(options.donnees().gabarits, 'relanceHorsQuota');
+    if (!modele) return null;
+    const valeurs = valeursRelanceHorsQuota(cas);
     return {
       courriel: cas.membre.courriel,
-      sujet: 'Vos emplacements d\'embarcation — Orford sur le Lac',
-      corps,
+      sujet: rendreModele(modele.sujet, valeurs),
+      corps: rendreModele(modele.corps, valeurs),
     };
   }
 
@@ -491,9 +483,15 @@ function creerFicheAdresse(options) {
   // le membre a un courriel — le rendu masque sinon le remède.
   el('fiche-adresse-demander').addEventListener('click', () => {
     const cas = donneesCas();
-    if (cas && cas.depassement > 0 && cas.membre && String(cas.membre.courriel || '').trim()) {
-      ouvrirApercuCourriel(courrielRelance(cas));
+    if (!(cas && cas.depassement > 0 && cas.membre && String(cas.membre.courriel || '').trim())) return;
+    const courriel = courrielRelance(cas);
+    // Sans gabarit dans l'inventaire (backend pas à jour) : pas d'aperçu — et
+    // la console le dit à qui débogue, comme le mode dégradé de structures.html.
+    if (!courriel) {
+      console.info('L\'API ne renvoie pas les gabarits — backend à redéployer (npm run deploy).');
+      return;
     }
+    ouvrirApercuCourriel(courriel);
   });
 
   // Cale le journal sur l'événement le plus récent (bloc partagé, voir fiche.js).

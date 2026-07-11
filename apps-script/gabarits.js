@@ -30,6 +30,27 @@ var GABARITS_DEFAUT = [
       'Le comité administratif — Orford sur le Lac',
     ].join('\n'),
   },
+  {
+    // « Demander de libérer une place » d'une fiche d'adresse hors quota
+    // (0019/0024). Les phrases conditionnelles sont des jetons CALCULÉS par
+    // l'app (ticket 10) : `{règle du quota}` (quota de 2 vs exception
+    // accordée), `{nombre d'emplacements}` (pluriel), `{numéros}` (liste) —
+    // jamais une syntaxe conditionnelle exposée au comité.
+    id: 'relanceHorsQuota',
+    sujet: 'Vos emplacements d\'embarcation — Orford sur le Lac',
+    corps: [
+      'Bonjour {nom},',
+      '',
+      'Votre adresse ({adresse}) a actuellement {nombre d\'emplacements} d\'embarcation : '
+        + '{numéros}. {règle du quota}',
+      '',
+      'Utilisez-vous encore chacun d\'eux ? Si vous pouvez en libérer un, '
+        + 'dites-le-nous : d\'autres membres de la communauté attendent une place.',
+      '',
+      'Merci,',
+      'Le comité administratif — Orford sur le Lac',
+    ].join('\n'),
+  },
 ];
 
 // Le texte d'une cellule, ou '' si elle est inutilisable — vidée, ou un nombre

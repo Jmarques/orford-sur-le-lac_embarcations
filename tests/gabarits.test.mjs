@@ -5,13 +5,21 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { GABARITS_DEFAUT, gabaritsEffectifs } = require('../apps-script/gabarits.js');
 
-// Le registre déclare au moins la relance d'emplacement, avec ses jetons —
-// le contrat de données complet du courriel (PRD gabarits-courriels).
+// Le registre déclare les deux relances, avec leurs jetons — le contrat de
+// données complet de chaque courriel (PRD gabarits-courriels).
 test('le registre déclare relanceEmplacement avec ses quatre jetons', () => {
   const relance = GABARITS_DEFAUT.find((g) => g.id === 'relanceEmplacement');
   assert.ok(relance, 'relanceEmplacement absent du registre');
   assert.match(relance.sujet, /\{numéro\}/);
   for (const jeton of ['{nom}', '{numéro}', '{adresse}', '{depuis quand}']) {
+    assert.ok(relance.corps.includes(jeton), `corps sans ${jeton}`);
+  }
+});
+
+test('le registre déclare relanceHorsQuota avec ses cinq jetons (conditionnelles = jetons calculés)', () => {
+  const relance = GABARITS_DEFAUT.find((g) => g.id === 'relanceHorsQuota');
+  assert.ok(relance, 'relanceHorsQuota absent du registre');
+  for (const jeton of ['{nom}', '{adresse}', '{nombre d\'emplacements}', '{numéros}', '{règle du quota}']) {
     assert.ok(relance.corps.includes(jeton), `corps sans ${jeton}`);
   }
 });

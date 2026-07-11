@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const {
   decouperModele, serialiserModele, rendreModele, gabaritParId,
+  MODELES_COURRIEL, valeursRelanceHorsQuota,
 } = require('../site/modeles-courriel.js');
 const { GABARITS_DEFAUT, gabaritsEffectifs } = require('../apps-script/gabarits.js');
 
@@ -113,15 +114,85 @@ test('sans début de série, « depuis quand » disparaît sans trou ni point or
   assert.ok(!corps.includes(' .'), 'espace orphelin avant le point');
 });
 
-test('GABARITS_DEFAUT ne contient aucun jeton inconnu des valeurs de la relance', () => {
-  // Filet : un jeton ajouté au défaut sans valeur au point d'usage resterait
-  // visible « {…} » dans le courriel — le registre et fiche.js doivent bouger
-  // ensemble.
-  const relance = GABARITS_DEFAUT.find((g) => g.id === 'relanceEmplacement');
-  const connus = ['nom', 'numéro', 'adresse', 'depuis quand'];
-  for (const segment of [...decouperModele(relance.sujet), ...decouperModele(relance.corps)]) {
-    if (segment.jeton !== undefined) {
-      assert.ok(connus.includes(segment.jeton.trim()), `jeton sans valeur : {${segment.jeton}}`);
+test('chaque gabarit du registre serveur a son entrée au registre UI, et ses jetons y sont tous déclarés', () => {
+  // Filet : un jeton ajouté à un défaut sans entrée au registre UI resterait
+  // visible « {…} » dans le courriel (pas de valeur) et sans bouton de palette
+  // — les deux registres doivent bouger ensemble (ticket 07).
+  for (const gabarit of GABARITS_DEFAUT) {
+    const modele = MODELES_COURRIEL[gabarit.id];
+    assert.ok(modele, `${gabarit.id} absent de MODELES_COURRIEL`);
+    assert.ok(String(modele.libelle || '').trim(), `${gabarit.id} sans libellé français`);
+    const cles = modele.jetons.map((j) => j.cle);
+    for (const segment of [...decouperModele(gabarit.sujet), ...decouperModele(gabarit.corps)]) {
+      if (segment.jeton !== undefined) {
+        assert.ok(cles.includes(segment.jeton.trim()), `${gabarit.id} : jeton non déclaré {${segment.jeton}}`);
+      }
+    }
+    for (const jeton of modele.jetons) {
+      assert.ok(String(jeton.libelle || '').trim(), `${gabarit.id} : jeton {${jeton.cle}} sans libellé`);
+      assert.equal(typeof jeton.requis, 'boolean', `${gabarit.id} : jeton {${jeton.cle}} sans requis`);
     }
   }
+});
+
+// --- Jetons calculés de la relance hors quota (ticket 10) ---------------------
+// Toute phrase conditionnelle devient un jeton calculé par l'app — jamais une
+// syntaxe conditionnelle exposée au comité. Les valeurs viennent du cas hors
+// quota du dossier (casAdresse).
+
+function casHorsQuota(surcharges = {}) {
+  return {
+    adresse: '87 Chemin du Lac',
+    nombre: 4,
+    quota: 3,
+    depassement: 1,
+    emplacements: [{ numero: 90 }, { numero: 91 }, { numero: 92 }, { numero: 93 }],
+    membre: { nom: 'John Tremblay', courriel: 'john.tremblay@exemple.ca' },
+    ...surcharges,
+  };
+}
+
+test('la règle du quota se calcule : quota par défaut → la règle de la communauté', () => {
+  const valeurs = valeursRelanceHorsQuota(casHorsQuota({ quota: 2 }));
+  assert.equal(valeurs['règle du quota'], 'La règle de la communauté est de 2 emplacements par adresse.');
+});
+
+test('la règle du quota se calcule : exception accordée → la phrase la nomme', () => {
+  const valeurs = valeursRelanceHorsQuota(casHorsQuota({ quota: 3 }));
+  assert.equal(valeurs['règle du quota'], 'Votre adresse a une exception accordée à 3 emplacements.');
+});
+
+test('le nombre d\'emplacements porte son pluriel calculé', () => {
+  assert.equal(valeursRelanceHorsQuota(casHorsQuota())['nombre d\'emplacements'], '4 emplacements');
+  assert.equal(
+    valeursRelanceHorsQuota(casHorsQuota({ nombre: 1, emplacements: [{ numero: 90 }] }))['nombre d\'emplacements'],
+    '1 emplacement',
+  );
+});
+
+test('les numéros sont la liste jointe des emplacements du dossier', () => {
+  assert.equal(valeursRelanceHorsQuota(casHorsQuota())['numéros'], '90, 91, 92, 93');
+});
+
+test('un dossier sans ligne Membres ne fait pas planter les valeurs (nom vide)', () => {
+  const valeurs = valeursRelanceHorsQuota(casHorsQuota({ membre: undefined }));
+  assert.equal(valeurs.nom, '');
+});
+
+test('le défaut de relanceHorsQuota rendu avec un cas complet = le texte en dur d\'avant', () => {
+  const gabarit = gabaritsEffectifs([]).find((g) => g.id === 'relanceHorsQuota');
+  const valeurs = valeursRelanceHorsQuota(casHorsQuota());
+  assert.equal(rendreModele(gabarit.sujet, valeurs), 'Vos emplacements d\'embarcation — Orford sur le Lac');
+  assert.equal(rendreModele(gabarit.corps, valeurs), [
+    'Bonjour John Tremblay,',
+    '',
+    'Votre adresse (87 Chemin du Lac) a actuellement 4 emplacements d\'embarcation : '
+      + '90, 91, 92, 93. Votre adresse a une exception accordée à 3 emplacements.',
+    '',
+    'Utilisez-vous encore chacun d\'eux ? Si vous pouvez en libérer un, '
+      + 'dites-le-nous : d\'autres membres de la communauté attendent une place.',
+    '',
+    'Merci,',
+    'Le comité administratif — Orford sur le Lac',
+  ].join('\n'));
 });
