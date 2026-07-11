@@ -24,6 +24,7 @@ Un PRD « gabarits de courriel éditables » validé et prêt pour `/to-issues`,
 - [05 — Défauts et réinitialisation](issues/05-defauts-reinitialisation.md) — défauts dans le code (registre), semés par `setup()`, repli silencieux à la lecture ; « Revenir au texte d'origine » sans écrire ni historique (rollback = versions Google Sheets).
 - [06 — Contrat backend](issues/06-contrat-backend.md) — gabarits dans la réponse `inventaire` (les fiches composent depuis le modèle) ; écriture `majGabarit` par clé id ; validation minimale, jamais de validation des jetons côté serveur ; dernier écrit gagne.
 - [07 — Registre des courriels](issues/07-registre-courriels.md) — vérité des textes au serveur (défauts + effectifs via `inventaire`), vérité de l'UI au client (libellés, jetons, fonctions de valeurs) ; « Modèle de courriel » et « information » actés au glossaire.
+- [08 — Rédiger le PRD](issues/08-rediger-prd.md) — [PRD.md](PRD.md) publié `ready-for-agent`, coutures de test validées. **Destination atteinte — la carte est close.**
 
 ## Not yet specified
 
