@@ -19,13 +19,13 @@ Gestion des emplacements d'embarcation — Orford sur le Lac. Site statique (`si
 5. **Textes visibles par l'utilisateur** : tout nom d'entité (comité, structures, rôles…) vient de CONTEXT.md. Terme absent du glossaire → demander à Jeremy ou passer par `/domain-modeling` ; ne jamais inventer un nom d'organisation ou de concept dans l'UI.
 
 ## Couverture des exigences
-- Chaque PRD/plan (`/to-prd`, `/to-issues`) inclut une table exigence → tranche (rien ne doit être « invisible parce que reporté »).
+- Chaque PRD/plan (`/to-spec`, `/to-tickets`) inclut une table exigence → tranche (rien ne doit être « invisible parce que reporté »).
 - Un écran visible par l'utilisateur embarque le contrat de données complet de son formulaire dès sa première tranche.
 - Un besoin de données ≠ un écran : ancrer toute proposition d'écran dans une user story (acteur + mode d'accès).
 
 ## Workflows (skills mattpocock)
 - Intention floue → `/grill-me` (ou `/grill-with-docs` pour mettre à jour les docs de domaine en même temps).
-- Planifier → `/to-prd` puis `/to-issues` ; construire → `/implement` ou `/tdd` (test-first) ; gate → `/code-review`.
+- Planifier → `/to-spec` puis `/to-tickets` (successeurs de `/to-prd` et `/to-issues`) ; construire → `/implement` ou `/tdd` (test-first) ; gate → `/code-review`.
 - Bug ou régression → `/diagnosing-bugs` ; question de design ouverte → `/prototype` ou `/design-an-interface`.
 - Vocabulaire et décisions → `/domain-modeling` : CONTEXT.md est le glossaire canonique ; les décisions vivent dans `docs/decisions/` — lire INDEX.md avant de proposer un design, vérifier le « Revisit when » d'un record avant de re-décider ce qu'il couvre.
 - Code marqué PROTOTYPE : jetable — jamais l'étendre ni le promouvoir sans tests.

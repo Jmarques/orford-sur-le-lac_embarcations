@@ -252,7 +252,17 @@ body {
 
 .sous-titre-lac {
   color: #16362f;
-  text-shadow: 0 1px 2px rgb(246 250 247 / 0.9), 0 0 16px rgb(246 250 247 / 0.6);
+  /* La zone du dégradé derrière le sous-titre varie avec la hauteur de la
+     bande (le dégradé est proportionnel) : aucune couleur de texte fixe ne
+     tient partout. La garantie vient du halo-plateau : des couches empilées
+     qui composent une plaque de lumière quasi opaque sous le texte sombre,
+     quel que soit le fond ou le moment de l'animation (revue du prototype
+     gabarits — le halo d'origine se noyait sur l'eau mi-profonde en mobile). */
+  text-shadow:
+    0 1px 2px rgb(246 250 247),
+    0 0 8px rgb(246 250 247 / 0.9),
+    0 0 8px rgb(246 250 247 / 0.9),
+    0 0 20px rgb(246 250 247 / 0.7);
 }
 
 /* En desktop, le titre de bande prend la pleine voix de Fraunces. */
