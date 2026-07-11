@@ -203,6 +203,15 @@ function injecterApercuCourriel_() {
           <div id="apercu-courriel-corps" class="apercu-corps wa-text-pretty"></div>
         </div>
       </div>
+      <!-- Le chemin de découverte de la page « Modèles de courriels »
+           (ticket 12) : on corrige une formulation au moment où on la
+           remarque. Dans le PIED du dialogue — toujours visible, même quand le
+           corps défile en mobile (revue UI) — mais discret : l'action primaire
+           reste « Ouvrir dans ma messagerie ». Masqué si l'appelant ne nomme
+           pas de modèle. -->
+      <a id="apercu-courriel-modifier" slot="footer" class="lien-modifier-modele" hidden>
+        <wa-icon name="pen"></wa-icon> Modifier le modèle de ce courriel
+      </a>
       <wa-button id="apercu-courriel-ouvrir" slot="footer" variant="brand" appearance="accent" size="m">
         <wa-icon slot="start" name="envelope"></wa-icon>
         Ouvrir dans ma messagerie
@@ -220,13 +229,21 @@ function injecterApercuCourriel_() {
     });
 }
 
-// Ouvre l'aperçu pour un courriel { courriel, sujet, corps } (mêmes clés que
-// lienMailto). L'appelant construit l'objet et le corps ; ici on ne fait que
-// montrer et préparer le mailto.
+// Ouvre l'aperçu pour un courriel { courriel, sujet, corps, modele } — les
+// trois premières clés sont celles de lienMailto ; `modele` (optionnel) est
+// l'id du Modèle de courriel dont ce courriel est composé : le lien « Modifier
+// le modèle de ce courriel » mène alors à la page « Modèles de courriels »
+// pré-ouverte dessus (?modele=, ticket 12). L'appelant construit l'objet et le
+// corps ; ici on ne fait que montrer et préparer le mailto.
 function ouvrirApercuCourriel(courriel) {
   injecterApercuCourriel_();
   document.getElementById('apercu-courriel-objet').textContent = courriel.sujet;
   document.getElementById('apercu-courriel-corps').textContent = courriel.corps;
   document.getElementById('apercu-courriel-ouvrir').setAttribute('href', lienMailto(courriel));
+  var modifier = document.getElementById('apercu-courriel-modifier');
+  modifier.hidden = !courriel.modele;
+  if (courriel.modele) {
+    modifier.href = 'modeles-courriels.html?modele=' + encodeURIComponent(courriel.modele);
+  }
   document.getElementById('apercu-courriel').setAttribute('open', '');
 }

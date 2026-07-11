@@ -1623,6 +1623,20 @@ wa-callout::part(icon) {
   font-weight: var(--wa-font-weight-semibold);
 }
 
+/* Le lien « Modifier le modèle de ce courriel » de l'aperçu (ticket 12) :
+   sloté dans le PIED du dialogue (toujours visible, même quand le corps
+   défile en mobile), poussé à gauche des boutons — discret (l'action primaire
+   reste « Ouvrir dans ma messagerie ») mais à cible généreuse (public aîné),
+   même gonflage que .liens-contact. */
+.lien-modifier-modele {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wa-space-2xs);
+  margin-inline-end: auto;
+  padding-block: var(--wa-space-xs);
+  color: var(--wa-color-text-quiet);
+}
+
 /* Début du texte effectif dans la rangée d'un modèle : deux lignes au plus,
    coupées proprement — la rangée reste scannable. */
 .debut-modele {

@@ -260,6 +260,8 @@ function creerFicheEmplacement(options) {
       courriel: membre.courriel,
       sujet: rendreModele(modele.sujet, valeurs),
       corps: rendreModele(modele.corps, valeurs),
+      // L'aperçu offre « Modifier le modèle de ce courriel » (ticket 12).
+      modele: 'relanceEmplacement',
     };
   }
 

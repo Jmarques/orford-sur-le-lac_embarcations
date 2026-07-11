@@ -565,10 +565,17 @@ export const CAPTURES = [
     cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-vers-adresse', '#fiche-adresse-retour'],
     attendre: '#fiche-liberer:not([hidden])', pleinVue: true },
   // « Relancer le membre » ouvre l'aperçu du courriel pré-rédigé (objet + corps
-  // + « rien n'est envoyé automatiquement ») — jamais d'envoi auto (0003/0024).
+  // + « rien n'est envoyé automatiquement » + lien « Modifier le modèle de ce
+  // courriel », ticket 12) — jamais d'envoi auto (0003/0024).
   // `presenceSeule` : host wa-dialog « invisible » pour Playwright même ouvert.
   { nom: 'a-traiter-apercu-courriel', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-ecrire'],
+    attendre: '#apercu-courriel[open]', presenceSeule: true, pleinVue: true },
+  // Le même aperçu depuis la fiche d'ADRESSE (« Demander de libérer une
+  // place », hors quota) : composé du modèle relanceHorsQuota, le lien
+  // « Modifier le modèle » cible ce modèle-là (ticket 12).
+  { nom: 'a-traiter-apercu-courriel-adresse', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.rangee-cas[data-cle="87 chemin du lac"]', '#fiche-adresse-demander'],
     attendre: '#apercu-courriel[open]', presenceSeule: true, pleinVue: true },
   // La fiche d'un « À identifier » : statut calme (danger), pas de membre,
   // journal + note seulement.
@@ -662,13 +669,6 @@ export const CAPTURES = [
   { nom: 'modeles-retour-origine', page: 'modeles-courriels.html', etat: 'liste', modele: 'relanceEmplacement',
     cliquer: '#retour-origine', attendre: '#etat-edition:not([hidden]) [data-jeton="depuis quand"]',
     reponses: { inventaire: INVENTAIRE_GABARIT_PERSONNALISE } },
-  // PROTOTYPE jetable (ticket 03, carte gabarits-courriels) : trois pistes
-  // d'édition du modèle de courriel, pilotées par ?etat= — à retirer avec la page.
-  { nom: 'gabarits-prototype-jetons', page: 'gabarits-prototype.html', etat: 'jetons', attendre: '#variante-jetons:not([hidden]) .val-exemple' },
-  { nom: 'gabarits-prototype-jetons-erreur', page: 'gabarits-prototype.html', etat: 'jetons-erreur', attendre: '#erreur-jetons:not([hidden])' },
-  { nom: 'gabarits-prototype-blocs', page: 'gabarits-prototype.html', etat: 'blocs', attendre: '#variante-blocs:not([hidden]) .bloc-verrouille' },
-  { nom: 'gabarits-prototype-puces', page: 'gabarits-prototype.html', etat: 'puces', attendre: '#variante-puces:not([hidden]) .puce' },
-  { nom: 'gabarits-prototype-puces-manque', page: 'gabarits-prototype.html', etat: 'puces-manque', attendre: '#manque-puces:not([hidden])' },
 ];
 
 // Motifs de bruit console tolérés (regex). Liste minimale : tout autre
