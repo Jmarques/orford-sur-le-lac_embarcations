@@ -63,4 +63,6 @@
   _Avoid_: fiche de membre, fiche du cas, dossier (comme terme UI)
 
 **Comité administratif** — Le groupe de bénévoles qui décide des attributions (forme courte acceptée : « le comité »). Une personne du groupe est un **membre du comité** — à distinguer du [[Membre]] de la communauté (la personne-contact d'une adresse). Accès admin protégé par un mot de passe partagé stocké dans la Sheet.
+
+**Modèle de courriel** — Le texte réutilisable d'un courriel que l'app prépare (objet + message), éditable par le comité depuis la page « Modèles de courriels ». Les **informations** (nom du [[Membre]], numéro d'[[Emplacement]]…) y sont des jetons `{…}` remplis par l'app au moment de préparer le courriel — représentés à l'édition comme des puces insécables dans le texte ; une information optionnelle (« depuis quand ») disparaît quand la donnée n'est pas connue. Le texte d'origine vit dans le code (le registre des courriels), la version du comité dans l'onglet `Gabarits`. Ne change rien à la décision 0003 : rien n'est jamais envoyé automatiquement — le courriel préparé se relit dans l'aperçu puis s'ouvre dans la messagerie du membre du comité.
   _Avoid_: admins, administrateurs (pour désigner le groupe) ; « membre » seul quand le comité est visé (préciser « membre du comité »)

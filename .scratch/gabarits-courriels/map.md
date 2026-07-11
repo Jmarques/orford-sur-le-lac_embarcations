@@ -20,6 +20,10 @@ Un PRD « gabarits de courriel éditables » validé et prêt pour `/to-issues`,
 - [01 — Périmètre](issues/01-perimetre.md) — gabarits durables des courriels gérés par l'app ; le comité ajuste ton et formulation ; pas de composition libre.
 - [02 — Stockage](issues/02-stockage.md) — onglet `Gabarits` dédié (`id`, `sujet`, `corps`) créé par `setup()` ; l'app est la seule surface d'édition, jamais le Sheet.
 - [03 — Modèle d'édition des variables](issues/03-modele-edition-variables.md) — piste C : les informations sont des puces insécables dans le texte libre (objet inclus) ; stocké en texte à jetons `{…}` ; conditionnelles = jetons optionnels/calculés ; prototype `site/gabarits-prototype.html`.
+- [04 — Surface d'édition](issues/04-surface-edition.md) — page dédiée « Modèles de courriels » (liste en rangées → éditeur en place, `?modele=`), atteinte par un lien dans l'aperçu « Courriel pré-rédigé » ; pas d'entrée au menu.
+- [05 — Défauts et réinitialisation](issues/05-defauts-reinitialisation.md) — défauts dans le code (registre), semés par `setup()`, repli silencieux à la lecture ; « Revenir au texte d'origine » sans écrire ni historique (rollback = versions Google Sheets).
+- [06 — Contrat backend](issues/06-contrat-backend.md) — gabarits dans la réponse `inventaire` (les fiches composent depuis le modèle) ; écriture `majGabarit` par clé id ; validation minimale, jamais de validation des jetons côté serveur ; dernier écrit gagne.
+- [07 — Registre des courriels](issues/07-registre-courriels.md) — vérité des textes au serveur (défauts + effectifs via `inventaire`), vérité de l'UI au client (libellés, jetons, fonctions de valeurs) ; « Modèle de courriel » et « information » actés au glossaire.
 
 ## Not yet specified
 
