@@ -1634,6 +1634,7 @@ wa-callout::part(icon) {
   gap: var(--wa-space-2xs);
   margin-inline-end: auto;
   padding-block: var(--wa-space-xs);
+  margin-block: calc(-1 * var(--wa-space-2xs));
   color: var(--wa-color-text-quiet);
 }
 

@@ -570,13 +570,15 @@ export const CAPTURES = [
   // `presenceSeule` : host wa-dialog « invisible » pour Playwright même ouvert.
   { nom: 'a-traiter-apercu-courriel', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-numero="75"]', '#fiche-ecrire'],
-    attendre: '#apercu-courriel[open]', presenceSeule: true, pleinVue: true },
+    attendre: '#apercu-courriel[open] #apercu-courriel-modifier:not([hidden])',
+    presenceSeule: true, pleinVue: true },
   // Le même aperçu depuis la fiche d'ADRESSE (« Demander de libérer une
   // place », hors quota) : composé du modèle relanceHorsQuota, le lien
   // « Modifier le modèle » cible ce modèle-là (ticket 12).
   { nom: 'a-traiter-apercu-courriel-adresse', page: 'a-traiter.html', etat: 'liste',
     cliquer: ['.rangee-cas[data-cle="87 chemin du lac"]', '#fiche-adresse-demander'],
-    attendre: '#apercu-courriel[open]', presenceSeule: true, pleinVue: true },
+    attendre: '#apercu-courriel[open] #apercu-courriel-modifier:not([hidden])',
+    presenceSeule: true, pleinVue: true },
   // La fiche d'un « À identifier » : statut calme (danger), pas de membre,
   // journal + note seulement.
   { nom: 'a-traiter-fiche-a-identifier', page: 'a-traiter.html', etat: 'liste',

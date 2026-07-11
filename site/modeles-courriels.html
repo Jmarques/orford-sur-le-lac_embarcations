@@ -121,8 +121,8 @@
       <h2 class="wa-visually-hidden">Les modèles de courriels</h2>
       <!-- La seule consigne de la page, dite une fois (0016). -->
       <p class="wa-color-text-quiet wa-text-pretty">Touchez un modèle pour ajuster son texte.
-        Les informations que l'app remplit (nom du membre, numéro…) sont des étiquettes
-        déplaçables dans le texte : votre formulation change, jamais les informations.</p>
+        Les informations que l'app remplit (nom du membre, numéro…) se déplacent d'un bloc
+        dans le texte : votre formulation change, jamais les informations.</p>
       <p id="liste-vide" class="section-vide-neutre" hidden>
         <wa-icon name="envelope"></wa-icon> Aucun modèle de courriel disponible pour l'instant.
       </p>
@@ -316,8 +316,12 @@
       for (const gabarit of gabarits) {
         const ui = MODELES_COURRIEL[gabarit.id];
         // Un gabarit serveur inconnu de ce client (versions décalées) n'a ni
-        // libellé ni palette : rien d'éditable ici — il n'apparaît pas.
-        if (!ui) continue;
+        // libellé ni palette : rien d'éditable ici — il n'apparaît pas, et la
+        // console le dit à qui débogue.
+        if (!ui) {
+          console.info('Gabarit "' + gabarit.id + '" inconnu de ce client — site à redéployer (npm run deploy).');
+          continue;
+        }
         const noeud = document.getElementById('modele-rangee-modele').content.cloneNode(true);
         const bouton = noeud.querySelector('.rangee-modele');
         bouton.dataset.modele = gabarit.id;
@@ -432,9 +436,14 @@
       const textes = textesCourants();
       rendreApercuDans(el('apercu-objet'), textes.sujet);
       rendreApercuDans(el('apercu-message'), textes.corps);
-      const manquants = modeleCourant.ui.jetons.filter((jeton) => jeton.requis
-        && !editeurObjet.querySelector('[data-jeton="' + jeton.cle + '"]')
-        && !editeurCorps.querySelector('[data-jeton="' + jeton.cle + '"]'));
+      // Les informations présentes se comptent sur le TEXTE sérialisé, pas sur
+      // les puces du DOM : un « {nom} » retapé à la main vaut une puce — il
+      // sera bien rempli dans le vrai courriel (revue spec).
+      const presentes = new Set();
+      for (const segment of [...decouperModele(textes.sujet), ...decouperModele(textes.corps)]) {
+        if (segment.jeton !== undefined) presentes.add(segment.jeton.trim());
+      }
+      const manquants = modeleCourant.ui.jetons.filter((jeton) => jeton.requis && !presentes.has(jeton.cle));
       const alerte = el('manque-requis');
       alerte.hidden = manquants.length === 0;
       if (manquants.length > 0) {
@@ -579,6 +588,14 @@
         }
         gabarits = resultat.gabarits || [];
         afficherListe();
+        // Une session expirée en plein « Enregistrer » est revenue par l'écran
+        // de connexion : l'éditeur (jamais vidé, juste masqué) reprend tel
+        // quel — le texte saisi n'est pas perdu (US 12).
+        if (modeleCourant) {
+          modeleCourant.gabarit = gabaritParId(gabarits, modeleCourant.id) || modeleCourant.gabarit;
+          montrerEtat('edition');
+          return;
+        }
         montrerEtat('liste');
         // `?modele=<id>` (ticket 12) : le lien de l'aperçu « Courriel
         // pré-rédigé » pré-ouvre l'éditeur du bon modèle. Inerte sans lui.
