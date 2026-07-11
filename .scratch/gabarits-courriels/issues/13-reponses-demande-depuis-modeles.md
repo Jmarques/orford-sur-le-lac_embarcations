@@ -18,11 +18,16 @@ Démo : refuser une demande avec une raison → l'aperçu s'ouvre, la raison est
 
 **Blocked by:** None — can start immediately (mécanique 09-12 en place).
 
-**Status:** ready-for-agent
+**Status:** ready-for-human — implémenté, à valider sur le vrai site (`npm run deploy` requis : les deux nouveaux gabarits doivent arriver dans l'inventaire ; d'ici là, repli silencieux — pas d'aperçu, console qui le dit)
 
-- [ ] `reponseRefus` et `reponseAcceptation` au registre serveur (textes d'origine ci-dessus) + registre UI (libellés, jetons, exemples nommés pour l'aperçu de la page Modèles) ; semés par `setup()`
-- [ ] Valeurs pures testées au seam exports : ponctuation de `{raison}` calculée (avec/sans point final), valeurs figées de la demande ; pins du rendu par défaut
-- [ ] Fiche d'adresse : accepter/refuser réussi → aperçu ouvert composé du bon modèle, destinataire = courriel de la demande (l'aperçu par-dessus la fiche restée ouverte — 0018)
-- [ ] « Déjà décidées » (À traiter) : « Écrire au membre » dans le dépliable, deux issues, raison relue au Journal et numéro à la ligne
-- [ ] Scénarios de captures : aperçu post-refus, aperçu post-acceptation, bouton du dépliable (desktop + mobile) ; console propre
-- [ ] `npm run verify` passe ; revue subagent du delta faite ; captures committées
+- [x] `reponseRefus` et `reponseAcceptation` au registre serveur (textes d'origine ci-dessus) + registre UI (libellés, jetons, exemples nommés pour l'aperçu de la page Modèles) ; semés par `setup()` (le seed itère `GABARITS_DEFAUT`)
+- [x] Valeurs pures testées au seam exports : ponctuation de `{raison}` calculée (avec/sans point final, même regex que l'ancien fiche-demande), valeurs figées de la demande ; pins du rendu par défaut = ancien texte verbatim (refus) et texte du grilling (acceptation) ; test qui verrouille « jamais position/structure/niveau » dans l'acceptation
+- [x] Fiche d'adresse : accepter/refuser réussi → aperçu ouvert composé du bon modèle (`courrielReponseDemande`, module pur), destinataire = courriel figé de la demande, aperçu par-dessus la fiche restée ouverte ; jamais par-dessus l'écran de connexion si la session meurt au rechargement
+- [x] « Déjà décidées » (À traiter) : « Écrire au membre » dans le dépliable, deux issues, raison relue au Journal et numéro à la ligne (`etat.numero` dérivé de `numeroAttribue`) ; masqué sans courriel figé
+- [x] Scénarios de captures : `a-traiter-reponse-refus`, `a-traiter-reponse-acceptation`, `a-traiter-demande-decidee-ecrire` (desktop + mobile) ; console propre
+- [x] `npm run verify` passe ; revue subagent du delta faite ; captures committées
+
+## Comments
+
+- Revue UI subagent (lecture seule, captures fraîches) : aucun bloquant. Non retenus (textes verrouillés par la spec ou données saisies) : « un(e) {type} » vient de l'ancien texte VERBATIM exigé par le ticket — c'est exactement ce que le comité peut maintenant corriger dans la page Modèles ; le « — Diane » dans le corps vient de la raison relue au Journal telle que saisie (même comportement que l'ancien mailto ; la relecture avant envoi reste le filet, 0003) — à revisiter si ça gêne en usage réel.
+- Revue code : correction appliquée — `rafraichir()` de la fiche d'adresse signale désormais une session morte pour que `surSucces` (l'aperçu) ne s'ouvre pas par-dessus l'écran de connexion. Cas limite accepté : une raison de refus absente du Journal (Sheet éditée à la main) rend « pour l'instant : » avec deux-points orphelin — le jeton est requis et le geste la garantit ; pas de réécriture du modèle pour un cas fabriqué.

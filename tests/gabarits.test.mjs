@@ -24,6 +24,32 @@ test('le registre déclare relanceHorsQuota avec ses cinq jetons (conditionnelle
   }
 });
 
+// Les réponses à une demande (ticket 13, décision 0025) : le refus répare la
+// régression de 0024 (texte d'origine = l'ancien texte de fiche-demande
+// verbatim), l'acceptation est le « futur courriel » du PRD.
+test('le registre déclare reponseRefus avec ses quatre jetons, raison comprise', () => {
+  const reponse = GABARITS_DEFAUT.find((g) => g.id === 'reponseRefus');
+  assert.ok(reponse, 'reponseRefus absent du registre');
+  for (const jeton of ['{nom}', '{type d\'embarcation}', '{adresse}', '{raison}']) {
+    assert.ok(reponse.corps.includes(jeton), `corps sans ${jeton}`);
+  }
+});
+
+test('le registre déclare reponseAcceptation — le numéro, jamais la position (0025)', () => {
+  const reponse = GABARITS_DEFAUT.find((g) => g.id === 'reponseAcceptation');
+  assert.ok(reponse, 'reponseAcceptation absent du registre');
+  assert.match(reponse.sujet, /\{numéro\}/);
+  for (const jeton of ['{nom}', '{numéro}', '{adresse}', '{type d\'embarcation}']) {
+    assert.ok(reponse.corps.includes(jeton), `corps sans ${jeton}`);
+  }
+  // Les ids de structure et les niveaux sont un vocabulaire interne au comité :
+  // ils ne fuient jamais vers le membre (décision 0025).
+  const texte = reponse.sujet + reponse.corps;
+  for (const interne of ['position', 'structure', 'niveau']) {
+    assert.ok(!texte.toLowerCase().includes(interne), `« ${interne} » fuit vers le membre`);
+  }
+});
+
 // --- Fusion ligne/défaut (tickets 05/07) : le texte effectif est la ligne de
 // la Sheet quand elle est utilisable, sinon le défaut du code — silencieusement.
 // Chaque gabarit voyage avec son défaut : « Revenir au texte d'origine » (page

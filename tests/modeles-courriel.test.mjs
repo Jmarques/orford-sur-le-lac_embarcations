@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 const {
   decouperModele, serialiserModele, rendreModele, gabaritParId,
   MODELES_COURRIEL, valeursRelanceHorsQuota,
+  valeursReponseAcceptation, valeursReponseRefus, courrielReponseDemande,
 } = require('../site/modeles-courriel.js');
 const { GABARITS_DEFAUT, gabaritsEffectifs } = require('../apps-script/gabarits.js');
 
@@ -188,6 +189,94 @@ test('les numéros sont la liste jointe des emplacements du dossier', () => {
 test('un dossier sans ligne Membres ne fait pas planter les valeurs (nom vide)', () => {
   const valeurs = valeursRelanceHorsQuota(casHorsQuota({ membre: undefined }));
   assert.equal(valeurs.nom, '');
+});
+
+// --- Réponses à une demande (ticket 13, décision 0025) -------------------------
+// Les valeurs sont FIGÉES de la demande (on répond à qui a écrit, jamais à la
+// ligne Membres) ; la ponctuation finale de la raison est calculée DANS la
+// valeur — jamais une syntaxe dans le modèle.
+
+function demandeDecidee(surcharges = {}) {
+  return {
+    id: 'demo-4', nom: 'Robert Fortin', courriel: 'robert.fortin@exemple.ca',
+    type: 'Kayak', numero: 501, rue: 'Rue du Pré',
+    ...surcharges,
+  };
+}
+
+test('la raison sans ponctuation finale reçoit son point — dans la valeur', () => {
+  const valeurs = valeursReponseRefus(demandeDecidee(), '501 Rue du Pré',
+    'aucune place compatible libre cette saison');
+  assert.equal(valeurs.raison, 'aucune place compatible libre cette saison.');
+});
+
+test('la raison déjà ponctuée reste telle quelle (point, exclamation, interrogation)', () => {
+  for (const raison of ['quota atteint.', 'quota atteint !', 'vraiment ?']) {
+    assert.equal(valeursReponseRefus(demandeDecidee(), '501 Rue du Pré', raison).raison, raison);
+  }
+});
+
+test('les valeurs du refus sont figées de la demande : nom, type, adresse', () => {
+  const valeurs = valeursReponseRefus(demandeDecidee(), '501 Rue du Pré', 'quota atteint');
+  assert.equal(valeurs.nom, 'Robert Fortin');
+  assert.equal(valeurs['type d\'embarcation'], 'Kayak');
+  assert.equal(valeurs.adresse, '501 Rue du Pré');
+});
+
+test('les valeurs de l\'acceptation portent le numéro attribué et les valeurs figées', () => {
+  const valeurs = valeursReponseAcceptation(demandeDecidee({ nom: 'Louise Bédard', type: 'Canoë' }),
+    '12 Rue des Érables', 75);
+  assert.equal(valeurs['numéro'], '75');
+  assert.equal(valeurs.nom, 'Louise Bédard');
+  assert.equal(valeurs['type d\'embarcation'], 'Canoë');
+  assert.equal(valeurs.adresse, '12 Rue des Érables');
+});
+
+test('le défaut de reponseRefus rendu = l\'ancien texte de fiche-demande verbatim (régression 0024)', () => {
+  const courriel = courrielReponseDemande(gabaritsEffectifs([]), demandeDecidee(), '501 Rue du Pré',
+    { code: 'refusee', raison: 'aucune place compatible libre cette saison' });
+  assert.equal(courriel.modele, 'reponseRefus');
+  assert.equal(courriel.courriel, 'robert.fortin@exemple.ca');
+  assert.equal(courriel.sujet, 'Votre demande d\'emplacement — Orford sur le Lac');
+  assert.equal(courriel.corps, [
+    'Bonjour Robert Fortin,',
+    '',
+    'Nous avons bien reçu votre demande d\'emplacement pour un(e) Kayak à l\'adresse 501 Rue du Pré.',
+    '',
+    'Nous ne pouvons malheureusement pas y donner suite pour l\'instant : '
+      + 'aucune place compatible libre cette saison.',
+    '',
+    'N\'hésitez pas à nous écrire si vous avez des questions.',
+    '',
+    'Le comité administratif — Orford sur le Lac',
+  ].join('\n'));
+});
+
+test('le défaut de reponseAcceptation rendu = le texte rédigé au grilling (0025)', () => {
+  const courriel = courrielReponseDemande(gabaritsEffectifs([]),
+    demandeDecidee({ nom: 'Louise Bédard', courriel: 'louise.bedard@exemple.ca', type: 'Canoë' }),
+    '12 Rue des Érables', { code: 'acceptee', numero: 75 });
+  assert.equal(courriel.modele, 'reponseAcceptation');
+  assert.equal(courriel.courriel, 'louise.bedard@exemple.ca');
+  assert.equal(courriel.sujet, 'Votre emplacement 75 — Orford sur le Lac');
+  assert.equal(courriel.corps, [
+    'Bonjour Louise Bédard,',
+    '',
+    'Bonne nouvelle : votre demande d\'emplacement est acceptée. L\'emplacement 75 '
+      + 'est attribué à votre adresse (12 Rue des Érables) pour votre Canoë.',
+    '',
+    'Vous pouvez l\'utiliser dès maintenant. Si quelque chose ne convient pas, dites-le-nous.',
+    '',
+    'Merci,',
+    'Le comité administratif — Orford sur le Lac',
+  ].join('\n'));
+});
+
+test('sans gabarit dans l\'inventaire (backend pas à jour), la réponse est null — jamais un courriel troué', () => {
+  assert.equal(courrielReponseDemande([], demandeDecidee(), '501 Rue du Pré',
+    { code: 'refusee', raison: 'x' }), null);
+  assert.equal(courrielReponseDemande(undefined, demandeDecidee(), '501 Rue du Pré',
+    { code: 'acceptee', numero: 75 }), null);
 });
 
 test('le défaut de relanceHorsQuota rendu avec un cas complet = le texte en dur d\'avant', () => {

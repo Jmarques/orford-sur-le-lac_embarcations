@@ -51,6 +51,45 @@ var GABARITS_DEFAUT = [
       'Le comité administratif — Orford sur le Lac',
     ].join('\n'),
   },
+  {
+    // Réponse au refus d'une demande (ticket 13, décision 0025). Texte
+    // d'origine = l'ancien courriel de fiche-demande verbatim (régression du
+    // commit 54b4625, décision 0024). `{raison}` est requise : sa ponctuation
+    // finale est calculée DANS la valeur (point ajouté si absent), jamais une
+    // syntaxe dans le modèle.
+    id: 'reponseRefus',
+    sujet: 'Votre demande d\'emplacement — Orford sur le Lac',
+    corps: [
+      'Bonjour {nom},',
+      '',
+      'Nous avons bien reçu votre demande d\'emplacement pour un(e) {type d\'embarcation} '
+        + 'à l\'adresse {adresse}.',
+      '',
+      'Nous ne pouvons malheureusement pas y donner suite pour l\'instant : {raison}',
+      '',
+      'N\'hésitez pas à nous écrire si vous avez des questions.',
+      '',
+      'Le comité administratif — Orford sur le Lac',
+    ].join('\n'),
+  },
+  {
+    // Réponse à l'acceptation d'une demande (ticket 13, décision 0025). PAS de
+    // position (structure/niveau) : vocabulaire interne au comité — les numéros
+    // sont marqués sur le terrain, le numéro suffit au membre.
+    id: 'reponseAcceptation',
+    sujet: 'Votre emplacement {numéro} — Orford sur le Lac',
+    corps: [
+      'Bonjour {nom},',
+      '',
+      'Bonne nouvelle : votre demande d\'emplacement est acceptée. L\'emplacement {numéro} '
+        + 'est attribué à votre adresse ({adresse}) pour votre {type d\'embarcation}.',
+      '',
+      'Vous pouvez l\'utiliser dès maintenant. Si quelque chose ne convient pas, dites-le-nous.',
+      '',
+      'Merci,',
+      'Le comité administratif — Orford sur le Lac',
+    ].join('\n'),
+  },
 ];
 
 // Le texte d'une cellule, ou '' si elle est inutilisable — vidée, ou un nombre

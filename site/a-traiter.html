@@ -266,6 +266,16 @@
             <span class="wa-caption-m wa-color-text-quiet demande-etiquette">Note du membre</span>
             <p class="demande-figee-note note-membre"></p>
           </div>
+          <!-- « Écrire au membre » (ticket 13, décision 0025) : le filet durable
+               des deux issues — la réponse se recompose du Modèle de courriel
+               dans l'aperçu (rien n'est envoyé, 0003). Masqué sans courriel
+               figé : rien à qui écrire. -->
+          <div class="wa-cluster demande-ecrire-zone" hidden>
+            <wa-button class="demande-ecrire" appearance="outlined" size="s">
+              <wa-icon slot="start" name="envelope"></wa-icon>
+              Écrire au membre
+            </wa-button>
+          </div>
         </div>
       </wa-details>
     </li>
@@ -517,6 +527,29 @@
       if (String(demande.note || '').trim()) {
         noeud.querySelector('.demande-figee-note').textContent = demande.note;
         noeud.querySelector('.demande-note-bloc').hidden = false;
+      }
+
+      // « Écrire au membre » (ticket 13, décision 0025) : recompose la réponse
+      // depuis le Modèle de courriel — raison relue au Journal, numéro attribué
+      // relu à la ligne — et l'ouvre dans l'aperçu (rien n'est envoyé, 0003).
+      // Destinataire = le courriel figé de la demande ; sans courriel, rien à
+      // écrire — le bouton reste masqué.
+      if (String(demande.courriel || '').trim()) {
+        noeud.querySelector('.demande-ecrire-zone').hidden = false;
+        noeud.querySelector('.demande-ecrire').addEventListener('click', () => {
+          const issue = etat.code === 'acceptee'
+            ? { code: 'acceptee', numero: etat.numero }
+            : { code: 'refusee', raison: refus ? refus.details : '' };
+          const courriel = courrielReponseDemande(
+            donnees.gabarits, demande, adresseDemande(demande), issue);
+          // Sans gabarit (backend pas à jour) : pas d'aperçu — la console le
+          // dit à qui débogue, comme les fiches.
+          if (!courriel) {
+            console.info('L\'API ne renvoie pas les gabarits — backend à redéployer (npm run deploy).');
+            return;
+          }
+          ouvrirApercuCourriel(courriel);
+        });
       }
       return noeud;
     }

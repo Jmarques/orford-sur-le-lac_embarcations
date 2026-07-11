@@ -42,7 +42,8 @@
    demandeEnCoursAdresse, diffContact, suggestionsEmplacements, situationAttribution,
    estMobiliteReduite, chercherMembreParCle, formatAdresse,
    creerBlocMembre, rendreBlocMembre, creerBlocJournal, rendreListeJournal, calerBlocJournal,
-   ouvrirApercuCourriel, rendreModele, gabaritParId, valeursRelanceHorsQuota */
+   ouvrirApercuCourriel, rendreModele, gabaritParId, valeursRelanceHorsQuota,
+   courrielReponseDemande */
 
 function creerFicheAdresse(options) {
   document.body.insertAdjacentHTML('beforeend', `
@@ -562,10 +563,13 @@ function creerFicheAdresse(options) {
     return true;
   }
 
+  // Faux SEULEMENT quand la session est morte (fiche fermée, connexion à
+  // l'écran) ; un rechargement qui échoue réseau reste vrai — le geste, lui,
+  // est bien enregistré.
   async function rafraichir() {
     try {
       const resultat = await client.poster({ action: 'inventaire' });
-      if (!(await sessionEncoreValide(resultat))) return;
+      if (!(await sessionEncoreValide(resultat))) return false;
       options.surDonneesFraiches(resultat);
       rendre();
     } catch (erreurRecharge) {
@@ -573,6 +577,7 @@ function creerFicheAdresse(options) {
       montrerErreur('Le geste est bien enregistré, mais la fiche n\'a pas pu se recharger. '
         + 'Fermez-la puis rouvrez-la pour voir l\'état à jour.');
     }
+    return true;
   }
 
   async function envoyerNote() {
@@ -630,14 +635,19 @@ function creerFicheAdresse(options) {
 
   // Un geste de demande : bouton en attente, envoi, rechargement, gestion
   // d'erreur — même patron que la note, mais avec sa propre zone d'erreur.
-  async function faireGesteDemande(bouton, corps, idErreur, messageEchec) {
+  // `surSucces` (optionnel) est joué une fois le geste accepté par le backend,
+  // même si le rechargement échoue (le geste, lui, est bien enregistré) — mais
+  // jamais si la session est morte entre-temps : la fiche s'est fermée, rien
+  // ne s'ouvre par-dessus l'écran de connexion.
+  async function faireGesteDemande(bouton, corps, idErreur, messageEchec, surSucces) {
     if (bouton.loading) return;
     cacherErreursDemande();
     bouton.loading = true;
     try {
       const resultat = await client.poster(corps);
       if (!(await sessionEncoreValide(resultat))) return;
-      await rafraichir();
+      if (!(await rafraichir())) return;
+      if (surSucces) surSucces();
     } catch (erreur) {
       if (erreur instanceof ErreurApi) console.info('Geste de demande refusé :', erreur.message);
       else console.error('Geste de demande impossible :', erreur);
@@ -648,14 +658,36 @@ function creerFicheAdresse(options) {
     }
   }
 
+  // La réponse à la demande décidée (ticket 13, décision 0025) : l'aperçu
+  // « Courriel pré-rédigé » s'ouvre aussitôt par-dessus la fiche restée
+  // ouverte, composé du bon Modèle de courriel — rien ne part jamais tout seul
+  // (0003), l'aperçu se referme d'un tap. Destinataire = le courriel FIGÉ de
+  // la demande (on répond à qui a écrit) ; sans courriel, rien à écrire — pas
+  // d'aperçu. La demande est capturée AVANT le geste : décidée, elle quitte
+  // l'état « en cours » au rafraîchissement (état dérivé, 0020).
+  function ouvrirReponseDemande(demande, issue) {
+    if (!String(demande.courriel || '').trim()) return;
+    const courriel = courrielReponseDemande(options.donnees().gabarits, demande,
+      formatAdresse(demande.numero, demande.rue), issue);
+    // Sans gabarit dans l'inventaire (backend pas à jour) : pas d'aperçu — et
+    // la console le dit à qui débogue, comme la relance hors quota.
+    if (!courriel) {
+      console.info('L\'API ne renvoie pas les gabarits — backend à redéployer (npm run deploy).');
+      return;
+    }
+    ouvrirApercuCourriel(courriel);
+  }
+
   el('fiche-adresse-demande-accepter').addEventListener('click', () => {
     if (numeroChoisi === null) return;
     const demande = demandeCourante();
     if (!demande) return;
+    const numero = numeroChoisi;
     faireGesteDemande(el('fiche-adresse-demande-accepter'),
-      { action: 'deciderDemande', decision: 'accepter', demandeId: demande.id, numero: numeroChoisi },
+      { action: 'deciderDemande', decision: 'accepter', demandeId: demande.id, numero },
       'fiche-adresse-demande-erreur',
-      'Impossible d\'attribuer cet emplacement. Vérifiez votre connexion Internet, puis réessayez.');
+      'Impossible d\'attribuer cet emplacement. Vérifiez votre connexion Internet, puis réessayez.',
+      () => ouvrirReponseDemande(demande, { code: 'acceptee', numero }));
   });
 
   el('fiche-adresse-demande-formulaire-refus').addEventListener('submit', (evenement) => {
@@ -671,7 +703,8 @@ function creerFicheAdresse(options) {
     faireGesteDemande(el('fiche-adresse-demande-refuser'),
       { action: 'deciderDemande', decision: 'refuser', demandeId: demande.id, raison },
       'fiche-adresse-demande-erreur',
-      'Impossible de refuser la demande. Vérifiez votre connexion Internet, puis réessayez.');
+      'Impossible de refuser la demande. Vérifiez votre connexion Internet, puis réessayez.',
+      () => ouvrirReponseDemande(demande, { code: 'refusee', raison }));
   });
 
   el('fiche-adresse-demande-maj').addEventListener('click', () => {

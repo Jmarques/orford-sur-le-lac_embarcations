@@ -111,6 +111,42 @@ var MODELES_COURRIEL = {
       },
     },
   },
+  reponseRefus: {
+    libelle: 'Réponse — demande refusée',
+    jetons: [
+      { cle: 'nom', libelle: 'Nom du membre', requis: true },
+      { cle: 'type d\'embarcation', libelle: 'Type d\'embarcation', requis: true },
+      { cle: 'adresse', libelle: 'Adresse de la demande', requis: true },
+      { cle: 'raison', libelle: 'Raison du refus', requis: true },
+    ],
+    exemple: {
+      nom: 'Marie Gagnon',
+      valeurs: {
+        nom: 'Marie Gagnon',
+        'type d\'embarcation': 'Kayak',
+        adresse: '234 Rue du Pré',
+        raison: 'aucune place compatible n\'est libre cette saison.',
+      },
+    },
+  },
+  reponseAcceptation: {
+    libelle: 'Réponse — demande acceptée',
+    jetons: [
+      { cle: 'nom', libelle: 'Nom du membre', requis: true },
+      { cle: 'numéro', libelle: 'Numéro d\'emplacement', requis: true },
+      { cle: 'adresse', libelle: 'Adresse de la demande', requis: true },
+      { cle: 'type d\'embarcation', libelle: 'Type d\'embarcation', requis: true },
+    ],
+    exemple: {
+      nom: 'Marie Gagnon',
+      valeurs: {
+        nom: 'Marie Gagnon',
+        'numéro': '14',
+        adresse: '234 Rue du Pré',
+        'type d\'embarcation': 'Kayak',
+      },
+    },
+  },
 };
 
 // Les valeurs des informations de `relanceHorsQuota`, depuis le cas hors quota
@@ -129,6 +165,69 @@ function valeursRelanceHorsQuota(cas) {
   };
 }
 
+// --- Réponses à une demande (ticket 13, décision 0025) ------------------------
+
+// Les valeurs figées d'une demande, communes aux deux réponses : le courriel
+// répond à la demande telle qu'elle a été écrite (nom, type), jamais à la
+// ligne Membres. `adresse` arrive déjà formatée (formatAdresse au point
+// d'usage) : ce module reste pur, sans dépendance de présentation.
+function valeursFigeesDemande_(demande, adresse) {
+  return {
+    nom: String((demande && demande.nom) || '').trim(),
+    adresse: adresse,
+    'type d\'embarcation': String((demande && demande.type) || '').trim(),
+  };
+}
+
+// La ponctuation finale de la raison est calculée DANS la valeur (0025) : un
+// point est ajouté si la raison saisie n'en porte pas — jamais une syntaxe
+// conditionnelle dans le modèle (même regex que l'ancien fiche-demande.js).
+function raisonPonctuee_(raison) {
+  var texte = String(raison || '').trim();
+  if (texte === '') return '';
+  return /[.!?]$/.test(texte) ? texte : texte + '.';
+}
+
+// Les valeurs de `reponseAcceptation` : le numéro attribué (du geste, ou
+// `numeroAttribue` relu à la ligne pour le filet « Écrire au membre »).
+function valeursReponseAcceptation(demande, adresse, numero) {
+  var valeurs = valeursFigeesDemande_(demande, adresse);
+  valeurs['numéro'] = String(numero);
+  return valeurs;
+}
+
+// Les valeurs de `reponseRefus` : la raison saisie au refus (ou relue au
+// Journal pour le filet), ponctuation finale comprise.
+function valeursReponseRefus(demande, adresse, raison) {
+  var valeurs = valeursFigeesDemande_(demande, adresse);
+  valeurs.raison = raisonPonctuee_(raison);
+  return valeurs;
+}
+
+// Compose la réponse à une demande décidée depuis le Modèle de courriel
+// effectif de l'inventaire — le même courriel pour l'aperçu qui suit le geste
+// (fiche d'adresse) et le filet « Écrire au membre » (Déjà décidées, À
+// traiter). `issue` = { code: 'acceptee', numero } ou { code: 'refusee',
+// raison } (le vocabulaire d'etatDemande). Destinataire = le courriel FIGÉ de
+// la demande : on répond à qui a écrit (0025). Sans gabarit (backend pas à
+// jour), null : jamais un courriel troué.
+function courrielReponseDemande(gabarits, demande, adresse, issue) {
+  var refus = issue.code === 'refusee';
+  var id = refus ? 'reponseRefus' : 'reponseAcceptation';
+  var modele = gabaritParId(gabarits, id);
+  if (!modele) return null;
+  var valeurs = refus
+    ? valeursReponseRefus(demande, adresse, issue.raison)
+    : valeursReponseAcceptation(demande, adresse, issue.numero);
+  return {
+    courriel: String((demande && demande.courriel) || '').trim(),
+    sujet: rendreModele(modele.sujet, valeurs),
+    corps: rendreModele(modele.corps, valeurs),
+    // L'aperçu offre « Modifier le modèle de ce courriel » (ticket 12).
+    modele: id,
+  };
+}
+
 if (typeof module !== 'undefined') {
   module.exports = {
     decouperModele: decouperModele,
@@ -137,5 +236,8 @@ if (typeof module !== 'undefined') {
     gabaritParId: gabaritParId,
     MODELES_COURRIEL: MODELES_COURRIEL,
     valeursRelanceHorsQuota: valeursRelanceHorsQuota,
+    valeursReponseAcceptation: valeursReponseAcceptation,
+    valeursReponseRefus: valeursReponseRefus,
+    courrielReponseDemande: courrielReponseDemande,
   };
 }

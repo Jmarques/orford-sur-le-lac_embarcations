@@ -214,11 +214,13 @@ export const INVENTAIRE_DEMANDES_NOUVELLES = {
   demandes: DEMANDES_MOCK.filter((d) => d.id === 'demo-1' || d.id === 'demo-2'),
 };
 // Décidées seulement : la file des nouvelles montre son état vide positif, les
-// traitées s'empilent en dessous (une acceptée, une refusée).
+// traitées s'empilent en dessous (une acceptée, une refusée). Les gabarits
+// voyagent : « Écrire au membre » du dépliable recompose la réponse (ticket 13).
 export const INVENTAIRE_DEMANDES_DECIDEES = {
   ok: true, structures: [], emplacements: [], membres: [],
   journal: REPONSES_MOCK.inventaire.journal.filter((e) => e.action === 'refus'),
   demandes: DEMANDES_MOCK.filter((d) => d.id === 'demo-3' || d.id === 'demo-4'),
+  gabarits: gabaritsEffectifs([]),
 };
 
 // Inventaire dédié à la fiche de demande (décision 0020), isolé du jeu par
@@ -267,6 +269,9 @@ export const INVENTAIRE_FICHE_DEMANDE = {
     { numeroAdresse: 80, rue: 'Rue du Pré', nom: 'Hélène Caron', courriel: 'helene.caron@exemple.ca', telephone: '819 555-7788' },
   ],
   journal: [],
+  // Les réponses à une demande (ticket 13) se composent des Modèles de
+  // courriel : l'aperçu post-geste a besoin des gabarits dans l'inventaire.
+  gabarits: gabaritsEffectifs([]),
   demandes: [
     // Suggestions Kayak, contact identique, sous quota, avec une autre demande
     // ouverte de la même adresse (fd-pmr) — plusieurs états d'un coup.
@@ -283,6 +288,32 @@ export const INVENTAIRE_FICHE_DEMANDE = {
     demandeFiche({ id: 'fd-vide', numero: 71, rue: 'Rue du Pré', nom: 'Marc Bélanger', courriel: 'marc.belanger@exemple.ca', telephone: '', type: 'Canoë' }),
   ],
 };
+
+// Inventaire APRÈS l'acceptation de fd-suggestions sur le n° 10 (ticket 13) :
+// la demande décidée quitte « en cours » (état dérivé, 0020), l'emplacement 10
+// porte l'adresse — derrière l'aperçu, la fiche montre l'état frais (fd-pmr,
+// l'autre demande du foyer, devient la demande en cours).
+export const INVENTAIRE_FICHE_DEMANDE_APRES_ACCEPTATION = structuredClone(INVENTAIRE_FICHE_DEMANDE);
+INVENTAIRE_FICHE_DEMANDE_APRES_ACCEPTATION.demandes = INVENTAIRE_FICHE_DEMANDE_APRES_ACCEPTATION.demandes.map(
+  (d) => (d.id === 'fd-suggestions'
+    ? { ...d, numeroAttribue: 10, dateDecision: '2026-07-06T10:00:00.000Z' }
+    : d),
+);
+INVENTAIRE_FICHE_DEMANDE_APRES_ACCEPTATION.emplacements = INVENTAIRE_FICHE_DEMANDE_APRES_ACCEPTATION.emplacements.map(
+  (ligne) => (ligne.numero === 10 ? { ...ligne, numeroAdresse: 45, rue: 'Rue du Pré' } : ligne),
+);
+
+// Inventaire APRÈS le refus de fd-contact-diff (ticket 13) : dateDecision seule
+// (refusée), la raison au Journal keyée par demandeId — derrière l'aperçu, le
+// bloc « Demande en cours » a disparu.
+export const INVENTAIRE_FICHE_DEMANDE_APRES_REFUS = structuredClone(INVENTAIRE_FICHE_DEMANDE);
+INVENTAIRE_FICHE_DEMANDE_APRES_REFUS.demandes = INVENTAIRE_FICHE_DEMANDE_APRES_REFUS.demandes.map(
+  (d) => (d.id === 'fd-contact-diff' ? { ...d, dateDecision: '2026-07-06T10:00:00.000Z' } : d),
+);
+INVENTAIRE_FICHE_DEMANDE_APRES_REFUS.journal.push({
+  date: '2026-07-06T10:00:00.000Z', action: 'refus', numero: '', adresse: '',
+  demandeId: 'fd-contact-diff', details: 'Aucune place compatible libre cette saison — Diane',
+});
 
 // config.js simulé : les captures ne dépendent pas du vrai site/config.js
 // (courriel de contact factice mais présent, pour rendre la .phrase-contact visible).
@@ -471,6 +502,16 @@ export const CAPTURES = [
     cliquer: '.demande-decidee[data-id="demo-4"] .demande-resume',
     attendre: '.demande-decidee[data-id="demo-4"][open]', presenceSeule: true, pleinVue: true,
     reponses: { inventaire: INVENTAIRE_DEMANDES_DECIDEES } },
+  // « Écrire au membre » du dépliable (ticket 13, décision 0025) : le filet
+  // durable recompose la réponse depuis le Modèle de courriel — ici le refus,
+  // raison relue au Journal (demo-4) ; l'acceptation passe par le même aperçu
+  // (couverte post-geste ci-dessous).
+  { nom: 'a-traiter-demande-decidee-ecrire', page: 'a-traiter.html', etat: 'liste',
+    cliquer: ['.demande-decidee[data-id="demo-4"] .demande-resume',
+      '.demande-decidee[data-id="demo-4"] .demande-ecrire'],
+    attendre: '#apercu-courriel[open] #apercu-courriel-modifier:not([hidden])',
+    presenceSeule: true, pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_DEMANDES_DECIDEES } },
   // Toucher une demande ouvre la fiche d'ADRESSE de son adresse, où se fait le
   // traitement (décision 0024, amende 0020 — l'écran de demande autonome a été
   // retiré). demo-1 (234 Rue du Pré) est aussi hors quota : la fiche montre le
@@ -544,6 +585,29 @@ export const CAPTURES = [
     adresse: '70 rue du pré',
     attendre: '#fiche-adresse-demande-contact-nouveau:not([hidden])', pleinVue: true,
     reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE } },
+  // Accepter une demande ouvre AUSSITÔT l'aperçu « Courriel pré-rédigé »
+  // composé de reponseAcceptation (ticket 13, décision 0025) : le numéro
+  // attribué dans l'objet et le corps, la fiche restée ouverte derrière (état
+  // frais : fd-suggestions décidée, fd-pmr devient la demande en cours).
+  { nom: 'a-traiter-reponse-acceptation', page: 'a-traiter.html', etat: 'liste',
+    adresse: '45 rue du pré',
+    cliquer: ['#fiche-adresse-demande-suggestions .suggestion-emplacement[data-numero="10"]',
+      '#fiche-adresse-demande-accepter'],
+    attendre: '#apercu-courriel[open] #apercu-courriel-modifier:not([hidden])',
+    presenceSeule: true, pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE },
+    reponsesApres: { inventaire: INVENTAIRE_FICHE_DEMANDE_APRES_ACCEPTATION } },
+  // Refuser une demande ouvre le même aperçu, composé de reponseRefus : la
+  // raison saisie est dans le corps, ponctuation calculée dans la valeur.
+  { nom: 'a-traiter-reponse-refus', page: 'a-traiter.html', etat: 'liste',
+    adresse: '60 rue du pré',
+    remplir: { selecteur: '#fiche-adresse-demande-raison textarea',
+      valeur: 'aucune place compatible libre cette saison' },
+    cliquer: '#fiche-adresse-demande-refuser',
+    attendre: '#apercu-courriel[open] #apercu-courriel-modifier:not([hidden])',
+    presenceSeule: true, pleinVue: true,
+    reponses: { inventaire: INVENTAIRE_FICHE_DEMANDE },
+    reponsesApres: { inventaire: INVENTAIRE_FICHE_DEMANDE_APRES_REFUS } },
   // La fiche unifiée d'un cas attribué-libre : callout warning portant les
   // remèdes (Relancer, Libérer), membre, relevé replié, journal (0024). La barre
   // utilitaire montre « Fiche d'adresse » (l'emplacement est attribué) — MIROIR
