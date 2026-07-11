@@ -24,7 +24,11 @@ function doPost(e) {
     // Avec `action` : actions admin, mot de passe dans le corps (décision 0008).
     if (!corps.action) {
       var demande = parseDemande(corps, lireConfig());
-      return reponseJson_({ ok: true, id: ajouterDemande(demande) });
+      var id = ajouterDemande(demande);
+      // Après l'écriture, jamais bloquant (ticket 04) — et ici plutôt que
+      // dans ajouterDemande : les données démo (demo.js) ne notifient pas.
+      notifierComiteDemande(demande);
+      return reponseJson_({ ok: true, id: id });
     }
     verifierAcces(corps, lireMotDePasseComite());
     if (corps.action === 'inventaire') {

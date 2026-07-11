@@ -17,6 +17,12 @@ var CLE_TYPE = 'type';
 // par lireConfig() — l'action publique `config` exposerait tout son résultat.
 var CLE_MOT_DE_PASSE = 'motDePasseComite';
 var MOT_DE_PASSE_PLACEHOLDER = 'À REMPLACER — mot de passe du comité';
+// Notification interne à la réception d'une demande (ticket 04, décision
+// 0003) : destinataire, et base du site pour le lien vers À traiter. Valeur
+// vide = pas d'envoi / pas de lien — jamais un échec.
+var CLE_COURRIEL_COMITE = 'courrielComite';
+var CLE_URL_SITE = 'urlSite';
+var URL_SITE_DEFAUT = 'https://jmarques.github.io/orford-sur-le-lac_embarcations/';
 
 // Inventaire (décisions 0009, 0010) : la colonne `emplacements` de Structures
 // est la source de vérité de la géographie (grille parsée par grille.js).
@@ -105,17 +111,23 @@ function lireConfig() {
   return config;
 }
 
-// Le mot de passe du comité, ou '' s'il est absent ou laissé au placeholder —
-// verifierAcces (admin.js) crashe alors en nommant la clé à renseigner.
-function lireMotDePasseComite() {
+// La valeur d'une clé unique de l'onglet Config, ou '' si la clé est absente
+// ou sa cellule vide (la Sheet reste éditable à la main — 0002).
+function lireValeurConfig(cle) {
   var lignes = ongletRequis_(ONGLET_CONFIG).getDataRange().getValues();
   for (var i = 1; i < lignes.length; i++) {
-    if (String(lignes[i][0]).trim() === CLE_MOT_DE_PASSE) {
-      var valeur = String(lignes[i][1]).trim();
-      return valeur === MOT_DE_PASSE_PLACEHOLDER ? '' : valeur;
+    if (String(lignes[i][0]).trim() === cle) {
+      return String(lignes[i][1]).trim();
     }
   }
   return '';
+}
+
+// Le mot de passe du comité, ou '' s'il est absent ou laissé au placeholder —
+// verifierAcces (admin.js) crashe alors en nommant la clé à renseigner.
+function lireMotDePasseComite() {
+  var valeur = lireValeurConfig(CLE_MOT_DE_PASSE);
+  return valeur === MOT_DE_PASSE_PLACEHOLDER ? '' : valeur;
 }
 
 // Toutes les demandes, l'état frais de la Sheet (édition manuelle possible — 0002).
@@ -375,11 +387,18 @@ function setup() {
     config.setFrozenRows(1);
   }
 
-  // Ajoute la clé du mot de passe comité aux Sheets créées avant la décision 0008.
+  // Ajoute les clés uniques manquantes aux Sheets créées avant elles, en fin
+  // d'onglet (jamais de réordonnancement — 0012) : le mot de passe (décision
+  // 0008), puis la notification interne (ticket 04) — courriel vide = pas
+  // d'envoi tant que le comité ne l'a pas renseigné.
   var cles = config.getDataRange().getValues().map(function (ligne) {
     return String(ligne[0]).trim();
   });
-  if (cles.indexOf(CLE_MOT_DE_PASSE) === -1) {
-    config.appendRow([CLE_MOT_DE_PASSE, MOT_DE_PASSE_PLACEHOLDER]);
-  }
+  [
+    [CLE_MOT_DE_PASSE, MOT_DE_PASSE_PLACEHOLDER],
+    [CLE_COURRIEL_COMITE, ''],
+    [CLE_URL_SITE, URL_SITE_DEFAUT],
+  ].forEach(function (paire) {
+    if (cles.indexOf(paire[0]) === -1) config.appendRow(paire);
+  });
 }

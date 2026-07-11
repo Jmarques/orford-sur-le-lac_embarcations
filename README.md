@@ -41,7 +41,14 @@ un état donné (utilisé par les captures — décision 0006).
   aucun impact sur le frontend. L'état du dernier déploiement vit dans
   `.deployment.json` (commité).
 - `site/config.js` : la ligne `apiUrl` est gérée par `npm run deploy` ; le
-  `courrielComite` s'y édite à la main.
+  `courrielComite` s'y édite à la main (lien de contact affiché quand le
+  formulaire échoue — homonyme mais distinct de la clé de l'onglet Config).
+- Notification interne (ticket 04, décision 0003) : à chaque nouvelle demande,
+  le backend envoie un courriel au destinataire de la clé `courrielComite` de
+  l'onglet Config de la Sheet (vide = aucun envoi) ; la clé `urlSite` fournit
+  le lien vers À traiter. Les deux clés sont semées par `setup()` — après le
+  déploiement qui les introduit, ré-exécuter `setup()` et ré-autoriser le
+  script (nouveau scope d'envoi de courriel).
 
 ### Première mise en service (une seule fois)
 

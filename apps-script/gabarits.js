@@ -1,6 +1,8 @@
 // Registre serveur des gabarits de courriels (PRD gabarits-courriels, carte
 // tickets 05/07) : la vérité des TEXTES. Chaque courriel que l'app prépare
-// déclare ici son id et ses textes d'origine — texte brut à jetons `{…}` en
+// POUR UN MEMBRE (les quatre Modèles éditables — la notification interne au
+// comité, non éditable, vit dans notification.js) déclare ici son id et ses
+// textes d'origine — texte brut à jetons `{…}` en
 // français, la forme stockée dans l'onglet Gabarits (lisible à la main, 0002).
 // setup() (sheets.js) sème l'onglet avec ces défauts ; l'inventaire renvoie par
 // gabarit le texte EFFECTIF (ligne de la Sheet, ou défaut en repli) et le
